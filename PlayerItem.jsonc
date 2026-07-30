@@ -1,0 +1,32 @@
+{
+  "name": "PlayerItem",
+  "type": "object",
+  "properties": {
+    "player_discord_id": {
+      "type": "string"
+    },
+    "item_id": {
+      "type": "string",
+      "description": "Reference to Item entity"
+    },
+    "item_name": {
+      "type": "string"
+    },
+    "equipped_to_roster_id": {
+      "type": "string",
+      "description": "Roster entry ID this item is equipped to (null if unequipped)"
+    },
+    "equipped_card_name": {
+      "type": "string"
+    },
+    "quantity": {
+      "type": "number",
+      "default": 1
+    }
+  },
+  "required": [
+    "player_discord_id",
+    "item_id",
+    "item_name"
+  ]
+}

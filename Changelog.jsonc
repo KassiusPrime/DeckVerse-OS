@@ -1,0 +1,18 @@
+{
+  "name": "Changelog",
+  "type": "object",
+  "properties": {
+    "patch_version": {
+      "type": "string",
+      "description": "Version string (e.g., v1.2.3)"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Patch notes content"
+    }
+  },
+  "required": [
+    "patch_version",
+    "notes"
+  ]
+}

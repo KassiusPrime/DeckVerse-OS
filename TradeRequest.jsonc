@@ -1,0 +1,63 @@
+{
+  "name": "TradeRequest",
+  "type": "object",
+  "properties": {
+    "sender_discord_id": {
+      "type": "string",
+      "description": "Discord ID of the trade initiator"
+    },
+    "sender_username": {
+      "type": "string",
+      "description": "Username of sender"
+    },
+    "receiver_discord_id": {
+      "type": "string",
+      "description": "Discord ID of recipient"
+    },
+    "receiver_username": {
+      "type": "string",
+      "description": "Username of recipient"
+    },
+    "sender_card_id": {
+      "type": "string",
+      "description": "Card ID being offered"
+    },
+    "sender_card_name": {
+      "type": "string",
+      "description": "Card name offered"
+    },
+    "receiver_card_id": {
+      "type": "string",
+      "description": "Card ID being requested"
+    },
+    "receiver_card_name": {
+      "type": "string",
+      "description": "Card name requested"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "accepted",
+        "rejected",
+        "cancelled"
+      ],
+      "default": "pending"
+    },
+    "gem_bonus": {
+      "type": "number",
+      "default": 0,
+      "description": "Extra gems offered with the trade"
+    }
+  },
+  "required": [
+    "sender_discord_id",
+    "sender_username",
+    "receiver_discord_id",
+    "receiver_username",
+    "sender_card_id",
+    "sender_card_name",
+    "receiver_card_id",
+    "receiver_card_name"
+  ]
+}

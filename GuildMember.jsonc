@@ -1,0 +1,43 @@
+{
+  "name": "GuildMember",
+  "type": "object",
+  "properties": {
+    "guild_id": {
+      "type": "string",
+      "description": "Reference to the Guild entity id"
+    },
+    "guild_name": {
+      "type": "string",
+      "description": "Cached guild name"
+    },
+    "player_discord_id": {
+      "type": "string",
+      "description": "Discord ID of the member"
+    },
+    "player_username": {
+      "type": "string",
+      "description": "Username of the member"
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "leader",
+        "officer",
+        "member"
+      ],
+      "default": "member",
+      "description": "Role within the guild"
+    },
+    "contribution": {
+      "type": "number",
+      "description": "Total contribution points",
+      "default": 0
+    }
+  },
+  "required": [
+    "guild_id",
+    "guild_name",
+    "player_discord_id",
+    "player_username"
+  ]
+}

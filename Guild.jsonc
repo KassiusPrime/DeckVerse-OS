@@ -1,0 +1,47 @@
+{
+  "name": "Guild",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Guild name"
+    },
+    "tag": {
+      "type": "string",
+      "description": "Short tag (3 characters)"
+    },
+    "description": {
+      "type": "string",
+      "description": "Guild description"
+    },
+    "leader_discord_id": {
+      "type": "string",
+      "description": "Discord ID of the guild leader"
+    },
+    "leader_username": {
+      "type": "string",
+      "description": "Username of the guild leader"
+    },
+    "member_count": {
+      "type": "number",
+      "description": "Number of members",
+      "default": 1
+    },
+    "total_wins": {
+      "type": "number",
+      "description": "Total guild wins",
+      "default": 0
+    },
+    "emblem": {
+      "type": "string",
+      "description": "Emoji or icon identifier for the guild emblem",
+      "default": "\u2694\ufe0f"
+    }
+  },
+  "required": [
+    "name",
+    "tag",
+    "leader_discord_id",
+    "leader_username"
+  ]
+}

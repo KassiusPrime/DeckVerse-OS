@@ -1,0 +1,43 @@
+{
+  "name": "Roster",
+  "type": "object",
+  "properties": {
+    "player_discord_id": {
+      "type": "string",
+      "description": "Discord ID of the player who owns this card"
+    },
+    "card_id": {
+      "type": "string",
+      "description": "Reference to the Card entity id"
+    },
+    "card_name": {
+      "type": "string",
+      "description": "Cached card name for quick display"
+    },
+    "level": {
+      "type": "number",
+      "description": "Card upgrade level (1-10)",
+      "default": 1
+    },
+    "attack_bonus": {
+      "type": "number",
+      "description": "Bonus attack from upgrades",
+      "default": 0
+    },
+    "defense_bonus": {
+      "type": "number",
+      "description": "Bonus defense from upgrades",
+      "default": 0
+    },
+    "copies": {
+      "type": "number",
+      "description": "Number of copies owned",
+      "default": 1
+    }
+  },
+  "required": [
+    "player_discord_id",
+    "card_id",
+    "card_name"
+  ]
+}

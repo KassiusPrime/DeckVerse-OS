@@ -1,0 +1,31 @@
+{
+  "name": "BattleLog",
+  "type": "object",
+  "properties": {
+    "winner_username": {
+      "type": "string",
+      "description": "Username of the winner"
+    },
+    "loser_username": {
+      "type": "string",
+      "description": "Username of the loser"
+    },
+    "details": {
+      "type": "string",
+      "description": "Battle description (e.g., 'Magneto used Magnetic Field to counter Ahsoka Tano')"
+    },
+    "winner_card": {
+      "type": "string",
+      "description": "Card used by winner"
+    },
+    "loser_card": {
+      "type": "string",
+      "description": "Card used by loser"
+    }
+  },
+  "required": [
+    "winner_username",
+    "loser_username",
+    "details"
+  ]
+}

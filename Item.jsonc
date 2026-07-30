@@ -1,0 +1,75 @@
+{
+  "name": "Item",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "Weapon",
+        "Armor",
+        "Relic",
+        "Accessory",
+        "Consumable"
+      ],
+      "description": "Item category"
+    },
+    "rarity": {
+      "type": "string",
+      "enum": [
+        "Recruit",
+        "Adept",
+        "Elite",
+        "Champion",
+        "Sovereign",
+        "Ascendant"
+      ]
+    },
+    "atk_bonus": {
+      "type": "number",
+      "default": 0
+    },
+    "def_bonus": {
+      "type": "number",
+      "default": 0
+    },
+    "hp_bonus": {
+      "type": "number",
+      "default": 0
+    },
+    "spd_bonus": {
+      "type": "number",
+      "default": 0
+    },
+    "role_bonus": {
+      "type": "string",
+      "description": "Role that gets double effect (e.g. DPS)",
+      "enum": [
+        "DPS",
+        "Tank",
+        "Support",
+        "Healer",
+        "Assassin",
+        "Mage",
+        ""
+      ]
+    },
+    "image_url": {
+      "type": "string"
+    },
+    "icon": {
+      "type": "string",
+      "description": "Emoji icon"
+    }
+  },
+  "required": [
+    "name",
+    "type",
+    "rarity"
+  ]
+}

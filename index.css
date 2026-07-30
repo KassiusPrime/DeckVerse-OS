@@ -1,0 +1,239 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-heading: 'Orbitron', sans-serif;
+    --font-body: 'Inter', sans-serif;
+
+    --background: 240 25% 2%;
+    --foreground: 220 20% 92%;
+    --card: 240 20% 4%;
+    --card-foreground: 220 20% 92%;
+    --popover: 240 20% 4%;
+    --popover-foreground: 220 20% 92%;
+    --primary: 185 100% 50%;
+    --primary-foreground: 240 25% 2%;
+    --secondary: 280 100% 50%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 240 15% 7%;
+    --muted-foreground: 220 10% 50%;
+    --accent: 38 100% 50%;
+    --accent-foreground: 240 25% 2%;
+    --destructive: 348 100% 50%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 15% 11%;
+    --input: 240 15% 11%;
+    --ring: 185 100% 50%;
+    --chart-1: 185 100% 50%;
+    --chart-2: 280 100% 50%;
+    --chart-3: 38 100% 50%;
+    --chart-4: 348 100% 50%;
+    --chart-5: 150 60% 50%;
+    --radius: 0.75rem;
+    --sidebar-background: 240 25% 2%;
+    --sidebar-foreground: 220 20% 92%;
+    --sidebar-primary: 185 100% 50%;
+    --sidebar-primary-foreground: 240 25% 2%;
+    --sidebar-accent: 240 15% 7%;
+    --sidebar-accent-foreground: 220 20% 92%;
+    --sidebar-border: 240 15% 11%;
+    --sidebar-ring: 185 100% 50%;
+  }
+
+  .dark {
+    --background: 240 25% 2%;
+    --foreground: 220 20% 92%;
+    --card: 240 20% 4%;
+    --card-foreground: 220 20% 92%;
+    --popover: 240 20% 4%;
+    --popover-foreground: 220 20% 92%;
+    --primary: 185 100% 50%;
+    --primary-foreground: 240 25% 2%;
+    --secondary: 280 100% 50%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 240 15% 7%;
+    --muted-foreground: 220 10% 50%;
+    --accent: 38 100% 50%;
+    --accent-foreground: 240 25% 2%;
+    --destructive: 348 100% 50%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 15% 11%;
+    --input: 240 15% 11%;
+    --ring: 185 100% 50%;
+    --chart-1: 185 100% 50%;
+    --chart-2: 280 100% 50%;
+    --chart-3: 38 100% 50%;
+    --chart-4: 348 100% 50%;
+    --chart-5: 150 60% 50%;
+    --sidebar-background: 240 25% 2%;
+    --sidebar-foreground: 220 20% 92%;
+    --sidebar-primary: 185 100% 50%;
+    --sidebar-primary-foreground: 240 25% 2%;
+    --sidebar-accent: 240 15% 7%;
+    --sidebar-accent-foreground: 220 20% 92%;
+    --sidebar-border: 240 15% 11%;
+    --sidebar-ring: 185 100% 50%;
+  }
+}
+
+/* ─── Scanlines overlay ─────────────────────── */
+@layer utilities {
+  .scanlines::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 3px,
+      rgba(0, 240, 255, 0.018) 3px,
+      rgba(0, 240, 255, 0.018) 4px
+    );
+    z-index: 9999;
+  }
+}
+
+/* ─── Neon flicker animation ────────────────── */
+@keyframes neon-flicker {
+  0%, 95%, 100% { opacity: 1; }
+  96% { opacity: 0.7; }
+  97% { opacity: 1; }
+  98% { opacity: 0.5; }
+  99% { opacity: 1; }
+}
+.neon-flicker {
+  animation: neon-flicker 6s infinite;
+}
+
+/* ─── Tactical Toast — Glitch Anomaly ──────────── */
+@keyframes glitch-shift {
+  0%   { transform: translate(0, 0) skewX(0deg); }
+  10%  { transform: translate(-3px, 1px) skewX(-1deg); }
+  20%  { transform: translate(2px, -1px) skewX(0.5deg); }
+  30%  { transform: translate(-1px, 2px) skewX(1deg); }
+  40%  { transform: translate(3px, -2px) skewX(-0.5deg); }
+  50%  { transform: translate(-2px, 1px) skewX(0deg); }
+  60%  { transform: translate(1px, -1px) skewX(0.5deg); }
+  70%  { transform: translate(-3px, 2px) skewX(-1deg); }
+  80%  { transform: translate(2px, 0) skewX(0deg); }
+  100% { transform: translate(0, 0) skewX(0deg); }
+}
+@keyframes glitch-text {
+  0%   { text-shadow: 0 0 0 transparent; }
+  15%  { text-shadow: -2px 0 #ff003c, 2px 0 #00f0ff; clip-path: inset(20% 0 60% 0); }
+  30%  { text-shadow: 2px 0 #ff003c, -2px 0 #00f0ff; clip-path: inset(60% 0 10% 0); }
+  45%  { text-shadow: 0 0 0 transparent; clip-path: none; }
+  100% { text-shadow: 0 0 0 transparent; clip-path: none; }
+}
+@keyframes anomaly-red {
+  0%, 100% { opacity: 0; transform: translate(0,0); }
+  25% { opacity: 0.12; transform: translate(-2px, 0); }
+  75% { opacity: 0.08; transform: translate(1px, 0); }
+}
+@keyframes anomaly-blue {
+  0%, 100% { opacity: 0; transform: translate(0,0); }
+  25% { opacity: 0.10; transform: translate(2px, 0); }
+  75% { opacity: 0.06; transform: translate(-1px, 0); }
+}
+@keyframes scanline-flicker {
+  0%, 100% { opacity: 0.15; }
+  50% { opacity: 0.05; }
+}
+
+.anomaly-glitch {
+  animation: glitch-shift 2s infinite;
+  box-shadow: 0 0 20px rgba(180, 0, 255, 0.4), 0 0 40px rgba(255, 0, 60, 0.2) !important;
+}
+.anomaly-text {
+  animation: glitch-text 1.5s infinite;
+}
+.anomaly-red-shift {
+  background: rgba(255, 0, 60, 0.06);
+  mix-blend-mode: screen;
+  animation: anomaly-red 1.2s infinite;
+}
+.anomaly-blue-shift {
+  background: rgba(0, 180, 255, 0.06);
+  mix-blend-mode: screen;
+  animation: anomaly-blue 1.2s infinite;
+}
+.scanlines-glitch {
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 2px,
+    rgba(255,255,255,0.08) 2px,
+    rgba(255,255,255,0.08) 3px
+  );
+  animation: scanline-flicker 0.5s infinite;
+}
+
+/* ─── Toast progress bar shrink ─────────────── */
+@keyframes shrink-bar {
+  from { width: 100%; }
+  to { width: 0%; }
+}
+
+/* ─── Cyber grid background ─────────────────── */
+.cyber-grid {
+  background-image:
+    linear-gradient(rgba(0,240,255,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,240,255,0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    overscroll-behavior: none;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    overscroll-behavior: none;
+    background-image:
+      linear-gradient(rgba(0,240,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,240,255,0.025) 1px, transparent 1px);
+    background-size: 48px 48px;
+    font-size: 14px;
+  }
+
+  /* Global tap target minimum & user-select for interactive elements */
+  button, a, [role="button"], label[for], select, input[type="checkbox"], input[type="radio"] {
+    min-height: 44px;
+    min-width: 44px;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* Safe area support */
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 3px,
+      rgba(0, 240, 255, 0.012) 3px,
+      rgba(0, 240, 255, 0.012) 4px
+    );
+    z-index: 9999;
+  }
+}

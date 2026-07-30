@@ -1,0 +1,8 @@
+{
+  "name": "DeckVerse OS",
+  "description": "Tactical Multiverse Card Battler & Collection OS featuring PVE Arena, Gacha Zone, Guild Syndicate, Synergy Deckbuilder, and Marketplace.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
