@@ -616,6 +616,10 @@ function createEntityStore(tableName, defaultData) {
   };
 }
 
+const DEFAULT_BOSSES = [
+  ...MEGA_BOSSES
+];
+
 // Registry of stores
 const entityStores = {
   Card: createEntityStore("Card", DEFAULT_CARDS),
@@ -626,6 +630,7 @@ const entityStores = {
   GuildMember: createEntityStore("GuildMember", []),
   Item: createEntityStore("Item", DEFAULT_ITEMS),
   PlayerItem: createEntityStore("PlayerItem", DEFAULT_PLAYER_ITEMS),
+  Boss: createEntityStore("Boss", DEFAULT_BOSSES),
   BattleLog: createEntityStore("BattleLog", DEFAULT_BATTLE_LOGS),
   TradeRequest: createEntityStore("TradeRequest", []),
   Changelog: createEntityStore("Changelog", DEFAULT_CHANGELOGS),
