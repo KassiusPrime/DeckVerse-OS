@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { X, Plus } from "lucide-react";
-import { ALL_TAGS } from "@/lib/tagSynergies";
+import { ALL_TAGS } from "@/tagSynergies";
 
 export default function TagInput({ value = [], onChange }) {
   const [custom, setCustom] = useState("");

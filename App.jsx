@@ -35,7 +35,7 @@ import GemShop from './GemShop';
 import Dashboard from './Dashboard';
 import Inventory from './Inventory';
 import FandomImporter from './pages/FandomImporter';
-import LoreArchive from './LoreArchive';
+import LoreArchive from './pages/LoreArchive';
 import AdminTerminal from './AdminTerminal';
 
 const AnimatedRoutes = () => {
