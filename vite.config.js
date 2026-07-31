@@ -11,17 +11,34 @@ function rootFallbackPlugin() {
     resolveId(source, importer) {
       if (!importer || importer.includes('node_modules') || source.startsWith('\0') || source.startsWith('node:')) return null;
 
-      // Handle relative, alias, or absolute paths like @/, ./, ../, /
-      if (source.startsWith('@/') || source.startsWith('./') || source.startsWith('../') || source.startsWith('/')) {
-        const filename = path.basename(source);
-        const extensions = ['', '.jsx', '.js', '.jsonc', '.json', '.tsx', '.ts'];
+      // First check if standard relative/alias path exists
+      let targetPath;
+      if (source.startsWith('@/')) {
+        targetPath = path.resolve(__dirname, source.slice(2));
+      } else if (source.startsWith('./') || source.startsWith('../')) {
+        targetPath = path.resolve(path.dirname(importer), source);
+      } else if (source.startsWith('/')) {
+        targetPath = path.resolve(__dirname, '.' + source);
+      } else {
+        return null;
+      }
 
-        for (const ext of extensions) {
-          const nameWithExt = filename.endsWith(ext) && ext !== '' ? filename : filename + ext;
-          const candidate = path.resolve(__dirname, nameWithExt);
-          if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
-            return candidate;
-          }
+      const extensions = ['', '.jsx', '.js', '.jsonc', '.json', '.tsx', '.ts'];
+      for (const ext of extensions) {
+        const p = targetPath.endsWith(ext) && ext !== '' ? targetPath : targetPath + ext;
+        if (fs.existsSync(p) && fs.statSync(p).isFile()) {
+          // Explicit target exists! Return it directly or let Vite resolve it
+          return p;
+        }
+      }
+
+      // Fallback: search at root only if explicit path did not exist
+      const filename = path.basename(source);
+      for (const ext of extensions) {
+        const nameWithExt = filename.endsWith(ext) && ext !== '' ? filename : filename + ext;
+        const candidate = path.resolve(__dirname, nameWithExt);
+        if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
+          return candidate;
         }
       }
       return null;
