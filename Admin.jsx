@@ -1,21 +1,21 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
+import { db } from "@/base44Client";
 
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { useAuth } from "@/lib/AuthContext";
+import { useAuth } from "@/AuthContext";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Shield, Upload, Database, Scroll, Swords, ChevronRight,
   Plus, Save, Trash2, Eye, EyeOff, Pencil, X, Check
 } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/components/ui/use-toast";
-import { RARITY_ORDER, ELEMENTS, ROLES } from "@/lib/constants";
-import TagInput from "@/components/admin/TagInput";
+import { Input } from "@/input";
+import { Textarea } from "@/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/select";
+import { useToast } from "@/use-toast";
+import { RARITY_ORDER, ELEMENTS, ROLES } from "@/constants";
+import TagInput from "@/TagInput";
 
 const NAV = [
   { key: "cards",       label: "CARD EDITOR",    icon: Upload },
@@ -130,34 +130,74 @@ function SkillsEditor({ skills, onChange }) {
   );
 }
 
-/* ─── Inline card edit row ─── */
-function CardRow({ card, onDelete, onEdit }) {
+/* ─── Inline card edit row with quick image paste ─── */
+function CardRow({ card, onDelete, onEdit, onQuickSaveImage }) {
+  const currentImg = card.img_custom || card.img_oficial || card.image_url || "";
+  const [quickImg, setQuickImg] = useState(currentImg);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Sync state if card updates
+  React.useEffect(() => {
+    setQuickImg(card.img_custom || card.img_oficial || card.image_url || "");
+  }, [card.img_custom, card.img_oficial, card.image_url]);
+
+  const handleQuickSave = async () => {
+    setIsSaving(true);
+    await onQuickSaveImage(card.id, quickImg);
+    setIsSaving(false);
+  };
+
   return (
-    <div className="flex items-center justify-between px-4 py-2.5 hover:bg-muted/10 group">
-      <div className="flex items-center gap-3 min-w-0">
-        {(card.img_custom || card.img_oficial || card.image_url) && (
-                  <img src={card.img_custom || card.img_oficial || card.image_url} alt={card.name} className="w-8 h-10 object-cover border border-border/30 shrink-0" />
-                )}
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-3 hover:bg-muted/10 group gap-3 border-b border-border/10">
+      <div className="flex items-center gap-3 min-w-0 flex-1">
+        {currentImg ? (
+          <img src={currentImg} alt={card.name} className="w-10 h-12 object-cover border border-border/30 rounded shrink-0 bg-muted/30" />
+        ) : (
+          <div className="w-10 h-12 flex flex-col items-center justify-center bg-destructive/10 border border-destructive/30 rounded shrink-0 text-center">
+            <span className="text-[8px] font-heading font-bold text-destructive">SEM IMG</span>
+          </div>
+        )}
         <div className="min-w-0">
-          <span className="font-heading text-xs font-bold text-foreground">{card.name}</span>
-          <span className="ml-2 font-mono text-[10px] text-muted-foreground">{card.card_id}</span>
-          <div className="flex gap-1 mt-0.5 flex-wrap">
-            <span className="text-[9px] font-heading text-primary border border-primary/30 px-1">{card.rarity}</span>
-            <span className="text-[9px] font-heading text-muted-foreground border border-border/30 px-1">{card.role}</span>
-            {card.series && <span className="text-[9px] font-body text-muted-foreground/60">{card.series}</span>}
+          <div className="flex items-center gap-2">
+            <span className="font-heading text-xs font-bold text-foreground">{card.name}</span>
+            <span className="font-mono text-[10px] text-muted-foreground">{card.card_id}</span>
+          </div>
+          <div className="flex gap-1 mt-1 flex-wrap items-center">
+            <span className="text-[9px] font-heading text-primary border border-primary/30 px-1 rounded">{card.rarity}</span>
+            <span className="text-[9px] font-heading text-muted-foreground border border-border/30 px-1 rounded">{card.role}</span>
+            {card.series && <span className="text-[9px] font-body text-muted-foreground/60">· {card.series}</span>}
           </div>
         </div>
       </div>
-      <div className="flex items-center gap-1 shrink-0">
+
+      {/* Quick Image Input & Actions */}
+      <div className="flex items-center gap-2 w-full sm:w-auto">
+        <Input
+          value={quickImg}
+          onChange={e => setQuickImg(e.target.value)}
+          placeholder="URL da Imagem..."
+          className="font-mono text-[11px] h-8 w-full sm:w-60 bg-muted/20 border-border/40 focus:border-primary"
+        />
+        <button
+          onClick={handleQuickSave}
+          disabled={isSaving}
+          title="Salvar Imagem Rápidamente"
+          className="h-8 px-2.5 bg-primary/20 hover:bg-primary text-primary hover:text-primary-foreground border border-primary/40 rounded text-[10px] font-heading font-bold tracking-wider transition-colors shrink-0 flex items-center gap-1"
+        >
+          <Check className="w-3.5 h-3.5" />
+          {isSaving ? "..." : "SALVAR"}
+        </button>
         <button
           onClick={() => onEdit(card)}
-          className="p-1.5 text-muted-foreground/50 hover:text-primary transition-colors opacity-0 group-hover:opacity-100"
+          title="Editar Dados Completos"
+          className="p-2 text-muted-foreground/60 hover:text-primary transition-colors border border-border/30 rounded shrink-0"
         >
           <Pencil className="w-3.5 h-3.5" />
         </button>
         <button
           onClick={() => onDelete(card.id)}
-          className="p-1.5 text-destructive/50 hover:text-destructive transition-colors"
+          title="Excluir Carta"
+          className="p-2 text-destructive/50 hover:text-destructive transition-colors border border-destructive/20 rounded shrink-0"
         >
           <Trash2 className="w-3.5 h-3.5" />
         </button>
@@ -174,10 +214,11 @@ function CardEditor() {
   const [tags, setTags] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [searchFilter, setSearchFilter] = useState("");
+  const [imgStatusFilter, setImgStatusFilter] = useState("all");
 
   const { data: cards = [] } = useQuery({
     queryKey: ["admin-cards"],
-    queryFn: () => db.entities.Card.list("-created_date", 200),
+    queryFn: () => db.entities.Card.list("-created_date", 500),
   });
 
   const createMutation = useMutation({
@@ -202,6 +243,12 @@ function CardEditor() {
     mutationFn: (id) => db.entities.Card.delete(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-cards"] }),
   });
+
+  const handleQuickSaveImage = async (id, newUrl) => {
+    await db.entities.Card.update(id, { image_url: newUrl, img_oficial: newUrl });
+    qc.invalidateQueries({ queryKey: ["admin-cards"] });
+    toast({ title: "✅ Imagem salva com sucesso!" });
+  };
 
   const resetForm = () => {
     setForm({ ...EMPTY_CARD });
@@ -260,12 +307,19 @@ function CardEditor() {
     }
   };
 
-  const filteredCards = cards.filter(c =>
-    !searchFilter ||
-    c.name?.toLowerCase().includes(searchFilter.toLowerCase()) ||
-    c.card_id?.toLowerCase().includes(searchFilter.toLowerCase()) ||
-    c.series?.toLowerCase().includes(searchFilter.toLowerCase())
-  );
+  const filteredCards = cards.filter(c => {
+    const matchesSearch = !searchFilter ||
+      c.name?.toLowerCase().includes(searchFilter.toLowerCase()) ||
+      c.card_id?.toLowerCase().includes(searchFilter.toLowerCase()) ||
+      c.series?.toLowerCase().includes(searchFilter.toLowerCase());
+    const hasImg = !!(c.img_custom || c.img_oficial || c.image_url);
+    if (imgStatusFilter === "missing") return matchesSearch && !hasImg;
+    if (imgStatusFilter === "has_image") return matchesSearch && hasImg;
+    return matchesSearch;
+  });
+
+  const missingImgCount = cards.filter(c => !(c.img_custom || c.img_oficial || c.image_url)).length;
+  const hasImgCount = cards.length - missingImgCount;
 
   const isPending = createMutation.isPending || updateMutation.isPending;
 
@@ -453,22 +507,53 @@ function CardEditor() {
         </div>
       </form>
 
-      {/* Card list */}
-      <div className="flex items-center justify-between">
-        <h2 className="font-heading text-xs font-bold tracking-widest uppercase text-muted-foreground">
-          — Cartas Existentes ({filteredCards.length}/{cards.length})
-        </h2>
-        <Input
-          value={searchFilter}
-          onChange={e => setSearchFilter(e.target.value)}
-          placeholder="Buscar por nome, ID ou coleção..."
-          className="w-60 h-7 text-xs font-body bg-muted/20 border-border/50"
-        />
+      {/* Card list header & filter controls */}
+      <div className="space-y-3 pt-4 border-t border-border/40">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <h2 className="font-heading text-xs font-bold tracking-widest uppercase text-muted-foreground flex items-center gap-2">
+            <span>— CARTAS EXISTENTES ({filteredCards.length}/{cards.length})</span>
+          </h2>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Input
+              value={searchFilter}
+              onChange={e => setSearchFilter(e.target.value)}
+              placeholder="Buscar por nome, ID ou coleção..."
+              className="w-full sm:w-60 h-8 text-xs font-body bg-muted/20 border-border/50"
+            />
+          </div>
+        </div>
+
+        {/* Status Filter Tabs */}
+        <div className="flex items-center gap-2 flex-wrap text-xs">
+          <button
+            type="button"
+            onClick={() => setImgStatusFilter("all")}
+            className={`px-3 py-1 font-heading text-[11px] font-bold rounded border transition-colors ${imgStatusFilter === "all" ? "bg-primary text-primary-foreground border-primary" : "bg-muted/20 text-muted-foreground border-border/40 hover:text-foreground"}`}
+          >
+            Todas ({cards.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setImgStatusFilter("missing")}
+            className={`px-3 py-1 font-heading text-[11px] font-bold rounded border transition-colors flex items-center gap-1.5 ${imgStatusFilter === "missing" ? "bg-destructive text-destructive-foreground border-destructive" : "bg-destructive/10 text-destructive border-destructive/30 hover:bg-destructive/20"}`}
+          >
+            ⚠️ Sem Imagem ({missingImgCount})
+          </button>
+          <button
+            type="button"
+            onClick={() => setImgStatusFilter("has_image")}
+            className={`px-3 py-1 font-heading text-[11px] font-bold rounded border transition-colors flex items-center gap-1.5 ${imgStatusFilter === "has_image" ? "bg-emerald-600 text-white border-emerald-500" : "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20"}`}
+          >
+            🖼️ Com Imagem ({hasImgCount})
+          </button>
+        </div>
       </div>
-      <div className="border border-border/40 divide-y divide-border/20 max-h-96 overflow-y-auto">
+
+      <div className="border border-border/40 divide-y divide-border/20 max-h-[500px] overflow-y-auto rounded-lg bg-card/40">
         {filteredCards.length === 0 && (
           <div className="px-4 py-8 text-center text-xs font-body text-muted-foreground">
-            {cards.length === 0 ? "Nenhuma carta cadastrada ainda." : "> ERRO_404: Nenhuma carta encontrada."}
+            {cards.length === 0 ? "Nenhuma carta cadastrada ainda." : "> ERRO_404: Nenhuma carta encontrada com este filtro."}
           </div>
         )}
         {filteredCards.map(card => (
@@ -477,8 +562,79 @@ function CardEditor() {
             card={card}
             onDelete={deleteMutation.mutate}
             onEdit={loadForEdit}
+            onQuickSaveImage={handleQuickSaveImage}
           />
         ))}
+      </div>
+    </div>
+  );
+}
+
+function CollectionRowItem({ col, loadForEdit, onDelete, onQuickSaveImage }) {
+  const [quickImg, setQuickImg] = useState(col.image_url || "");
+  const [isSaving, setIsSaving] = useState(false);
+
+  React.useEffect(() => {
+    setQuickImg(col.image_url || "");
+  }, [col.image_url]);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    await onQuickSaveImage(col.id, quickImg);
+    setIsSaving(false);
+  };
+
+  return (
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-3 hover:bg-muted/10 group gap-3 border-b border-border/10">
+      <div className="flex items-center gap-3 min-w-0 flex-1">
+        {col.image_url ? (
+          <img src={col.image_url} alt={col.name} className="w-12 h-8 object-cover border border-border/30 rounded shrink-0 bg-muted/30" />
+        ) : (
+          <div className="w-12 h-8 flex items-center justify-center bg-destructive/10 border border-destructive/30 rounded shrink-0 text-center">
+            <span className="text-[8px] font-heading font-bold text-destructive">SEM IMG</span>
+          </div>
+        )}
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-xs text-primary font-bold">{col.code}</span>
+            <span className="font-body text-xs font-semibold text-foreground">{col.name}</span>
+          </div>
+          {col.description && (
+            <p className="text-[10px] font-body text-muted-foreground/60 truncate mt-0.5">{col.description}</p>
+          )}
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 w-full sm:w-auto">
+        <Input
+          value={quickImg}
+          onChange={e => setQuickImg(e.target.value)}
+          placeholder="URL da Imagem..."
+          className="font-mono text-[11px] h-8 w-full sm:w-60 bg-muted/20 border-border/40 focus:border-primary"
+        />
+        <button
+          onClick={handleSave}
+          disabled={isSaving}
+          title="Salvar Imagem Rápidamente"
+          className="h-8 px-2.5 bg-primary/20 hover:bg-primary text-primary hover:text-primary-foreground border border-primary/40 rounded text-[10px] font-heading font-bold tracking-wider transition-colors shrink-0 flex items-center gap-1"
+        >
+          <Check className="w-3.5 h-3.5" />
+          {isSaving ? "..." : "SALVAR"}
+        </button>
+        <button
+          onClick={() => loadForEdit(col)}
+          title="Editar Coleção"
+          className="p-2 text-muted-foreground/60 hover:text-primary transition-colors border border-border/30 rounded shrink-0"
+        >
+          <Pencil className="w-3.5 h-3.5" />
+        </button>
+        <button
+          onClick={() => onDelete(col.id)}
+          title="Excluir Coleção"
+          className="p-2 text-destructive/50 hover:text-destructive transition-colors border border-destructive/20 rounded shrink-0"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
       </div>
     </div>
   );
@@ -493,6 +649,7 @@ function CollectionEditor() {
   });
   const [form, setForm] = useState({ code: "", name: "", description: "", image_url: "" });
   const [editingId, setEditingId] = useState(null);
+  const [colSearch, setColSearch] = useState("");
 
   const createMutation = useMutation({
     mutationFn: (data) => db.entities.Collection.create(data),
@@ -519,6 +676,12 @@ function CollectionEditor() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-collections"] }),
   });
 
+  const handleQuickSaveImage = async (id, newUrl) => {
+    await db.entities.Collection.update(id, { image_url: newUrl });
+    qc.invalidateQueries({ queryKey: ["admin-collections"] });
+    toast({ title: "✅ Imagem da coleção salva!" });
+  };
+
   const f = (k) => ({ value: form[k], onChange: (e) => setForm(p => ({ ...p, [k]: e.target.value })) });
 
   const loadForEdit = (col) => {
@@ -534,6 +697,12 @@ function CollectionEditor() {
       createMutation.mutate(form);
     }
   };
+
+  const filteredCols = collections.filter(c =>
+    !colSearch ||
+    c.name?.toLowerCase().includes(colSearch.toLowerCase()) ||
+    c.code?.toLowerCase().includes(colSearch.toLowerCase())
+  );
 
   return (
     <div className="space-y-6">
@@ -581,42 +750,29 @@ function CollectionEditor() {
         </button>
       </form>
 
-      <h2 className="font-heading text-xs font-bold tracking-widest uppercase text-muted-foreground">
-        — Coleções ({collections.length})
-      </h2>
-      <div className="border border-border/40 divide-y divide-border/30 max-h-72 overflow-y-auto">
-        {collections.length === 0 && (
-          <div className="px-4 py-6 text-center text-xs font-body text-muted-foreground">Nenhuma coleção cadastrada ainda.</div>
+      <div className="flex items-center justify-between pt-4 border-t border-border/40">
+        <h2 className="font-heading text-xs font-bold tracking-widest uppercase text-muted-foreground">
+          — Coleções ({filteredCols.length}/{collections.length})
+        </h2>
+        <Input
+          value={colSearch}
+          onChange={e => setColSearch(e.target.value)}
+          placeholder="Buscar coleção..."
+          className="w-56 h-8 text-xs font-body bg-muted/20 border-border/50"
+        />
+      </div>
+      <div className="border border-border/40 divide-y divide-border/30 max-h-[450px] overflow-y-auto rounded-lg bg-card/40">
+        {filteredCols.length === 0 && (
+          <div className="px-4 py-6 text-center text-xs font-body text-muted-foreground">Nenhuma coleção cadastrada.</div>
         )}
-        {collections.map(col => (
-          <div key={col.id} className="flex items-center justify-between px-4 py-3 hover:bg-muted/10 group">
-            <div className="flex items-center gap-3 min-w-0">
-              {col.image_url && (
-                <img src={col.image_url} alt={col.name} className="w-12 h-7 object-cover border border-border/30 shrink-0" />
-              )}
-              <div className="min-w-0">
-                <span className="font-mono text-xs text-primary">{col.code}</span>
-                <span className="ml-2 font-body text-xs text-foreground">{col.name}</span>
-                {col.description && (
-                  <p className="text-[10px] font-body text-muted-foreground/60 truncate mt-0.5">{col.description}</p>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center gap-1 shrink-0">
-              <button
-                onClick={() => loadForEdit(col)}
-                className="p-1.5 text-muted-foreground/50 hover:text-primary transition-colors opacity-0 group-hover:opacity-100"
-              >
-                <Pencil className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={() => deleteMutation.mutate(col.id)}
-                className="p-1.5 text-destructive/50 hover:text-destructive transition-colors"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
+        {filteredCols.map(col => (
+          <CollectionRowItem
+            key={col.id}
+            col={col}
+            loadForEdit={loadForEdit}
+            onDelete={deleteMutation.mutate}
+            onQuickSaveImage={handleQuickSaveImage}
+          />
         ))}
       </div>
     </div>

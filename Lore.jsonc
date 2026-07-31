@@ -1,0 +1,83 @@
+{
+  "name": "Lore",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Title of the historical record or lore archive"
+    },
+    "code": {
+      "type": "string",
+      "description": "Smart Lore CID: LORE-[CAT]-[SERIES]-[NUM] (e.g., LORE-COS-CORE-001)"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "Cosmology & Origins",
+        "Anomalies & Bosses",
+        "Faction Archives",
+        "Character Chronicles",
+        "Artifact & Tech Records",
+        "Multiverse Events"
+      ],
+      "description": "Lore category classification"
+    },
+    "era": {
+      "type": "string",
+      "enum": [
+        "Genesis Epoch",
+        "Shinobi Epoch",
+        "Modern Sorcery Era",
+        "Titan Crisis Era",
+        "Cybernetic Future",
+        "Multiverse Collision",
+        "Abyssal Rift Era"
+      ],
+      "description": "Historical timeline era"
+    },
+    "clearance_level": {
+      "type": "string",
+      "enum": [
+        "UNCLASSIFIED",
+        "CONFIDENTIAL",
+        "SECRET",
+        "TOP SECRET",
+        "OMEGA-LEVEL"
+      ],
+      "description": "Security access level required"
+    },
+    "author": {
+      "type": "string",
+      "description": "Archivist, terminal unit, or telemetry node recorder"
+    },
+    "summary": {
+      "type": "string",
+      "description": "Brief executive log summary for quick telemetry scan"
+    },
+    "content": {
+      "type": "string",
+      "description": "Full deep-space documentation content"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "Optional holo-projection or visual record URL"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Searchable reference tags"
+    },
+    "related_series": {
+      "type": "string",
+      "description": "Associated multiverse series or faction"
+    }
+  },
+  "required": [
+    "title",
+    "code",
+    "category",
+    "content"
+  ]
+}

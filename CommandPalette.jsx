@@ -1,4 +1,4 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
+import { db } from "@/base44Client";
 
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
@@ -9,6 +9,7 @@ import { Search, Layers, Zap, Swords, Package, ArrowRight } from "lucide-react";
 
 const STATIC_COMMANDS = [
   { label: "Home / Dashboard", to: "/dashboard", icon: "🏠", keys: ["h"] },
+  { label: "Lore Archive", to: "/lore", icon: "📜", keys: ["o"] },
   { label: "Synergy Builder", to: "/synergy", icon: "⚔️", keys: ["e"] },
   { label: "Gacha Drop", to: "/gacha", icon: "✨" },
   { label: "Inventário", to: "/inventory", icon: "🎒" },

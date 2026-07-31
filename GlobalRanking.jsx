@@ -1,13 +1,13 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
+import { db } from "@/base44Client";
 
 import React, { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import { usePullToRefresh } from "@/usePullToRefresh";
 import { motion } from "framer-motion";
 import { Trophy, Swords, Gem, TrendingUp, Crown, Star } from "lucide-react";
-import Navbar from "@/components/wiki/Navbar";
-import { getPlayerRank } from "@/lib/constants";
+import Navbar from "@/Navbar";
+import { getPlayerRank } from "@/constants";
 
 const TABS = [
   { id: "wins",  label: "Vitórias",  icon: Swords },

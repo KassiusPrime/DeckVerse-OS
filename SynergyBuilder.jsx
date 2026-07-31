@@ -1,13 +1,13 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
+import { db } from "@/base44Client";
 
 import React, { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { Zap, X, Star, Tag } from "lucide-react";
-import Navbar from "@/components/wiki/Navbar";
-import { RarityBadge, RoleBadge } from "@/components/wiki/RarityBadge";
-import { calcTagSynergies } from "@/lib/tagSynergies";
+import Navbar from "@/Navbar";
+import { RarityBadge, RoleBadge } from "@/RarityBadge";
+import { calcTagSynergies } from "@/tagSynergies";
 
 const MAX_TEAM = 5;
 const MAX_COST = 25; // Team Cost cap at player level 1

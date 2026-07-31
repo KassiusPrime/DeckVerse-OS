@@ -1,4 +1,4 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
+import { db } from "@/base44Client";
 
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -6,8 +6,9 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Zap, ChevronRight, Terminal, FileText, Sparkles, HelpCircle, X, CheckCircle2, Circle, Server, Wifi } from "lucide-react";
-import Navbar from "@/components/wiki/Navbar";
-import { RarityBadge, RoleBadge } from "@/components/wiki/RarityBadge";
+import Navbar from "@/Navbar";
+import { RarityBadge, RoleBadge } from "@/RarityBadge";
+import DeckVerseLogo from "./DeckVerseLogo";
 
 // ─── Tutorial steps ───────────────────────────────────────────
 const TUTORIAL_STEPS = [
@@ -147,11 +148,11 @@ export default function Home() {
           
 
           
-          <h1 className="font-heading text-5xl sm:text-7xl font-black tracking-tight text-foreground mb-4">
-            DECK<span className="text-primary">VERSE</span>
-          </h1>
-          <p className="text-muted-foreground font-body text-sm sm:text-base mb-10 max-w-xl mx-auto">
-            The definitive compendium for every Warden in the game. Search, explore, and build your roster.
+          <div className="flex justify-center mb-6">
+            <DeckVerseLogo size="lg" showTagline={true} />
+          </div>
+          <p className="text-[#D1D5DB] font-mono text-xs sm:text-sm mb-8 max-w-xl mx-auto border-y border-[#00F0FF]/20 py-2.5 bg-black/40">
+            [SYSTEM_READY] Terminal tático de alta tecnologia do Caçador de Anomalias.
           </p>
 
           {/* Terminal search */}

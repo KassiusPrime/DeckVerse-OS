@@ -1,17 +1,17 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
+import { db } from "@/base44Client";
 
 import React, { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
-import { useAuth } from "@/lib/AuthContext";
+import { useAuth } from "@/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   User, Swords, Trophy, Gem, TrendingUp, Star, Shield,
   Clock, BarChart2, Zap, Package, Target, Activity, ChevronRight
 } from "lucide-react";
-import Navbar from "@/components/wiki/Navbar";
+import Navbar from "@/Navbar";
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, AreaChart, Area, XAxis, Tooltip } from "recharts";
-import { getPlayerRank, getXpForLevel, RARITY_TIERS, RARITY_ALIAS, RARITY_ORDER } from "@/lib/constants";
+import { getPlayerRank, getXpForLevel, RARITY_TIERS, RARITY_ALIAS, RARITY_ORDER } from "@/constants";
 
 // ── Stat card ──────────────────────────────────────────────────────────────────
 function StatCard({ icon: Icon, label, value, color = "text-primary", sub }) {

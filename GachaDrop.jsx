@@ -1,15 +1,15 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
+import { db } from "@/base44Client";
 
 import React, { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { useAuth } from "@/lib/AuthContext";
+import { useAuth } from "@/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Package, Star, Gem, ChevronRight, RefreshCw, Zap, TrendingUp } from "lucide-react";
 import { Link } from "react-router-dom";
-import Navbar from "@/components/wiki/Navbar";
-import { RARITY_ALIAS } from "@/lib/constants";
-import { useToast } from "@/components/ui/use-toast";
+import Navbar from "@/Navbar";
+import { RARITY_ALIAS } from "@/constants";
+import { useToast } from "@/use-toast";
 
 // ─── Rarity display (new names) ───────────────────────────────────────────────
 const TIER_COLORS = {

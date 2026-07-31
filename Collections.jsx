@@ -1,17 +1,17 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
+import { db } from "@/base44Client";
 
 import React, { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 
-import { useAuth } from "@/lib/AuthContext";
+import { useAuth } from "@/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { Filter, Layers, Search, X, Lock } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/select";
+import { Skeleton } from "@/skeleton";
 import { Link } from "react-router-dom";
-import Navbar from "@/components/wiki/Navbar";
-import CardListItem from "@/components/wiki/CardListItem";
-import { RARITY_ORDER, RARITY_ALIAS, ELEMENTS, ROLES } from "@/lib/constants";
+import Navbar from "@/Navbar";
+import CardListItem from "@/CardListItem";
+import { RARITY_ORDER, RARITY_ALIAS, ELEMENTS, ROLES } from "@/constants";
 
 const GENDER_OPTIONS = ["Male","Female","Unknown","Other"];
 

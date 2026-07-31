@@ -12,7 +12,7 @@ export default function CardListItem({ card, index = 0 }) {
     >
       <Link
         to={`/card/${card.id}`}
-        className="group block rounded-xl border border-border/40 bg-card/50 hover:bg-card hover:border-primary/30 transition-all duration-300 overflow-hidden"
+        className="group block rounded-xl border border-[#00F0FF]/30 bg-card/60 hover:bg-black/90 hover:border-[#00F0FF] transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-[0_0_15px_#00F0FF] overflow-hidden cursor-pointer"
       >
         <div className="aspect-[3/4] bg-muted/20 overflow-hidden relative">
           {card.image_url ? (

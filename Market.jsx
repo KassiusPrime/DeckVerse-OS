@@ -1,19 +1,19 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
+import { db } from "@/base44Client";
 
 import React, { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { useAuth } from "@/lib/AuthContext";
+import { useAuth } from "@/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeftRight, Search, Filter, Tag, ShoppingCart, Plus,
   X, Gem, Star, Check, AlertCircle
 } from "lucide-react";
-import Navbar from "@/components/wiki/Navbar";
-import { RarityBadge, RoleBadge } from "@/components/wiki/RarityBadge";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/components/ui/use-toast";
+import Navbar from "@/Navbar";
+import { RarityBadge, RoleBadge } from "@/RarityBadge";
+import { Input } from "@/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/select";
+import { useToast } from "@/use-toast";
 
 const RARITY_ORDER = ["Mythic", "Legendary", "Epic", "Rare", "Uncommon", "Common"];
 

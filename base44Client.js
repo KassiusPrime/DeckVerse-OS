@@ -2,7 +2,9 @@
 // DECKVERSE OS — Base44 Client & Persistence Layer
 // ════════════════════════════════════════════════════════════════════════════
 
-const DEFAULT_COLLECTIONS = [
+import { MEGA_COLLECTIONS, MEGA_ITEMS, MEGA_BOSSES, generateExpandedCards } from "./src/data/megaCollectionsData.js";
+
+const EXISTING_COLLECTIONS = [
   {
     id: "col_1",
     name: "Naruto",
@@ -24,7 +26,7 @@ const DEFAULT_COLLECTIONS = [
     name: "Attack on Titan",
     code: "AOT",
     description: "Scouts and Titan Shifters fighting for humanity's survival",
-    image_url: "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=800&auto=format&fit=crop&q=80",
+    image_url: "",
     created_date: "2026-07-03T10:00:00Z"
   },
   {
@@ -53,7 +55,15 @@ const DEFAULT_COLLECTIONS = [
   }
 ];
 
+// Combine existing with MEGA_COLLECTIONS avoiding duplicates
+const colCodes = new Set(EXISTING_COLLECTIONS.map(c => c.code));
+const DEFAULT_COLLECTIONS = [
+  ...EXISTING_COLLECTIONS,
+  ...MEGA_COLLECTIONS.filter(c => !colCodes.has(c.code))
+];
+
 const DEFAULT_CARDS = [
+  ...generateExpandedCards(),
   {
     id: "card_1",
     name: "Sasuke Uchiha",
@@ -71,7 +81,7 @@ const DEFAULT_CARDS = [
     defense: 75,
     speed: 110,
     hp: 320,
-    image_url: "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=600&auto=format&fit=crop&q=80",
+    image_url: "",
     lore: "Surviving heir of the Uchiha Clan, wielding the Mangekyo Sharingan and Chidori.",
     skills: [
       { name: "Chidori Stream", description: "Deals lightning damage to target and paralyzes.", type: "Active" },
@@ -97,7 +107,7 @@ const DEFAULT_CARDS = [
     defense: 90,
     speed: 105,
     hp: 450,
-    image_url: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=600&auto=format&fit=crop&q=80",
+    image_url: "",
     lore: "The Nine-Tails Jinchuriki who pledged to become Hokage and protect his bonds.",
     skills: [
       { name: "Rasengan", description: "High single target wind strike.", type: "Active" },
@@ -358,6 +368,7 @@ const DEFAULT_GUILDS = [
 ];
 
 const DEFAULT_ITEMS = [
+  ...MEGA_ITEMS,
   { id: "item_1", name: "Refined Catalyst", type: "upgrade_stone", rarity: "Rare", icon: "💎", description: "Essential catalyst for card level ascension.", created_date: "2026-07-01T10:00:00Z" },
   { id: "item_2", name: "Gacha Ticket", type: "gacha_ticket", rarity: "Epic", icon: "🎟️", description: "Grants 1 free pull in the Gacha Zone.", created_date: "2026-07-01T10:00:00Z" },
   { id: "item_3", name: "Gold Pouch", type: "consumable", rarity: "Uncommon", icon: "💰", description: "Redeemable for 500 gold coins.", created_date: "2026-07-01T10:00:00Z" }
@@ -406,11 +417,123 @@ const DEFAULT_CHANGELOGS = [
   }
 ];
 
+const DEFAULT_LORE = [
+  {
+    id: "lore_1",
+    title: "Genesis of the Multiverse Convergence",
+    code: "LORE-COS-CORE-001",
+    category: "Cosmology & Origins",
+    era: "Genesis Epoch",
+    clearance_level: "OMEGA-LEVEL",
+    author: "Archivist AI Core // Node-01",
+    summary: "Telemetry record detailing the sudden collapse of dimensional boundaries, unifying Shinobi, Sorcerers, Titans, and Netrunners into DeckVerse OS.",
+    content: "At epoch index T-0.0042, quantum space collapsed across sub-dimensional sectors 01 through 09. Energy signatures from Chakra, Cursed Energy, God Ki, and Neural Cybernetics collided at the nexus point, giving birth to the DeckVerse matrix.\n\nAll entities transformed into digital energy cards locked inside hyper-dense crystalline matrices. Wardens now operate deep-space terminals to summon, combine, and deploy these heroes in orbital PVE arenas.",
+    image_url: "https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=800&auto=format&fit=crop&q=80",
+    tags: ["Multiverse", "Nexus", "Genesis", "Matrix", "DeckVerse"],
+    related_series: "DeckVerse Core",
+    created_date: "2026-07-01T00:00:00Z"
+  },
+  {
+    id: "lore_2",
+    title: "The Six Eyes & Infinity Continuum",
+    code: "LORE-JJK-SOR-002",
+    category: "Character Chronicles",
+    era: "Modern Sorcery Era",
+    clearance_level: "TOP SECRET",
+    author: "Jujutsu High High-Archivist Log",
+    summary: "Deep-space analysis on Gojo Satoru's atomic perception and space-manipulating Limitless technique.",
+    content: "Log entry #9941: Gojo Satoru's Six Eyes allow perception of cursed energy down to the atomic sub-particle scale. When paired with the Limitless technique, space around him decelerates infinitely, making physical contact mathematically impossible.\n\nIn orbital simulation battles, his 'Hollow Purple' anti-matter pulse disintegrates target hull structures instantaneously. Terminal scan advises caution when engaging in 1v1 Arena duels.",
+    image_url: "https://images.unsplash.com/photo-1563089145-599997674d42?w=800&auto=format&fit=crop&q=80",
+    tags: ["Gojo", "Six Eyes", "Limitless", "Jujutsu", "Tokyo"],
+    related_series: "Jujutsu Kaisen",
+    created_date: "2026-07-05T12:00:00Z"
+  },
+  {
+    id: "lore_3",
+    title: "Survey Corps Recon #808: Titan Origin Matrix",
+    code: "LORE-AOT-SCO-003",
+    category: "Faction Archives",
+    era: "Titan Crisis Era",
+    clearance_level: "SECRET",
+    author: "Commander Hange Zoë // Scout Recon",
+    summary: "Classified reconnaissance logs regarding the Founding Titan path coordinates and Ackerman genetic awakenings.",
+    content: "Scout Regiment Telemetry: The Nine Titans originate from an organic spinal anomaly linked to the Paths dimension. Human subjects belonging to the Ackerman lineage possess awakened instincts from ancient titan research, granting inhuman speed and blade precision.\n\nCaptain Levi Ackerman's ODM Maneuver speed reached 190 knots in recent orbital simulations, cutting down high-tier boss entities before sensor lock.",
+    image_url: "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=800&auto=format&fit=crop&q=80",
+    tags: ["Scouts", "Titans", "Levi", "Ackerman", "Paradis"],
+    related_series: "Attack on Titan",
+    created_date: "2026-07-08T15:30:00Z"
+  },
+  {
+    id: "lore_4",
+    title: "Uchiha Eye Evolution & Chakra Resonance",
+    code: "LORE-NAR-UCH-004",
+    category: "Multiverse Events",
+    era: "Shinobi Epoch",
+    clearance_level: "CONFIDENTIAL",
+    author: "Shinobi Intel Archives #04",
+    summary: "Historical progression of the Sharingan, Mangekyo black flames, and Susanoo armor manifestation.",
+    content: "Data Record NAR-004: The Uchiha bloodline manifests ocular chakra spikes when experiencing intense emotional trauma or passion. Sasuke Uchiha's Mangekyo Sharingan unlocks black flames of Amaterasu that burn until target erasure.\n\nSynergy Tag Analysis: Pairing Sasuke with fellow Uchiha or Shinobi triggers +25% Critical Rate boost across the tactical frontline.",
+    image_url: "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&auto=format&fit=crop&q=80",
+    tags: ["Sasuke", "Uchiha", "Chakra", "Sharingan", "Shinobi"],
+    related_series: "Naruto",
+    created_date: "2026-07-12T09:15:00Z"
+  },
+  {
+    id: "lore_5",
+    title: "Sandevistan Neural Overclock Protocol",
+    code: "LORE-CYB-NCT-005",
+    category: "Artifact & Tech Records",
+    era: "Cybernetic Future",
+    clearance_level: "UNCLASSIFIED",
+    author: "Night City Netrunner Network",
+    summary: "Technical schematics and neural safety warning logs for military-grade cyberware acceleration.",
+    content: "Cyberware Ref #NCT-882: The Sandevistan spinal implant floods the human central nervous system with neural acceleration currents, perception-shifting reality so the user moves faster than optical sensors can track.\n\nWarning: Prolonged overclocking induces cyberpsychosis unless mitigated by Refined Catalysts and high-tier Warden gear.",
+    image_url: "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&auto=format&fit=crop&q=80",
+    tags: ["Sandevistan", "Netrunner", "NightCity", "Tech", "Cyberware"],
+    related_series: "Cyberpunk Legends",
+    created_date: "2026-07-16T18:40:00Z"
+  },
+  {
+    id: "lore_6",
+    title: "Abyssal Sovereign Void Entity Analysis",
+    code: "LORE-BOSS-ABY-006",
+    category: "Anomalies & Bosses",
+    era: "Abyssal Rift Era",
+    clearance_level: "OMEGA-LEVEL",
+    author: "Deep-Space Tactical Command",
+    summary: "Emergency bulletin detailing the dark void entity emerging from Sector Zero PVE Boss Raids.",
+    content: "ALERT [SECTOR_ZERO]: An ancient void entity designated 'ABYSSAL SOVEREIGN' has breached orbital quarantine. Fueled by dark matter corruption, it drains 15% team HP every round while absorbing elemental elemental strikes.\n\nWardens must form 5-man Guild Syndicates with high-synergy tags (God Ki, Six Eyes, Limitless) to break its void shield and secure Mythic Gacha Drops.",
+    image_url: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&auto=format&fit=crop&q=80",
+    tags: ["Boss", "Abyssal", "Void", "Raid", "Anomaly"],
+    related_series: "DeckVerse Core",
+    created_date: "2026-07-22T21:10:00Z"
+  }
+];
+
 // Helper to initialize LocalStorage storage table
 function getStorageTable(tableName, defaultData) {
   try {
     const raw = localStorage.getItem(`deckverse_${tableName}`);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && Array.isArray(defaultData)) {
+        const existingKeys = new Set(parsed.map(i => i.id || i.card_id || i.code));
+        let added = false;
+        for (const item of defaultData) {
+          const key = item.id || item.card_id || item.code;
+          if (key && !existingKeys.has(key)) {
+            parsed.push(item);
+            existingKeys.add(key);
+            added = true;
+          }
+        }
+        if (added) {
+          saveStorageTable(tableName, parsed);
+        }
+        return parsed;
+      }
+      return parsed;
+    }
   } catch (e) {
     console.warn(`Failed reading storage for ${tableName}:`, e);
   }
@@ -505,7 +628,8 @@ const entityStores = {
   PlayerItem: createEntityStore("PlayerItem", DEFAULT_PLAYER_ITEMS),
   BattleLog: createEntityStore("BattleLog", DEFAULT_BATTLE_LOGS),
   TradeRequest: createEntityStore("TradeRequest", []),
-  Changelog: createEntityStore("Changelog", DEFAULT_CHANGELOGS)
+  Changelog: createEntityStore("Changelog", DEFAULT_CHANGELOGS),
+  Lore: createEntityStore("Lore", DEFAULT_LORE)
 };
 
 export const db = {

@@ -1,17 +1,17 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
+import { db } from "@/base44Client";
 
 import React, { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { useAuth } from "@/lib/AuthContext";
+import { useAuth } from "@/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Swords, Shield, Zap, Flame, Target, ChevronRight,
   RefreshCw, Trophy, Skull, Star, Heart, Crown, Lock, Gem
 } from "lucide-react";
-import Navbar from "@/components/wiki/Navbar";
-import { RarityBadge } from "@/components/wiki/RarityBadge";
-import { useToast } from "@/components/ui/use-toast";
+import Navbar from "@/Navbar";
+import { RarityBadge } from "@/RarityBadge";
+import { useToast } from "@/use-toast";
 
 const RARITY_POWER = {
   Recruit: 0.8, Adept: 1.2, Elite: 1.7, Champion: 2.3, Sovereign: 3.2, Ascendant: 4.5, Divine: 6.0,

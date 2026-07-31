@@ -1,4 +1,4 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
+import { db } from "@/base44Client";
 
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -6,14 +6,14 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft, Hash } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@/skeleton";
 
-import Navbar from "@/components/wiki/Navbar";
-import CardImage from "@/components/wiki/CardImage";
-import { RarityBadge, RoleBadge, ElementBadge } from "@/components/wiki/RarityBadge";
-import StatsPanel from "@/components/wiki/StatsPanel";
-import SkillsList from "@/components/wiki/SkillsList";
-import LoreSection from "@/components/wiki/LoreSection";
+import Navbar from "@/Navbar";
+import CardImage from "@/CardImage";
+import { RarityBadge, RoleBadge, ElementBadge } from "@/RarityBadge";
+import StatsPanel from "@/StatsPanel";
+import SkillsList from "@/SkillsList";
+import LoreSection from "@/LoreSection";
 
 export default function CardDetail() {
   const urlParams = new URLSearchParams(window.location.search);

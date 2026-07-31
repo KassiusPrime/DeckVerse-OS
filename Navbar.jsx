@@ -3,10 +3,11 @@ import { Link } from "react-router-dom";
 import {
   Search, Layers, Users, Menu, X, ShoppingBag, Trophy, Swords,
   Sparkles, Zap, TrendingUp, ArrowLeftRight, Gift, Shield, Settings,
-  User, BarChart2, Gem, Package, Wifi
+  User, BarChart2, Gem, Package, Wifi, Globe, BookOpen
 } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { useI18n } from "@/lib/i18n";
+import { Input } from "@/input";
+import { useI18n } from "./i18n";
+import DeckVerseLogo from "./DeckVerseLogo";
 
 const SERVERS = ["SA-EAST-SP", "NA-VIRGINIA", "EU-LONDON"];
 
@@ -45,6 +46,8 @@ export default function Navbar({ onSearch }) {
 
   const links = [
     { to: "/collections", icon: Layers,         label: t("nav_collections") },
+    { to: "/lore",        icon: BookOpen,       label: "Lore Archive" },
+    { to: "/fandom",      icon: Globe,          label: "Fandom Importer" },
     { to: "/roster",      icon: Users,          label: t("nav_roster") },
     { to: "/store",       icon: ShoppingBag,    label: t("nav_store") },
     { to: "/leaderboard", icon: Trophy,         label: t("nav_leaderboard") },
@@ -69,23 +72,9 @@ export default function Navbar({ onSearch }) {
     <nav className="sticky top-0 z-50 border-b border-border/50 bg-background/90 backdrop-blur-xl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-3">
 
-        {/* Logo with neon-flicker */}
-        <Link to="/" className="flex items-center gap-2 shrink-0">
-          {(() => {
-            const customLogo = typeof window !== "undefined" ? localStorage.getItem("deckverse_logo") : null;
-            return customLogo ? (
-              <img src={customLogo} alt="Logo" className="h-7 w-auto max-w-[120px] object-contain neon-flicker" />
-            ) : (
-              <>
-                <div className="w-7 h-7 border border-primary/40 bg-primary/10 flex items-center justify-center neon-flicker">
-                  <Layers className="w-3.5 h-3.5 text-primary" />
-                </div>
-                <span className="font-heading text-sm font-black tracking-widest text-foreground hidden sm:block neon-flicker">
-                  DECK<span className="text-primary">VERSE</span>
-                </span>
-              </>
-            );
-          })()}
+        {/* Logo canonical DeckVerse OS */}
+        <Link to="/" className="flex items-center gap-2 shrink-0 hover:opacity-90 transition-opacity">
+          <DeckVerseLogo size="sm" showTagline={true} />
         </Link>
 
         {/* Search */}

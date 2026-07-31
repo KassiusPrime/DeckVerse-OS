@@ -1,13 +1,13 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
+import { db } from "@/base44Client";
 
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { useAuth } from "@/lib/AuthContext";
+import { useAuth } from "@/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { Gem, Zap, Crown, Star, Check, X } from "lucide-react";
-import Navbar from "@/components/wiki/Navbar";
-import { useToast } from "@/components/ui/use-toast";
+import Navbar from "@/Navbar";
+import { useToast } from "@/use-toast";
 
 const PACKAGES = [
   { id: "starter",   gems: 500,   price: "R$ 4,99",  label: "STARTER",   emoji: "💎", color: "border-blue-500/30   bg-blue-900/20",   accent: "text-blue-400",   badge: null },

@@ -1,15 +1,15 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
+import { db } from "@/base44Client";
 
 import React, { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { motion } from "framer-motion";
 import { Users, Search, Filter, Star } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/select";
+import { Skeleton } from "@/skeleton";
 import { Link } from "react-router-dom";
-import Navbar from "@/components/wiki/Navbar";
-import { RarityBadge, RoleBadge } from "@/components/wiki/RarityBadge";
+import Navbar from "@/Navbar";
+import { RarityBadge, RoleBadge } from "@/RarityBadge";
 
 export default function Roster() {
   const [searchQuery, setSearchQuery] = useState("");

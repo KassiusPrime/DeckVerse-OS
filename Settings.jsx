@@ -1,14 +1,14 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
+import { db } from "@/base44Client";
 
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Settings as SettingsIcon, Palette, Globe, HelpCircle, Save, X, ChevronRight, Check, Sliders, ExternalLink, Type, Download, Upload, Trash2, AlertTriangle, Image, PackageOpen, Loader2, UserX } from "lucide-react";
-import Navbar from "@/components/wiki/Navbar";
-import { LANGUAGES, useI18n } from "@/lib/i18n";
-import { useToast } from "@/components/ui/use-toast";
+import Navbar from "@/Navbar";
+import { LANGUAGES, useI18n } from "@/i18n";
+import { useToast } from "@/use-toast";
 import { useQuery } from "@tanstack/react-query";
 
-import { useAuth } from "@/lib/AuthContext";
+import { useAuth } from "@/AuthContext";
 
 const PRESET_THEMES = [
 {

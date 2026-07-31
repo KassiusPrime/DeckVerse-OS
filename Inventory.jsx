@@ -1,15 +1,15 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
+import { db } from "@/base44Client";
 
 import React, { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { useAuth } from "@/lib/AuthContext";
+import { useAuth } from "@/AuthContext";
 import { motion } from "framer-motion";
 import { Package, Filter, Search, X, Sword, Shield, Zap, Heart } from "lucide-react";
 import { Link } from "react-router-dom";
-import Navbar from "@/components/wiki/Navbar";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/components/ui/use-toast";
+import Navbar from "@/Navbar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/select";
+import { useToast } from "@/use-toast";
 
 const ITEM_RARITY_COLOR = {
   Recruit:   "text-zinc-400   border-zinc-500/30   bg-zinc-500/5",

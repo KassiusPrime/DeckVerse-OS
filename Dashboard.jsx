@@ -1,14 +1,14 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
+import { db } from "@/base44Client";
 
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 
-import { useAuth } from "@/lib/AuthContext";
+import { useAuth } from "@/AuthContext";
 import { motion } from "framer-motion";
 import { BarChart2, Users, Layers, Swords, Gem, TrendingUp, Star, Crown } from "lucide-react";
 import { Link } from "react-router-dom";
-import Navbar from "@/components/wiki/Navbar";
-import { RARITY_ORDER, RARITY_ALIAS } from "@/lib/constants";
+import Navbar from "@/Navbar";
+import { RARITY_ORDER, RARITY_ALIAS } from "@/constants";
 import { RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer, BarChart, Bar, XAxis, Tooltip } from "recharts";
 
 function StatTile({ icon: Icon, label, value, sub, color = "text-primary" }) {

@@ -1,6 +1,6 @@
 import React from "react";
 import { Crown, Gem, Star, Circle, Flame, Sparkles, Zap, Shield, AlertTriangle } from "lucide-react";
-import { RARITY_TIERS, RARITY_ALIAS } from "@/lib/constants";
+import { RARITY_TIERS, RARITY_ALIAS } from "@/constants";
 
 // Resolve rarity string (old or new) → RARITY_TIERS config
 function resolveTier(rarity) {

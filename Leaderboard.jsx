@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { motion } from "framer-motion";
 import { Trophy, Crown, Gem, Coins } from "lucide-react";
-import Navbar from "@/components/wiki/Navbar";
+import Navbar from "@/Navbar";
 
 const MOCK_PLAYERS = [
   { rank: 1, username: "void_hunter", gems: 12480, gold: 34200, wins: 87, losses: 12, legendaries: 9 },

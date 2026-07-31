@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import { ShoppingBag, X, ChevronRight } from "lucide-react";
-import Navbar from "@/components/wiki/Navbar";
+import Navbar from "@/Navbar";
 
 const PACKS = [
   {

@@ -1,12 +1,12 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
+import { db } from "@/base44Client";
 
 import React from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { motion } from "framer-motion";
 import { Swords, Terminal, RefreshCw } from "lucide-react";
-import Navbar from "@/components/wiki/Navbar";
-import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import Navbar from "@/Navbar";
+import { usePullToRefresh } from "@/usePullToRefresh";
 
 const MOCK_LOGS = [
   { id: "BT-0041", winner: "void_hunter", loser: "dawn_keeper", details: "Vexor the Hollow used Soul Harvest to eliminate Seraphina Dawnkeeper. Critical hit scored.", time: "3m ago" },
