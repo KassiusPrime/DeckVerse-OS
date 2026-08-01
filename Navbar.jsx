@@ -42,6 +42,11 @@ export default function Navbar({ onSearch }) {
   const handleSearch = (e) => {
     e.preventDefault();
     if (onSearch) onSearch(query);
+    window.dispatchEvent(new CustomEvent("open-global-search", { detail: { query } }));
+  };
+
+  const openGlobalSearch = () => {
+    window.dispatchEvent(new CustomEvent("open-global-search", { detail: { query } }));
   };
 
   const links = [
@@ -82,11 +87,15 @@ export default function Navbar({ onSearch }) {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <Input
-              placeholder="Buscar cartas..."
+              placeholder="Busca global... (Ctrl+K)"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="pl-9 h-8 bg-muted/30 border-border/40 focus:border-primary/60 font-body text-xs"
+              onFocus={openGlobalSearch}
+              className="pl-9 pr-14 h-8 bg-muted/30 border-border/40 focus:border-primary/60 font-body text-xs cursor-pointer"
             />
+            <kbd className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] font-mono text-muted-foreground/50 border border-border/30 px-1 py-0.2 rounded bg-muted/20 pointer-events-none">
+              Ctrl+K
+            </kbd>
           </div>
         </form>
 

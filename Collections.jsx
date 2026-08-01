@@ -17,13 +17,18 @@ import {
   Zap,
   Info,
   Trophy,
-  ArrowLeft
+  ArrowLeft,
+  BarChart3,
+  CheckCircle2,
+  Clock,
+  Flame,
+  Star
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/select";
-import { Skeleton } from "@/skeleton";
 import Navbar from "@/Navbar";
 import CardListItem from "@/CardListItem";
 import { RARITY_ORDER, RARITY_ALIAS, ELEMENTS, ROLES } from "@/constants";
+import { DeckVerseLoader, CollectionSkeleton, CardGridSkeleton, ItemSkeleton } from "@/LoadingAnimation";
 
 const GENDER_OPTIONS = ["Male", "Female", "Unknown", "Other"];
 
@@ -361,6 +366,56 @@ export default function Collections() {
   // Total metrics
   const totalOwnedCardsCount = ownedCardIds.size;
   const totalCardsCount = cards.length;
+  const globalCardsCompletionPct = totalCardsCount > 0 ? Math.round((totalOwnedCardsCount / totalCardsCount) * 100) : 0;
+
+  const totalItemsCount = items.length;
+  const totalOwnedItemsCount = useMemo(() => {
+    return items.filter(item => (playerItemsMap[item.id] || playerItemsMap[item.item_id] || 0) > 0).length;
+  }, [items, playerItemsMap]);
+  const globalItemsCompletionPct = totalItemsCount > 0 ? Math.round((totalOwnedItemsCount / totalItemsCount) * 100) : 0;
+
+  // Collection breakdown counts
+  const { completedCollectionsCount, inProgressCollectionsCount, unstartedCollectionsCount } = useMemo(() => {
+    let completed = 0;
+    let inProgress = 0;
+    let unstarted = 0;
+    collections.forEach(col => {
+      const stats = collectionStats[col.name] || { totalCards: 0, ownedCards: 0, totalItems: 0, ownedItems: 0 };
+      const total = stats.totalCards + stats.totalItems;
+      const owned = stats.ownedCards + stats.ownedItems;
+      if (total > 0 && owned === total) completed++;
+      else if (owned > 0) inProgress++;
+      else unstarted++;
+    });
+    return { completedCollectionsCount: completed, inProgressCollectionsCount: inProgress, unstartedCollectionsCount: unstarted };
+  }, [collections, collectionStats]);
+
+  // Supreme cards count
+  const supremeCardsCount = useMemo(() => {
+    const supremeRarities = new Set(["DIV", "ANOMALIA", "LR", "MR", "TRS", "UR", "SSR", "Mythic", "Legendary", "Sovereign"]);
+    return cards.filter(c => ownedCardIds.has(c.id) && supremeRarities.has(c.rarity)).length;
+  }, [cards, ownedCardIds]);
+
+  const [overviewStatusFilter, setOverviewStatusFilter] = useState("all"); // "all" | "completed" | "in_progress" | "unstarted"
+
+  // Filtered collections by overview status & search
+  const filteredCollections = useMemo(() => {
+    return collections.filter(col => {
+      const stats = collectionStats[col.name] || { totalCards: 0, ownedCards: 0, totalItems: 0, ownedItems: 0 };
+      const total = stats.totalCards + stats.totalItems;
+      const owned = stats.ownedCards + stats.ownedItems;
+      const matchesSearch = !searchQuery ||
+        col.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        col.code?.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      let matchesStatus = true;
+      if (overviewStatusFilter === "completed") matchesStatus = total > 0 && owned === total;
+      else if (overviewStatusFilter === "in_progress") matchesStatus = owned > 0 && owned < total;
+      else if (overviewStatusFilter === "unstarted") matchesStatus = owned === 0;
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [collections, collectionStats, searchQuery, overviewStatusFilter]);
 
   // Filtered Cards for active selection
   const filteredCards = useMemo(() => {
@@ -662,28 +717,186 @@ export default function Collections() {
             </div>
           </motion.div>
         ) : (
-          /* VIEW 4: MAIN COLLECTIONS LIST */
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {collections.map((col) => {
-                const stats = collectionStats[col.name] || { totalCards: 0, ownedCards: 0, totalItems: 0, ownedItems: 0 };
-                return (
-                  <CollectionTile
-                    key={col.id}
-                    collection={col}
-                    characterCount={stats.totalCards}
-                    ownedCharacterCount={stats.ownedCards}
-                    itemCount={stats.totalItems}
-                    ownedItemCount={stats.ownedItems}
-                    onClick={() => {
-                      setActiveCollection(col);
-                      setCollectionSubTab("characters");
-                    }}
-                    active={activeCollection?.id === col.id}
-                  />
-                );
-              })}
-            </div>
+          /* VIEW 4: MAIN COLLECTIONS LIST WITH COLLECTION OVERVIEW */
+          <div className="space-y-8">
+            {/* COLLECTION OVERVIEW DASHBOARD PANEL */}
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="border border-primary/30 bg-gradient-to-br from-card/80 via-card/50 to-background/90 rounded-2xl p-6 shadow-xl relative overflow-hidden"
+            >
+              {/* Background accent glow */}
+              <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-border/30">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 border border-primary/40 bg-primary/20 rounded-xl flex items-center justify-center text-primary shadow-sm">
+                    <BarChart3 className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <h2 className="font-heading text-xl font-black text-foreground tracking-tight flex items-center gap-2">
+                      VISÃO GERAL DO COLECIONADOR
+                    </h2>
+                    <p className="text-xs font-body text-muted-foreground mt-0.5">
+                      PROGRESSO GLOBAL DE CARTAS, OBJETOS E CONQUISTAS DE COLEÇÃO
+                    </p>
+                  </div>
+                </div>
+
+                {/* Status Badges Filter */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <button
+                    onClick={() => setOverviewStatusFilter("all")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-heading font-bold transition-all border ${
+                      overviewStatusFilter === "all"
+                        ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                        : "bg-muted/20 border-border/40 text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Todas ({collections.length})
+                  </button>
+                  <button
+                    onClick={() => setOverviewStatusFilter("completed")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-heading font-bold transition-all border flex items-center gap-1 ${
+                      overviewStatusFilter === "completed"
+                        ? "bg-amber-500 text-black border-amber-400 font-black shadow-sm"
+                        : "bg-amber-950/20 border-amber-500/30 text-amber-300 hover:bg-amber-950/40"
+                    }`}
+                  >
+                    <Trophy className="w-3.5 h-3.5" /> Concluídas ({completedCollectionsCount})
+                  </button>
+                  <button
+                    onClick={() => setOverviewStatusFilter("in_progress")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-heading font-bold transition-all border flex items-center gap-1 ${
+                      overviewStatusFilter === "in_progress"
+                        ? "bg-blue-600 text-white border-blue-500 shadow-sm"
+                        : "bg-blue-950/20 border-blue-500/30 text-blue-300 hover:bg-blue-950/40"
+                    }`}
+                  >
+                    <Clock className="w-3.5 h-3.5" /> Em Progresso ({inProgressCollectionsCount})
+                  </button>
+                  <button
+                    onClick={() => setOverviewStatusFilter("unstarted")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-heading font-bold transition-all border flex items-center gap-1 ${
+                      overviewStatusFilter === "unstarted"
+                        ? "bg-slate-700 text-white border-slate-600 shadow-sm"
+                        : "bg-slate-900/40 border-slate-700/40 text-slate-400 hover:bg-slate-800/40"
+                    }`}
+                  >
+                    Não Iniciadas ({unstartedCollectionsCount})
+                  </button>
+                </div>
+              </div>
+
+              {/* Stat Cards Grid */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+                {/* Stat 1: Cards */}
+                <div className="bg-background/80 border border-border/40 p-4 rounded-xl space-y-2">
+                  <div className="flex items-center justify-between text-muted-foreground">
+                    <span className="text-[10px] font-mono uppercase font-bold tracking-wider">PERSONAGENS</span>
+                    <Zap className="w-4 h-4 text-primary" />
+                  </div>
+                  <div className="flex items-baseline justify-between">
+                    <span className="font-mono text-2xl font-black text-foreground tabular-nums">
+                      {totalOwnedCardsCount} <span className="text-xs text-muted-foreground font-normal">/ {totalCardsCount}</span>
+                    </span>
+                    <span className="font-mono text-xs font-bold text-primary">{globalCardsCompletionPct}%</span>
+                  </div>
+                  <div className="h-1.5 bg-muted/40 rounded-full overflow-hidden">
+                    <div className="h-full bg-primary rounded-full transition-all duration-700" style={{ width: `${globalCardsCompletionPct}%` }} />
+                  </div>
+                </div>
+
+                {/* Stat 2: Items */}
+                <div className="bg-background/80 border border-border/40 p-4 rounded-xl space-y-2">
+                  <div className="flex items-center justify-between text-muted-foreground">
+                    <span className="text-[10px] font-mono uppercase font-bold tracking-wider">OBJETOS & EQUIPS</span>
+                    <Package className="w-4 h-4 text-emerald-400" />
+                  </div>
+                  <div className="flex items-baseline justify-between">
+                    <span className="font-mono text-2xl font-black text-foreground tabular-nums">
+                      {totalOwnedItemsCount} <span className="text-xs text-muted-foreground font-normal">/ {totalItemsCount}</span>
+                    </span>
+                    <span className="font-mono text-xs font-bold text-emerald-400">{globalItemsCompletionPct}%</span>
+                  </div>
+                  <div className="h-1.5 bg-muted/40 rounded-full overflow-hidden">
+                    <div className="h-full bg-emerald-400 rounded-full transition-all duration-700" style={{ width: `${globalItemsCompletionPct}%` }} />
+                  </div>
+                </div>
+
+                {/* Stat 3: Completed Collections */}
+                <div className="bg-background/80 border border-amber-500/30 p-4 rounded-xl space-y-2">
+                  <div className="flex items-center justify-between text-muted-foreground">
+                    <span className="text-[10px] font-mono uppercase font-bold tracking-wider text-amber-300">COLEÇÕES 100%</span>
+                    <Trophy className="w-4 h-4 text-amber-400" />
+                  </div>
+                  <div className="flex items-baseline justify-between">
+                    <span className="font-mono text-2xl font-black text-amber-400 tabular-nums">
+                      {completedCollectionsCount} <span className="text-xs text-muted-foreground font-normal">/ {collections.length}</span>
+                    </span>
+                    <span className="font-mono text-xs font-bold text-amber-300">
+                      {collections.length > 0 ? Math.round((completedCollectionsCount / collections.length) * 100) : 0}%
+                    </span>
+                  </div>
+                  <div className="h-1.5 bg-muted/40 rounded-full overflow-hidden">
+                    <div className="h-full bg-amber-400 rounded-full transition-all duration-700" style={{ width: `${collections.length > 0 ? (completedCollectionsCount / collections.length) * 100 : 0}%` }} />
+                  </div>
+                </div>
+
+                {/* Stat 4: Supreme Rarities */}
+                <div className="bg-background/80 border border-purple-500/30 p-4 rounded-xl space-y-2">
+                  <div className="flex items-center justify-between text-muted-foreground">
+                    <span className="text-[10px] font-mono uppercase font-bold tracking-wider text-purple-300">CARTAS SUPREMAS</span>
+                    <Sparkles className="w-4 h-4 text-purple-400" />
+                  </div>
+                  <div className="flex items-baseline justify-between">
+                    <span className="font-mono text-2xl font-black text-purple-300 tabular-nums">
+                      {supremeCardsCount}
+                    </span>
+                    <span className="text-[10px] font-mono text-purple-400 font-bold px-1.5 py-0.5 bg-purple-950/60 border border-purple-500/40 rounded">
+                      SSR/UR/LR
+                    </span>
+                  </div>
+                  <p className="text-[11px] font-body text-muted-foreground truncate">Personagens de elite no seu Roster</p>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* COLLECTIONS GRID */}
+            {loadingCards ? (
+              <CollectionSkeleton count={6} />
+            ) : filteredCollections.length === 0 ? (
+              <div className="text-center py-16 border border-dashed border-border/40 rounded-xl bg-card/20">
+                <p className="font-heading text-base font-bold text-muted-foreground">Nenhuma coleção encontrada com o filtro selecionado.</p>
+                <button
+                  onClick={() => { setOverviewStatusFilter("all"); setSearchQuery(""); }}
+                  className="mt-3 text-xs font-heading font-bold text-primary hover:underline inline-flex items-center gap-1"
+                >
+                  Limpar Filtros de Coleção
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredCollections.map((col) => {
+                  const stats = collectionStats[col.name] || { totalCards: 0, ownedCards: 0, totalItems: 0, ownedItems: 0 };
+                  return (
+                    <CollectionTile
+                      key={col.id}
+                      collection={col}
+                      characterCount={stats.totalCards}
+                      ownedCharacterCount={stats.ownedCards}
+                      itemCount={stats.totalItems}
+                      ownedItemCount={stats.ownedItems}
+                      onClick={() => {
+                        setActiveCollection(col);
+                        setCollectionSubTab("characters");
+                      }}
+                      active={activeCollection?.id === col.id}
+                    />
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>
