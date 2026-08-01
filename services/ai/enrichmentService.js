@@ -3,6 +3,8 @@
 // ════════════════════════════════════════════════════════════════════════════
 
 import { GoogleGenAI } from "@google/genai";
+import { fandomClient } from "../fandom/fandomClient.js";
+import { validateCard } from "../../lib/importSchemas.js";
 
 export const SEED_ARCHETYPES = [
   { id: "arch_determinado", name: "Determinado", traits: ["Resiliente", "Foco Inabalável", "Supera Limites"] },
@@ -277,10 +279,85 @@ Retorne EXATAMENTE no formato JSON:
   }
 }
 
+/**
+ * Pipeline canônico por personagem: Fandom + Gemini IA + Validação de Schema
+ */
+export async function enrichCardFromWikiAndAI(characterName, collectionCode = "MULTIVERSE", opts = {}) {
+  const wikiSlug = opts.wikiSlug || fandomClient.resolveWikiSlug(collectionCode);
+  
+  // 1. Busca na Wiki
+  let fandomData = null;
+  const searchRes = await fandomClient.searchCharacter(characterName, wikiSlug);
+  if (searchRes && searchRes.length > 0) {
+    const pageTitle = searchRes[0].title;
+    fandomData = await fandomClient.fetchCharacterInfobox(pageTitle, wikiSlug);
+  }
+
+  // Fallback se não achou dados de infobox
+  if (!fandomData) {
+    fandomData = {
+      wikiSlug,
+      pageTitle: characterName,
+      canonicalName: characterName,
+      fandomUrl: `https://${wikiSlug}.fandom.com/wiki/${encodeURIComponent(characterName.replace(/ /g, "_"))}`,
+      gender: "Desconhecido",
+      species: "Humano",
+      rawInfobox: {},
+      rawBioText: `${characterName} é um lutador icônico do multiverso.`,
+      powersRaw: "",
+      affiliations: "",
+      mainImageUrl: opts.fallbackImage || "",
+      images: []
+    };
+  }
+
+  // 2. Enriquecimento via IA Gemini ou Fallback
+  const enriched = await enrichCharacterData(fandomData);
+
+  // 3. Monta rascunho de carta
+  const rarity = opts.rarity || (opts.isBoss ? "BOSS" : "SSR");
+  const role = opts.role || "DPS";
+  const mainImg = fandomData.mainImageUrl || opts.fallbackImage || "";
+
+  const rawCardPayload = {
+    name: enriched.canonical_name || characterName,
+    card_id: `${collectionCode.toUpperCase()}-${(characterName).toUpperCase().replace(/[^A-Z0-9]/g, "_").slice(0, 10)}-${Math.floor(100 + Math.random() * 899)}`,
+    collection_id: collectionCode,
+    rarity,
+    role,
+    attack: enriched.stats?.strength || 80,
+    defense: enriched.stats?.resistance || 75,
+    speed: enriched.stats?.speed || 80,
+    hp: (enriched.stats?.strength || 80) * 4,
+    mag: enriched.stats?.energy || 80,
+    img_oficial: mainImg,
+    image_url: mainImg,
+    lore: enriched.bio,
+    version: "Wiki+IA",
+    skills: (enriched.movepool || []).map(m => ({ name: m.name, description: m.desc, type: m.type })),
+    tags: [collectionCode, ...(enriched.archetype_ids || [])],
+    is_boss: Boolean(opts.isBoss || rarity === "BOSS" || rarity === "ANOMALIA")
+  };
+
+  // 4. Valida Schema estritamente
+  const validation = validateCard(rawCardPayload);
+  if (!validation.ok) {
+    console.warn("[enrichCardFromWikiAndAI] Payload teve erros de validação:", validation.errors);
+    throw new Error(`Validação de schema falhou para ${characterName}: ${validation.errors.join(", ")}`);
+  }
+
+  return {
+    cardData: validation.data,
+    fandomData,
+    enriched
+  };
+}
+
 export const enrichmentService = {
   classifyArchetypes,
   classifyPersonality,
   enrichCharacterData,
+  enrichCardFromWikiAndAI,
   SEED_ARCHETYPES,
   SEED_PERSONALITIES
 };

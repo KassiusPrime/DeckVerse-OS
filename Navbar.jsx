@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import {
   Search, Layers, Users, Menu, X, ShoppingBag, Trophy, Swords,
   Sparkles, Zap, TrendingUp, ArrowLeftRight, Gift, Shield, Settings,
-  User, BarChart2, Gem, Package, Wifi, Globe, BookOpen
+  User, BarChart2, Gem, Package, Globe, BookOpen, ChevronDown
 } from "lucide-react";
 import { Input } from "@/input";
 import { useI18n } from "./i18n";
 import DeckVerseLogo from "./DeckVerseLogo";
+import NotificationBell from "./NotificationBell";
 
 const SERVERS = ["SA-EAST-SP", "NA-VIRGINIA", "EU-LONDON"];
 
@@ -17,7 +18,6 @@ function PingDisplay() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      // Simulated ping fluctuation for immersion
       setPing(Math.floor(12 + Math.random() * 30));
     }, 3000);
     return () => clearInterval(interval);
@@ -27,7 +27,7 @@ function PingDisplay() {
 
   return (
     <div className="hidden lg:flex items-center gap-1.5 border border-border/40 px-2 py-1 shrink-0">
-      <Wifi className="w-3 h-3 text-muted-foreground" />
+      <div className={`w-1.5 h-1.5 rounded-full ${ping < 30 ? "bg-green-400" : "bg-amber-400"} animate-pulse`} />
       <span className="text-[9px] font-mono text-muted-foreground">{server}</span>
       <span className={`text-[9px] font-mono font-bold tabular-nums ${color}`}>{ping}ms</span>
     </div>
@@ -37,7 +37,18 @@ function PingDisplay() {
 export default function Navbar({ onSearch }) {
   const [query, setQuery] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef(null);
   const { t } = useI18n();
+
+  useEffect(() => {
+    if (!moreOpen) return;
+    const handler = (e) => {
+      if (moreRef.current && !moreRef.current.contains(e.target)) setMoreOpen(false);
+    };
+    document.addEventListener("pointerdown", handler);
+    return () => document.removeEventListener("pointerdown", handler);
+  }, [moreOpen]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -49,32 +60,34 @@ export default function Navbar({ onSearch }) {
     window.dispatchEvent(new CustomEvent("open-global-search", { detail: { query } }));
   };
 
-  const links = [
-    { to: "/collections", icon: Layers,         label: t("nav_collections") },
-    { to: "/lore",        icon: BookOpen,       label: "Lore Archive" },
-    { to: "/fandom",      icon: Globe,          label: "Fandom Importer" },
-    { to: "/roster",      icon: Users,          label: t("nav_roster") },
-    { to: "/store",       icon: ShoppingBag,    label: t("nav_store") },
-    { to: "/leaderboard", icon: Trophy,         label: t("nav_leaderboard") },
-    { to: "/battles",     icon: Swords,         label: t("nav_battles") },
-    { to: "/gacha",       icon: Sparkles,       label: t("nav_gacha") },
-    { to: "/synergy",     icon: Zap,            label: t("nav_synergy") },
-    { to: "/upgrade",     icon: TrendingUp,     label: t("nav_upgrade") },
-    { to: "/market",      icon: ArrowLeftRight, label: t("nav_market") },
-    { to: "/arena",       icon: Swords,         label: t("nav_arena") },
-    { to: "/quests",      icon: Gift,           label: t("nav_quests") },
-    { to: "/guilds",      icon: Shield,         label: t("nav_guilds") },
-    { to: "/trade",       icon: ArrowLeftRight, label: "Trocas" },
-    { to: "/ranking",     icon: BarChart2,      label: "Ranking" },
-    { to: "/gemshop",     icon: Gem,            label: "Loja Premium" },
-    { to: "/inventory",   icon: Package,        label: "Inventário" },
-    { to: "/dashboard",   icon: BarChart2,      label: "Dashboard" },
-    { to: "/profile",     icon: User,           label: "Perfil" },
-    { to: "/settings",    icon: Settings,       label: t("nav_settings") },
+  const primaryLinks = [
+    { to: "/collections", icon: Layers, label: t("nav_collections") },
+    { to: "/roster", icon: Users, label: t("nav_roster") },
+    { to: "/arena", icon: Swords, label: t("nav_arena") },
+    { to: "/gacha", icon: Sparkles, label: t("nav_gacha") },
+    { to: "/market", icon: ArrowLeftRight, label: t("nav_market") },
+    { to: "/store", icon: ShoppingBag, label: t("nav_store") },
   ];
 
+  const secondaryLinks = [
+    { to: "/lore", icon: BookOpen, label: "Lore Archive" },
+    { to: "/fandom", icon: Globe, label: "Fandom Importer" },
+    { to: "/synergy", icon: Zap, label: t("nav_synergy") },
+    { to: "/upgrade", icon: TrendingUp, label: t("nav_upgrade") },
+    { to: "/quests", icon: Gift, label: t("nav_quests") },
+    { to: "/guilds", icon: Shield, label: t("nav_guilds") },
+    { to: "/battles", icon: Swords, label: t("nav_battles") },
+    { to: "/ranking", icon: BarChart2, label: "Ranking" },
+    { to: "/leaderboard", icon: Trophy, label: t("nav_leaderboard") },
+    { to: "/inventory", icon: Package, label: "Inventário" },
+    { to: "/profile", icon: User, label: "Perfil" },
+    { to: "/settings", icon: Settings, label: t("nav_settings") },
+  ];
+
+  const allMobileLinks = [...primaryLinks, ...secondaryLinks];
+
   return (
-    <nav className="sticky top-0 z-50 border-b border-border/50 bg-background/90 backdrop-blur-xl">
+    <nav className="sticky top-0 z-50 h-14 border-b border-border/50 bg-background/90 backdrop-blur-xl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-3">
 
         {/* Logo canonical DeckVerse OS */}
@@ -99,30 +112,63 @@ export default function Navbar({ onSearch }) {
           </div>
         </form>
 
-        {/* Desktop nav links — horizontally scrollable */}
-        <div className="hidden md:flex items-center gap-0 overflow-x-auto max-w-2xl scrollbar-none flex-1">
-          {links.map(({ to, icon: Icon, label }) => (
+        {/* Desktop nav links */}
+        <div className="hidden md:flex items-center gap-1 shrink-0">
+          {primaryLinks.map(({ to, icon: Icon, label }) => (
             <Link
               key={to}
               to={to}
-              className="flex items-center gap-1 px-2 py-1.5 text-[10px] font-heading font-bold tracking-wide text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all whitespace-nowrap shrink-0 border-r border-transparent hover:border-primary/20"
+              className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-heading font-bold tracking-wide text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all rounded"
             >
-              <Icon className="w-3 h-3" />
+              <Icon className="w-3.5 h-3.5" />
               {label}
             </Link>
           ))}
+
+          {/* Menu "Mais" Dropdown */}
+          <div className="relative" ref={moreRef}>
+            <button
+              onClick={() => setMoreOpen(!moreOpen)}
+              className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-heading font-bold tracking-wide text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all rounded"
+            >
+              Mais
+              <ChevronDown className={`w-3 h-3 transition-transform ${moreOpen ? "rotate-180" : ""}`} />
+            </button>
+
+            {moreOpen && (
+              <div className="absolute right-0 top-9 w-48 border border-border/50 bg-background/98 backdrop-blur-xl shadow-xl p-1.5 grid grid-cols-1 gap-0.5 z-[9998] rounded-md">
+                {secondaryLinks.map(({ to, icon: Icon, label }) => (
+                  <Link
+                    key={to}
+                    to={to}
+                    onClick={() => setMoreOpen(false)}
+                    className="flex items-center gap-2 px-3 py-1.5 text-[11px] font-heading font-bold text-muted-foreground hover:text-primary hover:bg-primary/10 rounded transition-colors"
+                  >
+                    <Icon className="w-3.5 h-3.5 text-primary" />
+                    {label}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Ping display */}
-        <PingDisplay />
+        {/* Right Actions: Notification Bell + Ping + Mobile Toggle */}
+        <div className="flex items-center gap-2">
+          {/* NotificationBell Persistente */}
+          <NotificationBell />
 
-        {/* Mobile toggle */}
-        <button
-          onClick={() => setMobileOpen(!mobileOpen)}
-          className="md:hidden p-2 border border-border/40 text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors"
-        >
-          {mobileOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
-        </button>
+          {/* Ping Display */}
+          <PingDisplay />
+
+          {/* Mobile toggle */}
+          <button
+            onClick={() => setMobileOpen(!mobileOpen)}
+            className="md:hidden p-2 border border-border/40 text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors rounded"
+          >
+            {mobileOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile dropdown */}
@@ -139,12 +185,12 @@ export default function Navbar({ onSearch }) {
               />
             </div>
           </form>
-          {links.map(({ to, icon: Icon, label }) => (
+          {allMobileLinks.map(({ to, icon: Icon, label }) => (
             <Link
               key={to}
               to={to}
               onClick={() => setMobileOpen(false)}
-              className="flex items-center gap-2 px-3 py-2 text-sm font-heading font-bold tracking-wide text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all"
+              className="flex items-center gap-2 px-3 py-2 text-xs font-heading font-bold tracking-wide text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all rounded"
             >
               <Icon className="w-3.5 h-3.5" />
               {label}

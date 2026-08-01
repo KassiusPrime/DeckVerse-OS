@@ -1,5 +1,4 @@
 import React from 'react';
-import { Toaster } from './toaster';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClientInstance } from './query-client';
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
@@ -37,6 +36,7 @@ import Inventory from './Inventory';
 import FandomImporter from './pages/FandomImporter';
 import LoreArchive from './pages/LoreArchive';
 import AdminTerminal from './AdminTerminal';
+import CRTTerminalOverlay from './CRTTerminalOverlay';
 
 const AnimatedRoutes = () => {
   const location = useLocation();
@@ -44,6 +44,7 @@ const AnimatedRoutes = () => {
     <AnimatePresence mode="wait" initial={false}>
       <motion.div
         key={location.pathname}
+        className="pb-24 sm:pb-8 min-h-screen"
         initial={{ opacity: 0, x: 18 }}
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: -18 }}
@@ -114,9 +115,9 @@ export default function App() {
           <BottomNav />
           <CommandPalette />
           <AdminTerminal />
+          <CRTTerminalOverlay />
         </Router>
         <TacticalToastContainer />
-        <Toaster />
       </QueryClientProvider>
     </AuthProvider>
   );

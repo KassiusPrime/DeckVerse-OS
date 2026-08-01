@@ -14,11 +14,10 @@ export default function AdminTerminal({ onAddCard }) {
     name: '', title: '', verse: 'Multiverse', rarity: 'Lendário', hp: 500, atk: 120, def: 100, imgUrl: ''
   });
 
-  const ADMIN_PASSWORD = "OS_OVERRIDE_99"; // Chave de acesso mestra
-
   const handleLogin = (e) => {
     e.preventDefault();
-    if (password === ADMIN_PASSWORD) {
+    const validKey = process.env.ADMIN_PASSWORD || "OS_OVERRIDE_99";
+    if (password === validKey) {
       setIsAuthenticated(true);
       if (toast) {
         toast({
@@ -34,24 +33,43 @@ export default function AdminTerminal({ onAddCard }) {
   const handleForge = async (e) => {
     e.preventDefault();
     
-    // Save locally
-    const createdCard = await db.entities.Card.create({
+    // Mapeamento de raridades PT -> Oficial
+    const rarityMap = {
+      "Lendário": "UR",
+      "Épico": "SSR",
+      "Raro": "SR",
+      "Comum": "C"
+    };
+    const officialRarity = rarityMap[newCard.rarity] || newCard.rarity || "UR";
+    const img = newCard.imgUrl || 'https://images.unsplash.com/photo-1605629713998-167cdc70fa2f?w=600&auto=format&fit=crop&q=80';
+
+    // Save locally following official schema
+    await db.entities.Card.create({
       name: newCard.name,
       card_id: `CUSTOM-${Date.now()}`,
+      collection_id: (newCard.verse || 'MULTIVERSE').toUpperCase().replace(/[^A-Z0-9]/g, '_'),
       series: newCard.verse || 'Multiverse',
-      rarity: newCard.rarity === 'Lendário' ? 'UR' : newCard.rarity === 'Épico' ? 'SSR' : 'SR',
+      rarity: officialRarity,
       role: 'DPS',
-      gender: 'Unknown',
       element: 'Void',
-      hp: Number(newCard.hp) || 500,
+      gender: 'Unknown',
       attack: Number(newCard.atk) || 120,
       defense: Number(newCard.def) || 100,
-      image_url: newCard.imgUrl || 'https://images.unsplash.com/photo-1605629713998-167cdc70fa2f?w=600&auto=format&fit=crop&q=80',
+      speed: 100,
+      hp: Number(newCard.hp) || 500,
+      mag: 100,
+      img_oficial: img,
+      image_url: img,
+      img_custom: img,
       lore: newCard.title || 'Anomalia forjada manualmente pelo Administrador.',
+      skills: [],
+      tags: [newCard.verse || 'Custom'],
+      version: 'Base',
+      evolution_stage: 1,
+      is_boss: officialRarity === 'BOSS' || officialRarity === 'ANOMALIA',
       created_date: new Date().toISOString()
     });
 
-    // Also call onAddCard callback if provided
     if (onAddCard) {
       onAddCard(newCard);
     }
@@ -69,7 +87,7 @@ export default function AdminTerminal({ onAddCard }) {
   };
 
   return (
-    <div className="fixed bottom-20 right-4 z-[999]">
+    <div className="fixed bottom-24 sm:bottom-20 right-4 z-[999]">
       {/* Botão de abrir o terminal (discreto) */}
       {!isOpen && (
         <button 
@@ -114,7 +132,6 @@ export default function AdminTerminal({ onAddCard }) {
               >
                 DESBLOQUEAR SISTEMA
               </button>
-              <p className="text-[10px] text-gray-500 text-center">Dica: OS_OVERRIDE_99</p>
             </form>
           ) : (
             <form onSubmit={handleForge} className="flex flex-col gap-2 text-xs text-gray-300 max-h-[75vh] overflow-y-auto pr-1">

@@ -10,6 +10,7 @@ import { Link } from "react-router-dom";
 import Navbar from "@/Navbar";
 import { RARITY_ALIAS } from "@/constants";
 import { useToast } from "@/use-toast";
+import { pushCRTLog } from "./CRTTerminalOverlay";
 
 // ─── Rarity display (new names) ───────────────────────────────────────────────
 const TIER_COLORS = {
@@ -213,6 +214,7 @@ export default function GachaDrop() {
 
   const handlePull = async (pack) => {
     if (cards.length === 0 || gems < pack.cost) return;
+    pushCRTLog(`Opening ${pack.name} (-${pack.cost} Gems)...`, "GACHA");
     setPulling(true);
     setResults(null);
 
@@ -224,6 +226,10 @@ export default function GachaDrop() {
       const rarity = rollRarity(pack.rates, pity + i);
       const card = pickCard(cards, rarity);
       if (card) pulled.push({ ...card, _tier: RARITY_ALIAS[card.rarity] || card.rarity });
+    }
+
+    if (pulled.length > 0) {
+      pushCRTLog(`Summoned ${pulled.length} card(s): ${pulled.map(c => c.name).join(", ")}`, "GACHA");
     }
 
     // Check if any high tier — reset pity

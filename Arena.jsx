@@ -186,8 +186,9 @@ export default function Arena() {
   const player = players.find(p => p.created_by === user?.email) || null;
 
   const ownedCards = useMemo(() => {
+    const ownerKey = player?.discord_id || player?.created_by || user?.email;
     return rosterEntries
-      .filter(r => r.player_discord_id === (player?.discord_id || user?.email))
+      .filter(r => (r.player_discord_id && r.player_discord_id === ownerKey) || r.created_by === user?.email)
       .map(r => allCards.find(c => c.id === r.card_id))
       .filter(Boolean);
   }, [rosterEntries, allCards, player, user]);

@@ -7,9 +7,12 @@ let _listeners = [];
 let _queue = [];
 let _idCounter = 0;
 
-export function tacticalToast({ title, description, type = "success", isAnomaly = false, duration = 2000, onClickGo }) {
+export function tacticalToast({ title, description, type = "success", isAnomaly = false, duration, onClickGo }) {
   const id = ++_idCounter;
-  _queue = [{ id, title, description, type, isAnomaly, duration, onClickGo }, ..._queue].slice(0, 4);
+  const defaultDuration = isAnomaly ? 6000 : type === "error" ? 5000 : 3500;
+  const finalDuration = duration || defaultDuration;
+
+  _queue = [{ id, title, description, type, isAnomaly, duration: finalDuration, onClickGo }, ..._queue].slice(0, 4);
   _listeners.forEach(fn => fn([..._queue]));
   return id;
 }
