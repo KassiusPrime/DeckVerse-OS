@@ -1,0 +1,196 @@
+// ════════════════════════════════════════════════════════════════════════════
+// DECKVERSE OS — Permanent Auto-Correction & Deduplication Service
+// ════════════════════════════════════════════════════════════════════════════
+
+import { db } from "@/base44Client";
+import { validateCollection, validateCard, validateItem, validateBoss, normalizeCode } from "@/lib/importSchemas";
+import { fandomClient } from "../fandom/fandomClient";
+
+const DEFAULT_FALLBACK_IMAGES = {
+  NAR: "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&auto=format&fit=crop&q=80",
+  DBZ: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&auto=format&fit=crop&q=80",
+  MVC: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&auto=format&fit=crop&q=80",
+  AOT: "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=800&auto=format&fit=crop&q=80",
+  JJK: "https://images.unsplash.com/photo-1563089145-599997674d42?w=800&auto=format&fit=crop&q=80",
+  CYB: "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&auto=format&fit=crop&q=80",
+  DEFAULT: "https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=800&auto=format&fit=crop&q=80"
+};
+
+/**
+ * Normaliza o nome canônico do personagem para deduplicação
+ */
+export function getCanonicalSlug(name = "") {
+  return name.trim().toLowerCase().replace(/[^a-z0-9]/g, "_");
+}
+
+/**
+ * Serviço Principal de Correção Automática e Deduplicação Inteligente
+ */
+export async function runFullAutoCorrection(onLog = () => {}) {
+  const log = (msg, type = "info") => onLog(msg, type);
+
+  log("🚀 [AUTO-CORRECTION] Iniciando varredura completa do banco de dados...", "info");
+
+  try {
+    // 1. DEDUPLICAR E NORMALIZAR COLEÇÕES
+    const collections = await db.entities.Collection.list("-created_date", 1000);
+    log(`📋 Analisando ${collections.length} coleções registradas...`, "info");
+
+    const collectionByCodeMap = new Map();
+    const duplicateCols = [];
+
+    for (const col of collections) {
+      const validVal = validateCollection(col);
+      if (!validVal.ok) {
+        log(`  ⚠️ Coleção inválida detectada (${col.name || col.id}): ${validVal.errors.join(", ")}`, "warning");
+        continue;
+      }
+      const normCol = validVal.data;
+      const codeKey = normCol.code;
+
+      if (!collectionByCodeMap.has(codeKey)) {
+        collectionByCodeMap.set(codeKey, { id: col.id, ...normCol, raw: col });
+      } else {
+        const existing = collectionByCodeMap.get(codeKey);
+        // Escolhe o registro mais completo
+        const existingScore = (existing.image_url ? 10 : 0) + (existing.description ? 5 : 0) + (existing.name ? 5 : 0);
+        const currentScore = (normCol.image_url ? 10 : 0) + (normCol.description ? 5 : 0) + (normCol.name ? 5 : 0);
+
+        if (currentScore > existingScore) {
+          duplicateCols.push(existing.id);
+          collectionByCodeMap.set(codeKey, { id: col.id, ...normCol, raw: col });
+        } else {
+          duplicateCols.push(col.id);
+        }
+      }
+    }
+
+    // Deleta coleções duplicadas
+    for (const dupId of duplicateCols) {
+      await db.entities.Collection.delete(dupId);
+      log(`  ✓ Removida coleção duplicada ID: ${dupId}`, "success");
+    }
+
+    // 2. DEDUPLICAR E NORMALIZAR CARTAS
+    const cards = await db.entities.Card.list("-created_date", 2000);
+    log(`🃏 Analisando ${cards.length} cartas para deduplicação e canonização...`, "info");
+
+    const cardsMap = new Map();
+    const duplicateCardIds = [];
+
+    for (const card of cards) {
+      const slug = getCanonicalSlug(card.name);
+      const colCode = normalizeCode(card.collection_id || card.series || "MULTIVERSE");
+      const key = `${colCode}_${slug}`;
+
+      if (!cardsMap.has(key)) {
+        cardsMap.set(key, card);
+      } else {
+        const existing = cardsMap.get(key);
+        // Critério de seleção do registro mais completo
+        const existingScore =
+          (existing.img_custom ? 100 : 0) +
+          (existing.img_oficial ? 40 : 0) +
+          (existing.image_url ? 20 : 0) +
+          (existing.lore ? existing.lore.length : 0) +
+          (existing.skills ? existing.skills.length * 10 : 0);
+
+        const currentScore =
+          (card.img_custom ? 100 : 0) +
+          (card.img_oficial ? 40 : 0) +
+          (card.image_url ? 20 : 0) +
+          (card.lore ? card.lore.length : 0) +
+          (card.skills ? card.skills.length * 10 : 0);
+
+        if (currentScore > existingScore) {
+          // Mescla dados úteis do antigo no novo
+          const mergedLore = card.lore || existing.lore || `${card.name} é um lutador lendário.`;
+          const mergedCustom = card.img_custom || existing.img_custom || "";
+          const mergedSkills = (card.skills && card.skills.length > 0) ? card.skills : (existing.skills || []);
+
+          cardsMap.set(key, {
+            ...card,
+            lore: mergedLore,
+            img_custom: mergedCustom,
+            skills: mergedSkills
+          });
+          duplicateCardIds.push(existing.id);
+        } else {
+          // Mantém existing, mas mescla custom img do card atual se tiver
+          if (card.img_custom && !existing.img_custom) {
+            existing.img_custom = card.img_custom;
+            await db.entities.Card.update(existing.id, { img_custom: card.img_custom });
+          }
+          duplicateCardIds.push(card.id);
+        }
+      }
+    }
+
+    // Exclui cartas duplicadas
+    for (const dupId of duplicateCardIds) {
+      await db.entities.Card.delete(dupId);
+      log(`  ✓ Removida carta duplicada ID: ${dupId}`, "success");
+    }
+
+    // 3. REPARAR IMAGENS QUEBRADAS E ESTATÍSTICAS CANÔNICAS
+    const uniqueCards = Array.from(cardsMap.values());
+    log(`🔧 Verificando integridade visual e atributos de ${uniqueCards.length} cartas...`, "info");
+
+    for (const card of uniqueCards) {
+      let needsUpdate = false;
+      const updates = {};
+
+      // Fallback de Imagem se vazia
+      if (!card.image_url && !card.img_oficial && !card.img_custom) {
+        const colCode = normalizeCode(card.collection_id || card.series || "DEFAULT");
+        const fallback = DEFAULT_FALLBACK_IMAGES[colCode] || DEFAULT_FALLBACK_IMAGES.DEFAULT;
+        updates.image_url = fallback;
+        updates.img_oficial = fallback;
+        needsUpdate = true;
+        log(`  🖼️ Imagem vinculada via fallback para ${card.name}`, "warning");
+      }
+
+      // Validação e sanitização de atributos
+      if (!card.attack || card.attack < 10) { updates.attack = 75; needsUpdate = true; }
+      if (!card.hp || card.hp < 50) { updates.hp = (updates.attack || card.attack) * 4; needsUpdate = true; }
+      if (!card.defense || card.defense < 10) { updates.defense = 70; needsUpdate = true; }
+      if (!card.speed || card.speed < 10) { updates.speed = 75; needsUpdate = true; }
+      if (!card.mag || card.mag < 10) { updates.mag = 70; needsUpdate = true; }
+
+      // Garante tags limpas
+      if (!Array.isArray(card.tags)) {
+        updates.tags = [normalizeCode(card.collection_id || "MULTIVERSE")];
+        needsUpdate = true;
+      }
+
+      if (needsUpdate) {
+        await db.entities.Card.update(card.id, updates);
+      }
+    }
+
+    // 4. VINCULAR BOSSES ESTRITAMENTE À SUA COLEÇÃO
+    const bosses = await db.entities.Boss.list("-created_date", 500);
+    log(`👑 Garantindo vínculo estrito de ${bosses.length} Bosses às suas coleções...`, "info");
+
+    for (const boss of bosses) {
+      if (!boss.collection_id) {
+        const colCode = normalizeCode(boss.series || "MULTIVERSE");
+        await db.entities.Boss.update(boss.id, { collection_id: colCode });
+        log(`  ✓ Boss ${boss.name} vinculado à coleção ${colCode}`, "success");
+      }
+    }
+
+    log("🎉 [AUTO-CORRECTION] Correção e deduplicação do banco concluídas com sucesso!", "success");
+    return { ok: true, cleanedCards: duplicateCardIds.length, cleanedCols: duplicateCols.length };
+  } catch (err) {
+    log(`💥 Erro na auto-correção: ${err.message}`, "error");
+    throw err;
+  }
+}
+
+export const autoCorrectionService = {
+  runFullAutoCorrection,
+  getCanonicalSlug
+};
+
+export default autoCorrectionService;

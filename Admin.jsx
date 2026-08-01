@@ -8,10 +8,11 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Shield, Upload, Database, Scroll, Swords, ChevronRight,
-  Plus, Save, Trash2, Eye, EyeOff, Pencil, X, Check, Sparkles
+  Plus, Save, Trash2, Eye, EyeOff, Pencil, X, Check, Sparkles, ShieldCheck
 } from "lucide-react";
 import FandomImporter from "@/FandomImporter";
 import CollectionImporter from "@/CollectionImporter";
+import DataQualityCenter from "@/DataQualityCenter";
 import { Input } from "@/input";
 import { Textarea } from "@/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/select";
@@ -20,13 +21,14 @@ import { RARITY_ORDER, ELEMENTS, ROLES } from "@/constants";
 import TagInput from "@/TagInput";
 
 const NAV = [
+  { key: "quality",           label: "QUALIDADE DOS DADOS", icon: ShieldCheck },
   { key: "collection_import", label: "COLLECTION IMPORT", icon: Database },
-  { key: "fandom",      label: "FANDOM IA IMPORT", icon: Sparkles },
-  { key: "cards",       label: "CARD EDITOR",    icon: Upload },
-  { key: "collections", label: "COLLECTIONS",    icon: Database },
-  { key: "players",     label: "PLAYER OPS",     icon: Shield },
-  { key: "changelog",   label: "CHANGELOG",      icon: Scroll },
-  { key: "battles",     label: "LOG BATTLE",     icon: Swords },
+  { key: "fandom",            label: "FANDOM IA IMPORT", icon: Sparkles },
+  { key: "cards",             label: "CARD EDITOR",    icon: Upload },
+  { key: "collections",       label: "COLLECTIONS",    icon: Database },
+  { key: "players",           label: "PLAYER OPS",     icon: Shield },
+  { key: "changelog",         label: "CHANGELOG",      icon: Scroll },
+  { key: "battles",           label: "LOG BATTLE",     icon: Swords },
 ];
 
 const NEW_RARITY_ORDER = ["C","UC","R","SR","SSR","UR","LR","MR","BOSS","ANOMALIA"];
@@ -895,6 +897,7 @@ function BattleLogger() {
 }
 
 const PANELS = {
+  quality: DataQualityCenter,
   collection_import: CollectionImporter,
   fandom: FandomImporter,
   cards: CardEditor,
@@ -906,7 +909,7 @@ const PANELS = {
 
 export default function Admin() {
   const { user } = useAuth();
-  const [activePanel, setActivePanel] = useState("cards");
+  const [activePanel, setActivePanel] = useState("quality");
 
   if (!user || user.role !== "admin") {
     return (

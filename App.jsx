@@ -36,7 +36,10 @@ import Inventory from './Inventory';
 import FandomImporter from './pages/FandomImporter';
 import LoreArchive from './pages/LoreArchive';
 import AdminTerminal from './AdminTerminal';
-import CRTTerminalOverlay from './CRTTerminalOverlay';
+import CRTTerminalOverlay, { pushCRTLog } from './CRTTerminalOverlay';
+import { dataQualityEngine } from './services/ai/dataQualityEngine';
+import { backgroundSyncService } from './services/sync/backgroundSyncService';
+import BackgroundSyncIndicator from './components/BackgroundSyncIndicator';
 
 const AnimatedRoutes = () => {
   const location = useLocation();
@@ -86,6 +89,19 @@ const AnimatedRoutes = () => {
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
 
+  React.useEffect(() => {
+    // Run background Data Quality Audit & Background Sync Engine on startup
+    const runBootSync = async () => {
+      try {
+        pushCRTLog("🛡️ [BACKGROUND SYNC ENGINE] Inicializando sincronização autônoma...", "INFO");
+        await backgroundSyncService.startBackgroundSync("BOOT");
+      } catch (err) {
+        console.warn("Background sync warning:", err.message);
+      }
+    };
+    runBootSync();
+  }, []);
+
   if (isLoadingPublicSettings || isLoadingAuth) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-background">
@@ -116,6 +132,7 @@ export default function App() {
           <CommandPalette />
           <AdminTerminal />
           <CRTTerminalOverlay />
+          <BackgroundSyncIndicator />
         </Router>
         <TacticalToastContainer />
       </QueryClientProvider>

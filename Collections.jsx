@@ -431,8 +431,9 @@ export default function Collections() {
       const matchesSearch = !searchQuery ||
         card.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         card.series?.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCollection = !activeCollection || card.series === activeCollection.name;
-      return matchesRarity && matchesRole && matchesElement && matchesGender && matchesLevel && matchesSearch && matchesCollection;
+      const matchesCollection = !activeCollection || card.series === activeCollection.name || card.collection_id === activeCollection.code;
+      const isValidStatus = card.status !== "quarantine" && card.status !== "rejected";
+      return matchesRarity && matchesRole && matchesElement && matchesGender && matchesLevel && matchesSearch && matchesCollection && isValidStatus;
     });
   }, [cards, rarityFilter, roleFilter, elementFilter, genderFilter, levelFilter, searchQuery, activeCollection, ownedCardIds]);
 
@@ -443,10 +444,23 @@ export default function Collections() {
         item.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.description?.toLowerCase().includes(searchQuery.toLowerCase());
       const itemSeries = item.series || item.collection_name;
-      const matchesCollection = !activeCollection || itemSeries === activeCollection.name;
+      const matchesCollection = !activeCollection || itemSeries === activeCollection.name || item.collection_id === activeCollection.code;
       return matchesSearch && matchesCollection;
     });
   }, [items, searchQuery, activeCollection]);
+
+  // Filtered Bosses strictly bound to active collection
+  const filteredBosses = useMemo(() => {
+    return bosses.filter((boss) => {
+      const matchesSearch = !searchQuery ||
+        boss.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        boss.series?.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCollection = !activeCollection ||
+        boss.collection_id === activeCollection.code ||
+        boss.series === activeCollection.name;
+      return matchesSearch && matchesCollection;
+    });
+  }, [bosses, searchQuery, activeCollection]);
 
   const hasActiveFilters = rarityFilter !== "all" || roleFilter !== "all" || elementFilter !== "all" || genderFilter !== "all" || levelFilter !== "all" || searchQuery;
 
@@ -572,6 +586,15 @@ export default function Collections() {
                 >
                   <Package className="w-4 h-4" /> Objetos & Equipamentos ({filteredItems.length})
                 </button>
+
+                <button
+                  onClick={() => setCollectionSubTab("bosses")}
+                  className={`font-heading text-sm font-bold flex items-center gap-2 pb-2 border-b-2 transition-all ${
+                    collectionSubTab === "bosses" ? "border-red-500 text-red-400" : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Skull className="w-4 h-4 text-red-400" /> Chefes da Coleção ({filteredBosses.length})
+                </button>
               </div>
 
               {collectionSubTab === "characters" && (
@@ -660,16 +683,28 @@ export default function Collections() {
                   })}
                 </div>
               )
-            ) : filteredItems.length === 0 ? (
+            ) : collectionSubTab === "items" ? (
+              filteredItems.length === 0 ? (
+                <div className="text-center py-16 border border-dashed border-border/40 rounded-lg">
+                  <p className="font-heading text-base text-muted-foreground">Nenhum objeto registrado nesta coleção.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  {filteredItems.map((item) => {
+                    const ownedQty = playerItemsMap[item.id] || playerItemsMap[item.item_id] || 0;
+                    return <ItemTile key={item.id} item={item} ownedQuantity={ownedQty} />;
+                  })}
+                </div>
+              )
+            ) : filteredBosses.length === 0 ? (
               <div className="text-center py-16 border border-dashed border-border/40 rounded-lg">
-                <p className="font-heading text-base text-muted-foreground">Nenhum objeto registrado nesta coleção.</p>
+                <p className="font-heading text-base text-muted-foreground">Nenhum chefe de raid vinculado diretamente a esta coleção.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                {filteredItems.map((item) => {
-                  const ownedQty = playerItemsMap[item.id] || playerItemsMap[item.item_id] || 0;
-                  return <ItemTile key={item.id} item={item} ownedQuantity={ownedQty} />;
-                })}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredBosses.map((boss) => (
+                  <BossTile key={boss.id} boss={boss} />
+                ))}
               </div>
             )}
           </motion.div>

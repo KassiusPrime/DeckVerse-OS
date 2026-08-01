@@ -7,6 +7,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { db } from "@/base44Client";
 import { fandomClient } from "@/services/fandom/fandomClient";
 import { enrichmentService } from "@/services/ai/enrichmentService";
+import { dataQualityEngine } from "@/services/ai/dataQualityEngine";
 import { validateCollection, validateCard, validateItem, validateBoss } from "@/lib/importSchemas";
 import { MEGA_COLLECTIONS, MEGA_ITEMS, MEGA_BOSSES } from "@/src/data/megaCollectionsData";
 import { Input } from "@/input";
@@ -236,6 +237,14 @@ export default function CollectionImporter() {
             }
           }
         }
+      }
+
+      // Executa auditoria e pontuação de qualidade
+      addLog("🛡️ Executando auditoria do Data Quality Engine pós-importação...");
+      try {
+        await dataQualityEngine.runDataQualityAudit((msg, type) => addLog(msg, type));
+      } catch (e) {
+        console.warn("Quality audit error:", e);
       }
 
       // Invalidar queries do React Query

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { db } from "@/base44Client";
 import { fandomClient } from "@/services/fandom/fandomClient";
 import { enrichmentService } from "@/services/ai/enrichmentService";
+import { dataQualityEngine } from "@/services/ai/dataQualityEngine";
 import { Input } from "@/input";
 import { Textarea } from "@/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/select";
@@ -163,7 +164,14 @@ export default function FandomImporter() {
         skills: (draft.movepool || []).map(m => ({ name: m.name, description: m.desc, type: m.type }))
       };
 
-      await db.entities.Card.create(cardData);
+      const savedCard = await db.entities.Card.create(cardData);
+
+      // Executa validação de qualidade imediata
+      try {
+        await dataQualityEngine.runDataQualityAudit();
+      } catch (e) {
+        console.warn("Quality audit error on import:", e);
+      }
 
       qc.invalidateQueries();
       toast({ title: "🎉 Importação Concluída!", description: `${draft.canonical_name} cadastrado no Banco de Conhecimento com sucesso!` });

@@ -31,7 +31,7 @@ export default function Roster() {
     return rosterEntries.map((entry) => {
       const card = cards.find((c) => c.id === entry.card_id);
       return { ...entry, card };
-    }).filter((e) => e.card);
+    }).filter((e) => e.card && e.card.status !== "quarantine" && e.card.status !== "rejected");
   }, [rosterEntries, cards]);
 
   const filteredCards = useMemo(() => {
