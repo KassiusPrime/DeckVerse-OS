@@ -54,6 +54,10 @@
       ],
       "description": "Character archetype / class"
     },
+    "character_version_id": {
+      "type": "string",
+      "description": "ID da CharacterVersion canônica (Universo > Franquia > Personagem > Versão)"
+    },
     "gender": {
       "type": "string",
       "enum": [
@@ -63,19 +67,6 @@
         "Other"
       ],
       "description": "Character gender"
-    },
-    "element": {
-      "type": "string",
-      "enum": [
-        "Fire",
-        "Water",
-        "Earth",
-        "Wind",
-        "Lightning",
-        "Shadow",
-        "Light"
-      ],
-      "description": "Elemental affinity"
     },
     "tags": {
       "type": "array",

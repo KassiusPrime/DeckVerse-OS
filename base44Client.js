@@ -3,6 +3,13 @@
 // ════════════════════════════════════════════════════════════════════════════
 
 import { MEGA_COLLECTIONS, MEGA_ITEMS, MEGA_BOSSES, generateExpandedCards } from "./src/data/megaCollectionsData.js";
+import { runKnowledgeBaseMigration, DEFAULT_UNIVERSES } from "./scripts/migrateToKnowledgeBase.js";
+import { SEED_ARCHETYPES, SEED_PERSONALITIES } from "./services/ai/enrichmentService.js";
+
+// Run knowledge base migration automatically on startup if needed
+if (typeof window !== "undefined") {
+  runKnowledgeBaseMigration();
+}
 
 const EXISTING_COLLECTIONS = [
   {
@@ -622,6 +629,14 @@ const DEFAULT_BOSSES = [
 
 // Registry of stores
 const entityStores = {
+  Universe: createEntityStore("Universe", DEFAULT_UNIVERSES),
+  Franchise: createEntityStore("Franchise", []),
+  Character: createEntityStore("Character", []),
+  CharacterVersion: createEntityStore("CharacterVersion", []),
+  Power: createEntityStore("Power", []),
+  Archetype: createEntityStore("Archetype", SEED_ARCHETYPES),
+  Personality: createEntityStore("Personality", SEED_PERSONALITIES),
+  CharacterRelationship: createEntityStore("CharacterRelationship", []),
   Card: createEntityStore("Card", DEFAULT_CARDS),
   Collection: createEntityStore("Collection", DEFAULT_COLLECTIONS),
   Player: createEntityStore("Player", DEFAULT_PLAYERS),

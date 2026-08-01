@@ -1,0 +1,13 @@
+{
+  "name": "Franchise",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string" },
+    "universe_id": { "type": "string", "description": "ID do Universo pai" },
+    "name": { "type": "string", "description": "Nome da Franquia (ex: Naruto, X-Men, Batman Family)" },
+    "slug": { "type": "string", "description": "Código/Slug da Franquia (ex: NAR, XMEN, BAT)" },
+    "description": { "type": "string" },
+    "image_url": { "type": "string" }
+  },
+  "required": ["id", "universe_id", "name", "slug"]
+}

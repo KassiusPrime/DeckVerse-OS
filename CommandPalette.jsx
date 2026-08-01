@@ -26,9 +26,21 @@ export default function CommandPalette() {
   const navigate = useNavigate();
 
   // Queries for Global Search
+  const { data: characters = [] } = useQuery({
+    queryKey: ["characters-cmd"],
+    queryFn: () => db.entities.Character.list("-created_date", 200),
+    enabled: open,
+  });
+
   const { data: cards = [] } = useQuery({
     queryKey: ["cards-cmd"],
     queryFn: () => db.entities.Card.list("-created_date", 300),
+    enabled: open,
+  });
+
+  const { data: franchises = [] } = useQuery({
+    queryKey: ["franchises-cmd"],
+    queryFn: () => db.entities.Franchise.list(),
     enabled: open,
   });
 
@@ -87,11 +99,25 @@ export default function CommandPalette() {
 
   const cleanQuery = query.toLowerCase().trim();
 
+  const characterMatches = cleanQuery.length >= 2
+    ? characters.filter(ch =>
+        ch.canonical_name?.toLowerCase().includes(cleanQuery) ||
+        ch.bio?.toLowerCase().includes(cleanQuery) ||
+        ch.species?.toLowerCase().includes(cleanQuery)
+      ).slice(0, 4)
+    : [];
+
+  const franchiseMatches = cleanQuery.length >= 2
+    ? franchises.filter(fr =>
+        fr.name?.toLowerCase().includes(cleanQuery) ||
+        fr.slug?.toLowerCase().includes(cleanQuery)
+      ).slice(0, 3)
+    : [];
+
   const cardMatches = cleanQuery.length >= 2
     ? cards.filter(c =>
         c.name?.toLowerCase().includes(cleanQuery) ||
         c.series?.toLowerCase().includes(cleanQuery) ||
-        c.element?.toLowerCase().includes(cleanQuery) ||
         c.role?.toLowerCase().includes(cleanQuery) ||
         c.tags?.some(t => t.toLowerCase().includes(cleanQuery))
       ).slice(0, 5)
@@ -170,6 +196,56 @@ export default function CommandPalette() {
 
           {/* Results Container */}
           <div className="max-h-[70vh] overflow-y-auto py-3 space-y-4">
+
+            {/* CHARACTER MATCHES (BANCO DE CONHECIMENTO) */}
+            {characterMatches.length > 0 && (
+              <div>
+                <p className="px-5 py-1 text-[10px] font-heading font-bold tracking-widest text-emerald-400 uppercase flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5" /> Personagens Canônicos ({characterMatches.length})
+                </p>
+                {characterMatches.map(ch => (
+                  <button
+                    key={ch.id}
+                    onClick={() => go("/collections")}
+                    className="w-full flex items-center gap-3.5 px-5 py-2 hover:bg-emerald-500/10 text-left transition-colors group"
+                  >
+                    <div className="w-7 h-7 rounded bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center shrink-0">
+                      <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-heading font-bold text-foreground group-hover:text-emerald-300 transition-colors truncate">{ch.canonical_name}</p>
+                      <p className="text-[10px] font-mono text-muted-foreground">{ch.species || "Humano"} · {ch.gender || "Desconhecido"}</p>
+                    </div>
+                    <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all" />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* FRANCHISE MATCHES */}
+            {franchiseMatches.length > 0 && (
+              <div>
+                <p className="px-5 py-1 text-[10px] font-heading font-bold tracking-widest text-sky-400 uppercase flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5" /> Franquias ({franchiseMatches.length})
+                </p>
+                {franchiseMatches.map(fr => (
+                  <button
+                    key={fr.id}
+                    onClick={() => go("/collections")}
+                    className="w-full flex items-center gap-3.5 px-5 py-2 hover:bg-sky-500/10 text-left transition-colors group"
+                  >
+                    <div className="w-7 h-7 rounded bg-sky-500/10 border border-sky-500/30 flex items-center justify-center shrink-0 font-mono text-xs font-bold text-sky-400">
+                      {fr.slug}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-heading font-bold text-foreground group-hover:text-sky-300 transition-colors truncate">{fr.name}</p>
+                      <p className="text-[10px] font-mono text-muted-foreground">Franquia Multiversal #{fr.slug}</p>
+                    </div>
+                    <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-sky-400 group-hover:translate-x-0.5 transition-all" />
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* CARDS RESULTS */}
             {cardMatches.length > 0 && (

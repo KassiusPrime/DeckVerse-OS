@@ -1,0 +1,12 @@
+{
+  "name": "Universe",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string" },
+    "name": { "type": "string", "description": "Nome do universo (ex: Anime & Mangá, Comics, Mitologia)" },
+    "slug": { "type": "string", "description": "Slug de identificação (ex: anime-manga, comics)" },
+    "description": { "type": "string", "description": "Descrição do universo multiversal" },
+    "source_wiki": { "type": "string", "description": "Wiki ou fonte principal" }
+  },
+  "required": ["id", "name", "slug"]
+}

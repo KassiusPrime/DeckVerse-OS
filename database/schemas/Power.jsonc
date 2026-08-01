@@ -1,0 +1,15 @@
+{
+  "name": "Power",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string" },
+    "name": { "type": "string" },
+    "description": { "type": "string" },
+    "category": {
+      "type": "string",
+      "enum": ["Física", "Mental", "Cósmica", "Mística", "Tecnológica", "Biológica", "Dimensional", "Temporal", "Energia", "Espacial"]
+    },
+    "origin": { "type": "string" }
+  },
+  "required": ["id", "name", "category"]
+}

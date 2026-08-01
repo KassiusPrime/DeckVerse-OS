@@ -1,0 +1,46 @@
+{
+  "name": "CharacterVersion",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string" },
+    "character_id": { "type": "string", "description": "ID do Personagem canônico" },
+    "version_name": { "type": "string", "description": "Nome da Versão/Forma (ex: Base, Weapon X, Old Man Logan)" },
+    "description": { "type": "string" },
+    "img_avatar": { "type": "string" },
+    "img_art": { "type": "string" },
+    "img_banner": { "type": "string" },
+    "img_icon": { "type": "string" },
+    "img_thumbnail": { "type": "string" },
+    "stats": {
+      "type": "object",
+      "properties": {
+        "strength": { "type": "number" },
+        "speed": { "type": "number" },
+        "intelligence": { "type": "number" },
+        "strategy": { "type": "number" },
+        "resistance": { "type": "number" },
+        "energy": { "type": "number" },
+        "precision": { "type": "number" },
+        "influence": { "type": "number" },
+        "control": { "type": "number" },
+        "versatility": { "type": "number" },
+        "potential": { "type": "number" },
+        "experience": { "type": "number" }
+      }
+    },
+    "movepool": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "power": { "type": "number" },
+          "type": { "type": "string", "enum": ["Ataque", "Defesa", "Especial", "Ultimate", "Suporte"] },
+          "desc": { "type": "string" }
+        }
+      }
+    }
+  },
+  "required": ["id", "character_id", "version_name"]
+}

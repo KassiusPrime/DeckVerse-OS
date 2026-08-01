@@ -1,0 +1,23 @@
+{
+  "name": "Character",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string" },
+    "franchise_id": { "type": "string", "description": "ID da Franquia a qual o personagem pertence" },
+    "canonical_name": { "type": "string", "description": "Nome canônico único (ex: Wolverine, Gojo Satoru)" },
+    "gender": { "type": "string", "enum": ["Masculino", "Feminino", "Desconhecido", "Outro"] },
+    "species": { "type": "string", "description": "Espécie (ex: Humano, Mutante, Saiyajin)" },
+    "bio": { "type": "string", "description": "Biografia resumida" },
+    "fandom_url": { "type": "string", "description": "Link da Wiki Fandom oficial" },
+    "archetype_ids": { "type": "array", "items": { "type": "string" }, "description": "IDs dos Arquétipos de gameplay" },
+    "power_ids": { "type": "array", "items": { "type": "string" }, "description": "IDs dos Poderes do personagem" },
+    "tag_ids": { "type": "array", "items": { "type": "string" }, "description": "Tags de sinergia" },
+    "personality_ids": { "type": "array", "items": { "type": "string" }, "description": "Traços de personalidade narrativa" },
+    "catchphrases": { "type": "array", "items": { "type": "string" }, "description": "Frases icônicas do personagem" },
+    "motivations": { "type": "string", "description": "O que move o personagem" },
+    "fears": { "type": "string", "description": "O que assusta o personagem" },
+    "moral_alignment": { "type": "string", "description": "Alinhamento moral estilo RPG (ex: Ordeiro e Bom, Caótico e Neutro)" },
+    "voice_tone": { "type": "string", "description": "Descrição do tom de fala e personalidade verbal" }
+  },
+  "required": ["id", "franchise_id", "canonical_name"]
+}

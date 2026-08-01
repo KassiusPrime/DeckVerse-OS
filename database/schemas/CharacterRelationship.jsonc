@@ -1,0 +1,15 @@
+{
+  "name": "CharacterRelationship",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string" },
+    "character_id": { "type": "string" },
+    "related_character_id": { "type": "string" },
+    "relationship_type": {
+      "type": "string",
+      "enum": ["Aliado", "Rival", "Inimigo", "Mentor", "Família", "Parceiro Romântico", "Melhor Amigo"]
+    },
+    "description": { "type": "string" }
+  },
+  "required": ["id", "character_id", "related_character_id", "relationship_type"]
+}

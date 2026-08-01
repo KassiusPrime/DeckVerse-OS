@@ -8,8 +8,9 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Shield, Upload, Database, Scroll, Swords, ChevronRight,
-  Plus, Save, Trash2, Eye, EyeOff, Pencil, X, Check
+  Plus, Save, Trash2, Eye, EyeOff, Pencil, X, Check, Sparkles
 } from "lucide-react";
+import FandomImporter from "@/FandomImporter";
 import { Input } from "@/input";
 import { Textarea } from "@/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/select";
@@ -18,6 +19,7 @@ import { RARITY_ORDER, ELEMENTS, ROLES } from "@/constants";
 import TagInput from "@/TagInput";
 
 const NAV = [
+  { key: "fandom",      label: "FANDOM IA IMPORT", icon: Sparkles },
   { key: "cards",       label: "CARD EDITOR",    icon: Upload },
   { key: "collections", label: "COLLECTIONS",    icon: Database },
   { key: "players",     label: "PLAYER OPS",     icon: Shield },
@@ -890,7 +892,7 @@ function BattleLogger() {
   );
 }
 
-const PANELS = { cards: CardEditor, collections: CollectionEditor, players: PlayerOps, changelog: ChangelogEditor, battles: BattleLogger };
+const PANELS = { fandom: FandomImporter, cards: CardEditor, collections: CollectionEditor, players: PlayerOps, changelog: ChangelogEditor, battles: BattleLogger };
 
 export default function Admin() {
   const { user } = useAuth();
