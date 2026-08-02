@@ -342,11 +342,36 @@ export async function fetchCharacterInfobox(pageTitle, wikiSlug) {
   return payload;
 }
 
+/**
+ * Resolve a imagem direta do personagem usando a wiki Fandom
+ */
+export async function resolveCharacterImage(characterName, collectionCode) {
+  if (!characterName) return "";
+  const wikiSlug = resolveWikiSlug(collectionCode || "NAR");
+
+  try {
+    const directImg = await fetchPageImages(characterName, wikiSlug);
+    if (directImg) return directImg;
+
+    const searchResults = await searchCharacter(characterName, wikiSlug);
+    if (searchResults && searchResults.length > 0) {
+      const bestMatch = searchResults[0].title;
+      const searchImg = await fetchPageImages(bestMatch, wikiSlug);
+      if (searchImg) return searchImg;
+    }
+  } catch (err) {
+    console.warn(`[FandomClient] Erro ao resolver imagem para ${characterName}:`, err.message);
+  }
+
+  return "";
+}
+
 export const fandomClient = {
   searchCharacter,
   fetchCharacterInfobox,
   fetchPageImages,
   resolveWikiSlug,
+  resolveCharacterImage,
   clearFandomCache,
   COLLECTION_WIKI_MAP,
   DEFAULT_WIKIS
