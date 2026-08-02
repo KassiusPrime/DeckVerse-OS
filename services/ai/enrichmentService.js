@@ -4,7 +4,6 @@
 
 import { GoogleGenAI } from "@google/genai";
 import { fandomClient } from "../fandom/fandomClient.js";
-import { cloudflareImages } from "../cdn/cloudflareImages.js";
 import { validateCard } from "../../lib/importSchemas.js";
 
 export const SEED_ARCHETYPES = [
@@ -318,10 +317,7 @@ export async function enrichCardFromWikiAndAI(characterName, collectionCode = "M
   // 3. Monta rascunho de carta
   const rarity = opts.rarity || (opts.isBoss ? "BOSS" : "SSR");
   const role = opts.role || "DPS";
-  const rawMainImg = fandomData.mainImageUrl || opts.fallbackImage || "";
-  const mainImg = rawMainImg
-    ? await cloudflareImages.resolveCdnImage(rawMainImg, { name: characterName, collection_id: collectionCode })
-    : "";
+  const mainImg = fandomData.mainImageUrl || opts.fallbackImage || "";
 
   const rawCardPayload = {
     name: enriched.canonical_name || characterName,

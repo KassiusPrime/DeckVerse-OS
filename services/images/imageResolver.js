@@ -1,10 +1,9 @@
 // ════════════════════════════════════════════════════════════════════════════
 // DECKVERSE OS — Multi-tier Image Resolver Service
-// Fallback Chain: Fandom -> Cloudflare CDN -> Superhero API -> Jikan/AniList -> TVMaze -> Wikimedia -> Pollinations -> DiceBear
+// Fallback Chain: Fandom -> Superhero API -> Jikan/AniList -> TVMaze -> Wikimedia -> Pollinations -> DiceBear
 // ════════════════════════════════════════════════════════════════════════════
 
 import { fandomClient } from "../fandom/fandomClient";
-import { cloudflareImages } from "../cdn/cloudflareImages";
 
 /**
  * Tenta buscar imagem via Superhero API (Marvel / DC / Comic characters)
@@ -104,43 +103,27 @@ export async function resolveMultiTierCharacterImage(characterName, collectionCo
   } catch (e) {}
 
   if (fandomUrl) {
-    const cdnUrl = await cloudflareImages.resolveCdnImage(fandomUrl, {
-      name: characterName,
-      collection_id: collectionCode
-    });
-    return cdnUrl || fandomUrl;
+    return fandomUrl;
   }
 
   // 2. Se for Marvel / DC ou Quadrinhos, tenta Superhero API
   if (["MVC", "MARVEL", "DC", "HQ", "HERO"].includes((collectionCode || "").toUpperCase())) {
     const superheroUrl = await fetchSuperheroApiImage(characterName);
     if (superheroUrl) {
-      const cdnUrl = await cloudflareImages.resolveCdnImage(superheroUrl, {
-        name: characterName,
-        collection_id: collectionCode
-      });
-      return cdnUrl || superheroUrl;
+      return superheroUrl;
     }
   }
 
   // 3. Tenta Jikan / Anime API
   const jikanUrl = await fetchJikanAnimeImage(characterName);
   if (jikanUrl) {
-    const cdnUrl = await cloudflareImages.resolveCdnImage(jikanUrl, {
-      name: characterName,
-      collection_id: collectionCode
-    });
-    return cdnUrl || jikanUrl;
+    return jikanUrl;
   }
 
   // 4. Tenta Wikimedia Commons
   const wikiMediaUrl = await fetchWikimediaImage(characterName);
   if (wikiMediaUrl) {
-    const cdnUrl = await cloudflareImages.resolveCdnImage(wikiMediaUrl, {
-      name: characterName,
-      collection_id: collectionCode
-    });
-    return cdnUrl || wikiMediaUrl;
+    return wikiMediaUrl;
   }
 
   // 5. Fallback opcional por IA ou Avatar Procedural
