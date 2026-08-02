@@ -53,6 +53,37 @@ function getGeminiClient() {
 }
 
 /**
+ * Invoca a API do Gemini com fallback suave de modelo e tratamento de quota/rate limit (429)
+ */
+async function generateGeminiContentWithFallback(ai, prompt, config = { responseMimeType: "application/json" }) {
+  if (!ai) return null;
+  const modelsToTry = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
+
+  for (const model of modelsToTry) {
+    try {
+      const res = await ai.models.generateContent({
+        model,
+        contents: prompt,
+        config
+      });
+      if (res && res.text) return res.text;
+    } catch (err) {
+      const msg = err?.message || String(err);
+      if (msg.includes("429") || msg.includes("RESOURCE_EXHAUSTED") || msg.includes("quota")) {
+        console.warn("[Gemini API] Quota limite atingida (429), ativando modo fallback local offline.");
+        return null;
+      }
+      if (msg.includes("404") || msg.includes("NOT_FOUND") || msg.includes("no longer available")) {
+        console.warn(`[Gemini API] Modelo ${model} indisponível, tentando próximo modelo...`);
+        continue;
+      }
+      console.warn(`[Gemini API] Aviso ao gerar conteúdo com ${model}:`, msg);
+    }
+  }
+  return null;
+}
+
+/**
  * Regras de fallback determinístico quando IA offline ou sem chave
  */
 function fallbackClassification(rawText = "", canonicalName = "") {
@@ -105,13 +136,10 @@ Texto: "${rawBioText.slice(0, 1500)}"
 
 Responda EXATAMENTE em formato JSON com o array de IDs: {"archetype_ids": ["arch_id1", "arch_id2"]}`;
 
-    const res = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-      config: { responseMimeType: "application/json" }
-    });
+    const text = await generateGeminiContentWithFallback(ai, prompt);
+    if (!text) return fallbackClassification(rawBioText).archetype_ids;
 
-    const parsed = JSON.parse(res.text || "{}");
+    const parsed = JSON.parse(text || "{}");
     return parsed.archetype_ids || ["arch_determinado"];
   } catch (e) {
     return fallbackClassification(rawBioText).archetype_ids;
@@ -147,13 +175,20 @@ Retorne em JSON:
   "catchphrases": ["Frase marcante 1", "Frase marcante 2"]
 }`;
 
-    const res = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-      config: { responseMimeType: "application/json" }
-    });
+    const text = await generateGeminiContentWithFallback(ai, prompt);
+    if (!text) {
+      const fb = fallbackClassification(rawBioText);
+      return {
+        personality_ids: fb.personality_ids,
+        motivations: fb.motivations,
+        fears: fb.fears,
+        moral_alignment: fb.moral_alignment,
+        voice_tone: fb.voice_tone,
+        catchphrases: []
+      };
+    }
 
-    return JSON.parse(res.text || "{}");
+    return JSON.parse(text || "{}");
   } catch (e) {
     const fb = fallbackClassification(rawBioText);
     return {
@@ -232,13 +267,31 @@ Retorne EXATAMENTE no formato JSON:
   ]
 }`;
 
-    const res = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-      config: { responseMimeType: "application/json" }
-    });
+    const text = await generateGeminiContentWithFallback(ai, prompt);
 
-    const parsed = JSON.parse(res.text || "{}");
+    if (!text) {
+      return {
+        status: "ai_suggested",
+        canonical_name: canonicalName,
+        gender,
+        species,
+        bio: rawBioText.slice(0, 400) || fallback.bio_summary,
+        archetype_ids: fallback.archetype_ids,
+        personality_ids: fallback.personality_ids,
+        motivations: fallback.motivations,
+        fears: fallback.fears,
+        moral_alignment: fallback.moral_alignment,
+        voice_tone: fallback.voice_tone,
+        catchphrases: [],
+        stats: fallback.stats,
+        movepool: fallback.suggested_movepool,
+        powers: [
+          { name: powersRaw ? powersRaw.slice(0, 30) : "Técnica Principal", category: "Energia", description: powersRaw || "Ataque derivado das habilidades do personagem." }
+        ]
+      };
+    }
+
+    const parsed = JSON.parse(text || "{}");
 
     return {
       status: "ai_suggested",
@@ -258,7 +311,7 @@ Retorne EXATAMENTE no formato JSON:
       powers: parsed.powers || []
     };
   } catch (err) {
-    console.error("Erro no enriquecimento por IA Gemini:", err);
+    console.warn("[Enrichment] Fallback ativado devido a erro no processamento:", err?.message || err);
     return {
       status: "ai_suggested",
       canonical_name: canonicalName,
