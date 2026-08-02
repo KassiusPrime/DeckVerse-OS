@@ -6,6 +6,7 @@
 import { db } from "@/base44Client";
 import { validateCollection, validateCard, normalizeCode } from "@/lib/importSchemas";
 import { fandomClient } from "../fandom/fandomClient";
+import { cloudflareImages } from "../cdn/cloudflareImages";
 import { enrichmentService } from "./enrichmentService";
 
 // Fallback images per collection if primary image fails
@@ -205,9 +206,10 @@ export async function runDataQualityAudit(onLog = () => {}) {
           try {
             const wikiImg = await fandomClient.fetchPageImages(card.name, wikiSlug);
             if (wikiImg && (await validateImageUrl(wikiImg, 2500))) {
-              updates.img_oficial = wikiImg;
-              updates.image_url = wikiImg;
-              primaryImage = wikiImg;
+              const cdnUrl = await cloudflareImages.resolveCdnImage(wikiImg, { name: card.name, collection_id: card.collection_id });
+              updates.img_oficial = cdnUrl;
+              updates.image_url = cdnUrl;
+              primaryImage = cdnUrl;
               isImgOk = true;
               stats.repairedImages++;
               isChanged = true;
