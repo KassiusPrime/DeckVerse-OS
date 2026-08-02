@@ -109,8 +109,13 @@ export default function AdminTerminal({ onAddCard }) {
             <X size={18} />
           </button>
           
-          <h2 className="text-lg font-bold mb-3 flex items-center gap-2 text-cyan-400 border-b border-cyan-900 pb-2">
-            <Terminal size={20} className="text-[#00F0FF] animate-pulse" /> FORJA CÓSMICA [ADMIN]
+          <h2 className="text-lg font-bold mb-3 flex items-center justify-between gap-2 text-cyan-400 border-b border-cyan-900 pb-2">
+            <span className="flex items-center gap-2">
+              <Terminal size={20} className="text-[#00F0FF] animate-pulse" /> FORJA CÓSMICA [ADMIN]
+            </span>
+            <a href="/adm" className="text-[10px] text-cyan-400 hover:underline border border-cyan-500/40 px-2 py-0.5 rounded mr-6">
+              IR PARA /ADM
+            </a>
           </h2>
 
           {!isAuthenticated ? (

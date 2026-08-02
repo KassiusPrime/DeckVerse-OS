@@ -63,6 +63,7 @@ const AnimatedRoutes = () => {
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/battles" element={<BattleHistory />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/adm" element={<Admin />} />
           <Route path="/synergy" element={<SynergyBuilder />} />
           <Route path="/gacha" element={<GachaDrop />} />
           <Route path="/upgrade" element={<CardUpgrade />} />

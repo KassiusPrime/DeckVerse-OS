@@ -1,0 +1,216 @@
+// ════════════════════════════════════════════════════════════════════════════
+// DECKVERSE OS — Core Entity Repository
+// Single doorway for reading and writing persistence entities (localStorage/db)
+// ════════════════════════════════════════════════════════════════════════════
+
+import { db } from "../base44Client.js";
+
+class EntityRepository {
+  /**
+   * Cards
+   */
+  async getAllCards() {
+    return (await db.entities.Card.list()) || [];
+  }
+
+  async getCardById(id) {
+    const cards = await this.getAllCards();
+    return cards.find(c => c.id === id || c.card_id === id) || null;
+  }
+
+  async saveCard(cardData) {
+    if (!cardData.name) {
+      throw new Error("Nome da carta é obrigatório");
+    }
+    const cards = await this.getAllCards();
+    const existing = cards.find(c => (cardData.id && c.id === cardData.id) || (cardData.card_id && c.card_id === cardData.card_id));
+
+    if (existing) {
+      return await db.entities.Card.update(existing.id, {
+        ...cardData,
+        updated_at: new Date().toISOString()
+      });
+    } else {
+      const id = cardData.id || `card_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      const card_id = cardData.card_id || `${cardData.collection_id || 'CUS'}-${Date.now().toString().slice(-6)}`;
+      return await db.entities.Card.create({
+        ...cardData,
+        id,
+        card_id,
+        created_date: cardData.created_date || new Date().toISOString()
+      });
+    }
+  }
+
+  async deleteCard(id) {
+    return await db.entities.Card.delete(id);
+  }
+
+  async saveBatchCards(cardsArray) {
+    const saved = [];
+    for (const item of cardsArray) {
+      const res = await this.saveCard(item);
+      saved.push(res);
+    }
+    return saved;
+  }
+
+  /**
+   * Collections
+   */
+  async getAllCollections() {
+    return (await db.entities.Collection.list()) || [];
+  }
+
+  async getCollectionById(idOrCode) {
+    const collections = await this.getAllCollections();
+    return collections.find(c => c.id === idOrCode || c.code === idOrCode) || null;
+  }
+
+  async saveCollection(collectionData) {
+    if (!collectionData.name || !collectionData.code) {
+      throw new Error("Nome e Código da coleção são obrigatórios");
+    }
+    const collections = await this.getAllCollections();
+    const existing = collections.find(c => (collectionData.id && c.id === collectionData.id) || c.code === collectionData.code);
+
+    if (existing) {
+      return await db.entities.Collection.update(existing.id, {
+        ...collectionData,
+        updated_at: new Date().toISOString()
+      });
+    } else {
+      const id = collectionData.id || `col_${Date.now()}`;
+      return await db.entities.Collection.create({
+        ...collectionData,
+        id,
+        created_date: collectionData.created_date || new Date().toISOString()
+      });
+    }
+  }
+
+  async deleteCollection(idOrCode) {
+    const col = await this.getCollectionById(idOrCode);
+    if (col) {
+      return await db.entities.Collection.delete(col.id);
+    }
+    return { success: false };
+  }
+
+  /**
+   * Bosses
+   */
+  async getAllBosses() {
+    return (await db.entities.Boss.list()) || [];
+  }
+
+  async saveBoss(bossData) {
+    const bosses = await this.getAllBosses();
+    const existing = bosses.find(b => (bossData.id && b.id === bossData.id) || b.name === bossData.name);
+    if (existing) {
+      return await db.entities.Boss.update(existing.id, bossData);
+    } else {
+      return await db.entities.Boss.create({
+        id: bossData.id || `boss_${Date.now()}`,
+        ...bossData
+      });
+    }
+  }
+
+  /**
+   * Players
+   */
+  async getAllPlayers() {
+    return (await db.entities.Player.list()) || [];
+  }
+
+  async getPlayerById(id) {
+    const players = await this.getAllPlayers();
+    return players.find(p => p.id === id) || players[0] || null;
+  }
+
+  async savePlayer(playerData) {
+    const players = await this.getAllPlayers();
+    const existing = players.find(p => p.id === playerData.id);
+    if (existing) {
+      return await db.entities.Player.update(existing.id, playerData);
+    } else {
+      return await db.entities.Player.create(playerData);
+    }
+  }
+
+  /**
+   * Quarantine Store
+   */
+  async getQuarantineItems() {
+    return (await db.entities.QuarantineCard.list()) || [];
+  }
+
+  async saveQuarantineItem(item) {
+    const items = await this.getQuarantineItems();
+    const existing = items.find(q => q.id === item.id || (q.card_id && q.card_id === item.card_id));
+    if (existing) {
+      return await db.entities.QuarantineCard.update(existing.id, {
+        ...item,
+        quarantined_at: new Date().toISOString()
+      });
+    } else {
+      return await db.entities.QuarantineCard.create({
+        id: item.id || `quar_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        quarantined_at: new Date().toISOString(),
+        ...item
+      });
+    }
+  }
+
+  async deleteQuarantineItem(id) {
+    return await db.entities.QuarantineCard.delete(id);
+  }
+
+  /**
+   * System Diagnostics / Cache
+   */
+  async getSystemStats() {
+    const cards = await this.getAllCards();
+    const collections = await this.getAllCollections();
+    const bosses = await this.getAllBosses();
+    const players = await this.getAllPlayers();
+    const quarantine = await this.getQuarantineItems();
+
+    let storageBytes = 0;
+    if (typeof window !== "undefined" && window.localStorage) {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        storageBytes += (k.length + (localStorage.getItem(k) || "").length) * 2;
+      }
+    }
+
+    return {
+      totalCards: cards.length,
+      totalCollections: collections.length,
+      totalBosses: bosses.length,
+      totalPlayers: players.length,
+      quarantineCount: quarantine.length,
+      storageUsedKB: (storageBytes / 1024).toFixed(2),
+      environment: "Local First (localStorage + Base44 Mock)",
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  async clearAllCaches() {
+    if (typeof window !== "undefined" && window.localStorage) {
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k.startsWith("fandom_cache_") || k.startsWith("image_cache_")) {
+          keysToRemove.push(k);
+        }
+      }
+      keysToRemove.forEach(k => localStorage.removeItem(k));
+      return { clearedCount: keysToRemove.length };
+    }
+    return { clearedCount: 0 };
+  }
+}
+
+export const entityRepository = new EntityRepository();
