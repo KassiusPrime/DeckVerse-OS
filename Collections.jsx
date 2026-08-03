@@ -1,8 +1,12 @@
 import { db } from "@/base44Client";
 import React, { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
+import { MEGA_COLLECTIONS, MEGA_ITEMS, MEGA_BOSSES, getAllExpandedCards } from "@/src/data/megaCollectionsData";
+import { importService } from "@/core/importService";
+import { entityRepository } from "@/core/entityRepository";
 import {
   Filter,
   Layers,
@@ -22,7 +26,17 @@ import {
   CheckCircle2,
   Clock,
   Flame,
-  Star
+  Star,
+  Globe,
+  Gamepad2,
+  Film,
+  Tv,
+  Crown,
+  Scroll,
+  BookOpen,
+  Compass,
+  Wand2,
+  Swords
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/select";
 import Navbar from "@/Navbar";
@@ -31,6 +45,32 @@ import { RARITY_ORDER, RARITY_ALIAS, ELEMENTS, ROLES } from "@/constants";
 import { DeckVerseLoader, CollectionSkeleton, CardGridSkeleton, ItemSkeleton } from "@/LoadingAnimation";
 
 const GENDER_OPTIONS = ["Male", "Female", "Unknown", "Other"];
+
+// Helper to return thematic Lucide icon for each collection
+function getCollectionIcon(collection) {
+  if (!collection) return <Layers className="w-5 h-5 text-primary" />;
+  const code = (collection.code || "").toUpperCase();
+  const name = (collection.name || "").toLowerCase();
+  const bank = collection.bank || (code.startsWith("COL-01") ? "COL-01" : code.startsWith("COL-02") ? "COL-02" : code.startsWith("COL-03") ? "COL-03" : code.startsWith("COL-04") ? "COL-04" : code.startsWith("COL-05") ? "COL-05" : "COL-06");
+
+  if (code.includes("DC") || name.includes("dc universe")) return <Shield className="w-5 h-5 text-blue-400" />;
+  if (code.includes("MARVEL") || name.includes("marvel")) return <Shield className="w-5 h-5 text-red-500" />;
+  if (code.includes("SW") || name.includes("star wars")) return <Sparkles className="w-5 h-5 text-cyan-400" />;
+  if (code.includes("GOT") || name.includes("game of thrones")) return <Crown className="w-5 h-5 text-amber-500" />;
+  if (code.includes("HP") || name.includes("harry potter")) return <Wand2 className="w-5 h-5 text-purple-400" />;
+  if (code.includes("LOTR") || name.includes("lord of the rings")) return <Crown className="w-5 h-5 text-amber-400" />;
+  if (code.includes("BOYS") || name.includes("the boys")) return <Zap className="w-5 h-5 text-yellow-400" />;
+  if (code.includes("DUNE") || name.includes("dune")) return <Compass className="w-5 h-5 text-orange-400" />;
+
+  if (bank === "COL-01") return <Flame className="w-5 h-5 text-amber-400" />;
+  if (bank === "COL-02") return <Gamepad2 className="w-5 h-5 text-purple-400" />;
+  if (bank === "COL-03") return <Film className="w-5 h-5 text-rose-400" />;
+  if (bank === "COL-04") return <Tv className="w-5 h-5 text-sky-400" />;
+  if (bank === "COL-05") return <Crown className="w-5 h-5 text-yellow-400" />;
+  if (bank === "COL-06") return <Scroll className="w-5 h-5 text-emerald-400" />;
+
+  return <Layers className="w-5 h-5 text-primary" />;
+}
 
 // Standardized Rarity Badge helper
 function RarityBadge({ rarity }) {
@@ -78,8 +118,10 @@ function CollectionTile({ collection, characterCount, ownedCharacterCount, itemC
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-muted/30 to-background flex items-center justify-center">
-            <Layers className="w-10 h-10 text-muted-foreground/20" />
+          <div className="w-full h-full bg-gradient-to-br from-card via-muted/20 to-background flex items-center justify-center relative">
+            <div className="p-3 rounded-xl bg-background/80 border border-border/40 shadow-xl flex items-center justify-center">
+              {getCollectionIcon(collection)}
+            </div>
           </div>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-transparent" />
@@ -98,16 +140,42 @@ function CollectionTile({ collection, characterCount, ownedCharacterCount, itemC
       </div>
 
       <div className="p-4 relative">
-        <h3 className="font-heading text-lg font-black text-foreground tracking-tight group-hover:text-primary transition-colors">
-          {collection.name}
-        </h3>
+        <div className="flex items-center gap-2">
+          <div className="p-1 rounded bg-muted/30 border border-border/40 shrink-0">
+            {getCollectionIcon(collection)}
+          </div>
+          <h3 className="font-heading text-lg font-black text-foreground tracking-tight group-hover:text-primary transition-colors">
+            {collection.name}
+          </h3>
+        </div>
         {collection.description && (
           <p className="text-xs font-body text-muted-foreground mt-1 line-clamp-1">
             {collection.description}
           </p>
         )}
 
-        <div className="mt-4 space-y-2">
+        {/* Display Obras / Titles contained in this collection */}
+        {collection.works && collection.works.length > 0 && (
+          <div className="mt-2.5 pt-2 border-t border-border/20">
+            <span className="text-[10px] font-mono text-muted-foreground/80 font-bold block mb-1">
+              OBRAS NESTA COLEÇÃO ({collection.works.length}):
+            </span>
+            <div className="flex flex-wrap gap-1">
+              {collection.works.slice(0, 3).map((w, idx) => (
+                <span key={idx} className="text-[9px] font-mono px-1.5 py-0.5 bg-muted/40 border border-border/30 rounded text-foreground/80 truncate max-w-[130px]">
+                  {w}
+                </span>
+              ))}
+              {collection.works.length > 3 && (
+                <span className="text-[9px] font-mono px-1.5 py-0.5 bg-primary/10 text-primary border border-primary/30 rounded font-bold">
+                  +{collection.works.length - 3} mais
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="mt-3 space-y-2">
           {/* Characters Count */}
           <div className="flex items-center justify-between text-[11px] font-body">
             <span className="text-muted-foreground flex items-center gap-1">
@@ -261,13 +329,13 @@ function BossTile({ boss }) {
 }
 
 const BANKS = [
-  { id: "all", code: "TODOS", label: "Todos os Bancos", icon: "🌐" },
-  { id: "COL-01", code: "B1", label: "COL-01 — Animes, Mangás, LN & Webtoons", icon: "🎴" },
-  { id: "COL-02", code: "B2", label: "COL-02 — Jogos", icon: "🎮" },
-  { id: "COL-03", code: "B3", label: "COL-03 — Filmes", icon: "🎬" },
-  { id: "COL-04", code: "B4", label: "COL-04 — Séries & Animação Ocidental", icon: "📺" },
-  { id: "COL-05", code: "B5", label: "COL-05 — Mitologias", icon: "🏛" },
-  { id: "COL-06", code: "B6", label: "COL-06 — Históricos & Realidade", icon: "📜" }
+  { id: "all", code: "TODOS", label: "Todos os Bancos do Multiverso", icon: <Globe className="w-4 h-4 text-cyan-400" /> },
+  { id: "COL-01", code: "B1", label: "COL-01 — Animes, Mangás, LN & Webtoons", icon: <Flame className="w-4 h-4 text-amber-400" /> },
+  { id: "COL-02", code: "B2", label: "COL-02 — Jogos", icon: <Gamepad2 className="w-4 h-4 text-purple-400" /> },
+  { id: "COL-03", code: "B3", label: "COL-03 — Cinema & HQ Franquias", icon: <Film className="w-4 h-4 text-rose-400" /> },
+  { id: "COL-04", code: "B4", label: "COL-04 — Séries & Animação Ocidental", icon: <Tv className="w-4 h-4 text-sky-400" /> },
+  { id: "COL-05", code: "B5", label: "COL-05 — Mitologias", icon: <Crown className="w-4 h-4 text-yellow-400" /> },
+  { id: "COL-06", code: "B6", label: "COL-06 — Históricos & Realidade", icon: <Scroll className="w-4 h-4 text-emerald-400" /> }
 ];
 
 export default function Collections() {
@@ -287,26 +355,147 @@ export default function Collections() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
 
+  const queryClient = useQueryClient();
+  const [isSeeding, setIsSeeding] = useState(false);
+
   // Queries
-  const { data: collections = [] } = useQuery({
+  const { data: dbCollections = [] } = useQuery({
     queryKey: ["collections"],
     queryFn: () => db.entities.Collection.list(),
   });
 
-  const { data: cards = [], isLoading: loadingCards } = useQuery({
+  const { data: dbCards = [], isLoading: loadingCards } = useQuery({
     queryKey: ["cards"],
-    queryFn: () => db.entities.Card.list("-created_date", 500),
+    queryFn: () => db.entities.Card.list("-created_date", 1000),
   });
 
-  const { data: items = [] } = useQuery({
+  const { data: dbItems = [] } = useQuery({
     queryKey: ["items"],
     queryFn: () => db.entities.Item.list(),
   });
 
-  const { data: bosses = [] } = useQuery({
+  const { data: dbBosses = [] } = useQuery({
     queryKey: ["bosses"],
     queryFn: () => db.entities.Boss.list(),
   });
+
+  // Combined canonical data
+  const collections = useMemo(() => {
+    const seenIds = new Set();
+    const seenCodes = new Set();
+    const seenNames = new Set();
+    const list = [];
+
+    dbCollections.forEach((c, idx) => {
+      const codeKey = (c.code || "").toUpperCase();
+      const nameKey = (c.name || "").toLowerCase();
+
+      // Exclude legacy standalone Super-Choque and Justiça Jovem collections
+      if (
+        codeKey === "COL-04-STATIC" ||
+        codeKey === "COL-04-YJ" ||
+        nameKey.includes("super-choque") ||
+        nameKey.includes("justiça jovem") ||
+        nameKey.includes("justica jovem")
+      ) {
+        return;
+      }
+
+      const idKey = c.id || c.code || `db_col_${idx}`;
+      let finalName = c.name;
+      let finalDescription = c.description;
+      let finalWorks = c.works;
+
+      if (codeKey === "COL-03-MARVEL") {
+        finalName = "Marvel Comics Universe";
+      } else if (codeKey === "COL-03-DC") {
+        finalName = "DC Universe";
+        finalWorks = ["DC Universe", "Justiça Jovem", "Super-Choque", "Batman", "Superman", "Flash", "Liga da Justiça"];
+      }
+
+      if (!seenIds.has(idKey) && (!codeKey || !seenCodes.has(codeKey)) && (!finalName || !seenNames.has(finalName.toLowerCase()))) {
+        seenIds.add(idKey);
+        if (codeKey) seenCodes.add(codeKey);
+        if (finalName) seenNames.add(finalName.toLowerCase());
+        list.push({
+          ...c,
+          name: finalName,
+          description: finalDescription,
+          works: finalWorks || [finalName],
+          id: idKey,
+        });
+      }
+    });
+
+    MEGA_COLLECTIONS.forEach((m, idx) => {
+      const codeKey = (m.code || "").toUpperCase();
+      const nameKey = (m.name || "").toLowerCase();
+      const idKey = m.id || `mega_col_${idx}`;
+
+      if (!seenIds.has(idKey) && !seenCodes.has(codeKey) && !seenNames.has(nameKey)) {
+        seenIds.add(idKey);
+        if (codeKey) seenCodes.add(codeKey);
+        if (nameKey) seenNames.add(nameKey);
+        list.push({
+          id: idKey,
+          code: m.code,
+          bank: m.bank,
+          name: m.name,
+          description: m.description,
+          image_url: m.image_url,
+          works: m.works || [m.name]
+        });
+      }
+    });
+
+    return list;
+  }, [dbCollections]);
+
+  const cards = useMemo(() => {
+    if (dbCards && dbCards.length > 0) return dbCards;
+    return getAllExpandedCards();
+  }, [dbCards]);
+
+  const items = useMemo(() => {
+    if (dbItems && dbItems.length > 0) return dbItems;
+    return MEGA_ITEMS;
+  }, [dbItems]);
+
+  const bosses = useMemo(() => {
+    if (dbBosses && dbBosses.length > 0) return dbBosses;
+    return MEGA_BOSSES;
+  }, [dbBosses]);
+
+  const handleSeedAcervo = async () => {
+    setIsSeeding(true);
+    try {
+      await importService.seedAcervo62();
+      
+      const expandedCards = getAllExpandedCards();
+      for (let i = 0; i < expandedCards.length; i += 25) {
+        const chunk = expandedCards.slice(i, i + 25);
+        await Promise.all(chunk.map(c => entityRepository.saveCard(c)));
+      }
+      for (const item of MEGA_ITEMS) {
+        await db.entities.Item.create(item).catch(() => {});
+      }
+      for (const boss of MEGA_BOSSES) {
+        await entityRepository.saveBoss(boss).catch(() => {});
+      }
+
+      await queryClient.invalidateQueries(["collections"]);
+      await queryClient.invalidateQueries(["cards"]);
+      await queryClient.invalidateQueries(["items"]);
+      await queryClient.invalidateQueries(["bosses"]);
+
+      toast.success("⚡ Acervo semeado com sucesso! 62 coleções e catálogos sincronizados.");
+    } catch (err) {
+      console.error("Erro ao semear acervo:", err);
+      toast.error("Falha ao semear acervo: " + (err.message || err));
+    } finally {
+      setIsSeeding(false);
+    }
+  };
 
   const { data: players = [] } = useQuery({
     queryKey: ["players-col"],
@@ -345,31 +534,51 @@ export default function Collections() {
   const collectionStats = useMemo(() => {
     const stats = {};
     collections.forEach(col => {
-      stats[col.name] = {
-        totalCards: 0,
-        ownedCards: 0,
-        totalItems: 0,
-        ownedItems: 0,
-      };
+      stats[col.name] = { totalCards: 0, ownedCards: 0, totalItems: 0, ownedItems: 0 };
+      if (col.code) stats[col.code] = stats[col.name];
     });
 
     cards.forEach(card => {
+      const colId = card.collection_id;
       const series = card.series || "Other";
-      if (!stats[series]) {
-        stats[series] = { totalCards: 0, ownedCards: 0, totalItems: 0, ownedItems: 0 };
+      const matchedCol = collections.find(c =>
+        c.code === colId ||
+        c.name === series ||
+        (c.works && Array.isArray(c.works) && c.works.includes(series))
+      );
+      if (matchedCol) {
+        const key = matchedCol.name;
+        if (!stats[key]) stats[key] = { totalCards: 0, ownedCards: 0, totalItems: 0, ownedItems: 0 };
+        stats[key].totalCards += 1;
+        if (ownedCardIds.has(card.id)) stats[key].ownedCards += 1;
+      } else {
+        if (!stats[series]) stats[series] = { totalCards: 0, ownedCards: 0, totalItems: 0, ownedItems: 0 };
+        stats[series].totalCards += 1;
+        if (ownedCardIds.has(card.id)) stats[series].ownedCards += 1;
       }
-      stats[series].totalCards += 1;
-      if (ownedCardIds.has(card.id)) stats[series].ownedCards += 1;
     });
 
     items.forEach(item => {
+      const colId = item.collection_id;
       const series = item.series || item.collection_name || "Outros";
-      if (!stats[series]) {
-        stats[series] = { totalCards: 0, ownedCards: 0, totalItems: 0, ownedItems: 0 };
-      }
-      stats[series].totalItems += 1;
-      if (playerItemsMap[item.id] > 0 || playerItemsMap[item.item_id] > 0) {
-        stats[series].ownedItems += 1;
+      const matchedCol = collections.find(c =>
+        c.code === colId ||
+        c.name === series ||
+        (c.works && Array.isArray(c.works) && c.works.includes(series))
+      );
+      if (matchedCol) {
+        const key = matchedCol.name;
+        if (!stats[key]) stats[key] = { totalCards: 0, ownedCards: 0, totalItems: 0, ownedItems: 0 };
+        stats[key].totalItems += 1;
+        if (playerItemsMap[item.id] > 0 || playerItemsMap[item.item_id] > 0) {
+          stats[key].ownedItems += 1;
+        }
+      } else {
+        if (!stats[series]) stats[series] = { totalCards: 0, ownedCards: 0, totalItems: 0, ownedItems: 0 };
+        stats[series].totalItems += 1;
+        if (playerItemsMap[item.id] > 0 || playerItemsMap[item.item_id] > 0) {
+          stats[series].ownedItems += 1;
+        }
       }
     });
 
@@ -419,7 +628,8 @@ export default function Collections() {
       const owned = stats.ownedCards + stats.ownedItems;
       const matchesSearch = !searchQuery ||
         col.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        col.code?.toLowerCase().includes(searchQuery.toLowerCase());
+        col.code?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (col.works && col.works.some(w => w.toLowerCase().includes(searchQuery.toLowerCase())));
       
       let matchesStatus = true;
       if (overviewStatusFilter === "completed") matchesStatus = total > 0 && owned === total;
@@ -468,7 +678,10 @@ export default function Collections() {
       const matchesSearch = !searchQuery ||
         card.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         card.series?.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCollection = !activeCollection || card.series === activeCollection.name || card.collection_id === activeCollection.code;
+      const matchesCollection = !activeCollection ||
+        card.collection_id === activeCollection.code ||
+        card.series === activeCollection.name ||
+        (activeCollection.works && Array.isArray(activeCollection.works) && activeCollection.works.includes(card.series));
       const isValidStatus = card.status !== "quarantine" && card.status !== "rejected";
       return matchesRarity && matchesRole && matchesElement && matchesGender && matchesLevel && matchesSearch && matchesCollection && isValidStatus;
     }).sort((a, b) => (a.name || "").localeCompare(b.name || "", "pt-BR", { sensitivity: 'base' }));
@@ -481,7 +694,10 @@ export default function Collections() {
         item.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.description?.toLowerCase().includes(searchQuery.toLowerCase());
       const itemSeries = item.series || item.collection_name;
-      const matchesCollection = !activeCollection || itemSeries === activeCollection.name || item.collection_id === activeCollection.code;
+      const matchesCollection = !activeCollection ||
+        item.collection_id === activeCollection.code ||
+        itemSeries === activeCollection.name ||
+        (activeCollection.works && Array.isArray(activeCollection.works) && activeCollection.works.includes(itemSeries));
       return matchesSearch && matchesCollection;
     }).sort((a, b) => (a.name || "").localeCompare(b.name || "", "pt-BR", { sensitivity: 'base' }));
   }, [items, searchQuery, activeCollection]);
@@ -494,7 +710,8 @@ export default function Collections() {
         boss.series?.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCollection = !activeCollection ||
         boss.collection_id === activeCollection.code ||
-        boss.series === activeCollection.name;
+        boss.series === activeCollection.name ||
+        (activeCollection.works && Array.isArray(activeCollection.works) && activeCollection.works.includes(boss.series));
       return matchesSearch && matchesCollection;
     }).sort((a, b) => (a.name || "").localeCompare(b.name || "", "pt-BR", { sensitivity: 'base' }));
   }, [bosses, searchQuery, activeCollection]);
@@ -583,6 +800,16 @@ export default function Collections() {
                     <h2 className="font-heading text-2xl sm:text-3xl font-black text-foreground">{activeCollection.name}</h2>
                   </div>
                   <p className="text-sm font-body text-muted-foreground mt-2 max-w-2xl">{activeCollection.description}</p>
+                  {activeCollection.works && activeCollection.works.length > 0 && (
+                    <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                      <span className="text-[10px] font-mono font-bold text-primary uppercase">OBRAS DESTA COLEÇÃO ({activeCollection.works.length}):</span>
+                      {activeCollection.works.map((w, idx) => (
+                        <span key={idx} className="font-mono text-[11px] px-2 py-0.5 bg-primary/10 border border-primary/30 text-primary rounded font-bold">
+                          {w}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-4 bg-background/80 p-4 rounded-lg border border-border/40">
@@ -866,8 +1093,20 @@ export default function Collections() {
                   </div>
                 </div>
 
-                {/* Status Badges Filter */}
+                {/* Status Badges Filter + Semente CTA */}
                 <div className="flex items-center gap-1.5 flex-wrap">
+                  <button
+                    onClick={handleSeedAcervo}
+                    disabled={isSeeding}
+                    className="px-3 py-1.5 bg-primary/20 text-primary border border-primary/40 hover:bg-primary hover:text-primary-foreground font-heading text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    title="Semeia as 62 coleções canônicas do acervo no banco de dados"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    {isSeeding ? "Semeando..." : "⚡ Semente Acervo (62)"}
+                  </button>
+
+                  <div className="h-4 w-[1px] bg-border/40 my-auto hidden sm:block" />
+
                   <button
                     onClick={() => setOverviewStatusFilter("all")}
                     className={`px-3 py-1.5 rounded-lg text-xs font-heading font-bold transition-all border ${
@@ -1039,14 +1278,34 @@ export default function Collections() {
             {loadingCards ? (
               <CollectionSkeleton count={6} />
             ) : filteredCollections.length === 0 ? (
-              <div className="text-center py-16 border border-dashed border-border/40 rounded-xl bg-card/20">
-                <p className="font-heading text-base font-bold text-muted-foreground">Nenhuma coleção encontrada com o filtro selecionado.</p>
-                <button
-                  onClick={() => { setOverviewStatusFilter("all"); setSearchQuery(""); }}
-                  className="mt-3 text-xs font-heading font-bold text-primary hover:underline inline-flex items-center gap-1"
-                >
-                  Limpar Filtros de Coleção
-                </button>
+              <div className="text-center py-16 border border-dashed border-primary/40 rounded-2xl bg-gradient-to-b from-card/80 via-card/50 to-background p-8 space-y-4 shadow-xl">
+                <div className="w-16 h-16 mx-auto bg-primary/10 border border-primary/30 rounded-2xl flex items-center justify-center text-primary shadow-lg animate-pulse">
+                  <Sparkles className="w-8 h-8 text-primary" />
+                </div>
+                <div className="max-w-md mx-auto space-y-2">
+                  <h3 className="font-heading text-lg font-black text-foreground uppercase tracking-tight">
+                    NENHUMA COLEÇÃO REGISTRADA NESTE BANCO
+                  </h3>
+                  <p className="text-xs font-body text-muted-foreground leading-relaxed">
+                    Semeie as 62 coleções do acervo canônico (COL-01 a COL-06) para popular todos os universos de Animes, Jogos, Filmes, Séries, Mitologias e Históricos.
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center justify-center gap-3 pt-3">
+                  <button
+                    onClick={handleSeedAcervo}
+                    disabled={isSeeding}
+                    className="px-6 py-3 bg-primary text-primary-foreground font-heading text-xs font-black tracking-wider uppercase rounded-xl hover:bg-primary/90 transition-all shadow-lg flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    <Zap className="w-4 h-4 fill-current" />
+                    {isSeeding ? "SEMEANDO ACERVO DECKVERSE..." : "⚡ SEMENTE ACERVO (62 COLEÇÕES)"}
+                  </button>
+                  <button
+                    onClick={() => { setOverviewStatusFilter("all"); setSelectedBank("all"); setSearchQuery(""); }}
+                    className="px-4 py-3 bg-card border border-border text-foreground font-heading text-xs font-bold rounded-xl hover:border-primary/50 transition-all cursor-pointer"
+                  >
+                    Limpar Filtros
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

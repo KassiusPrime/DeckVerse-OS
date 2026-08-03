@@ -129,22 +129,22 @@ export default function Navbar({ onSearch }) {
           <div className="relative" ref={moreRef}>
             <button
               onClick={() => setMoreOpen(!moreOpen)}
-              className="flex items-center gap-1 px-3 py-1.5 text-[11px] font-heading font-bold tracking-wide text-foreground hover:text-primary hover:bg-primary/10 transition-all rounded"
+              className="flex items-center gap-1 px-3 py-1.5 text-[11px] font-heading font-bold tracking-wide text-foreground hover:text-primary hover:bg-primary/10 transition-all rounded min-h-[36px]"
             >
               Mais
               <ChevronDown className={`w-3 h-3 transition-transform ${moreOpen ? "rotate-180" : ""}`} />
             </button>
 
             {moreOpen && (
-              <div className="absolute right-0 top-10 w-52 border border-border bg-background shadow-2xl p-2 grid grid-cols-1 gap-1 z-[9998] rounded-md">
+              <div className="absolute right-0 top-10 w-56 border border-border bg-background shadow-2xl p-2 grid grid-cols-1 gap-1 z-[9998] rounded-md">
                 {secondaryLinks.map(({ to, icon: Icon, label }) => (
                   <Link
                     key={to}
                     to={to}
                     onClick={() => setMoreOpen(false)}
-                    className="flex items-center gap-2.5 px-3 py-2 text-xs font-heading font-bold text-foreground hover:text-primary hover:bg-primary/10 rounded transition-colors"
+                    className="flex items-center gap-2.5 px-3 py-2.5 text-xs font-heading font-bold text-foreground hover:bg-primary hover:text-primary-foreground rounded transition-colors min-h-[44px]"
                   >
-                    <Icon className="w-4 h-4 text-primary" />
+                    <Icon className="w-4 h-4 shrink-0" />
                     {label}
                   </Link>
                 ))}
@@ -174,7 +174,7 @@ export default function Navbar({ onSearch }) {
 
       {/* Mobile dropdown 100% opaque */}
       {mobileOpen && (
-        <div className="md:hidden border-t border-border bg-background px-4 py-4 space-y-1 max-h-[80vh] overflow-y-auto shadow-2xl z-50">
+        <div className="md:hidden border-t border-border bg-background px-4 py-4 space-y-1.5 max-h-[80vh] overflow-y-auto shadow-2xl z-50">
           <form onSubmit={handleSearch} className="mb-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -182,7 +182,7 @@ export default function Navbar({ onSearch }) {
                 placeholder="Buscar no DeckVerse..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="pl-10 h-10 bg-card border-border text-foreground placeholder:text-muted-foreground font-body text-sm"
+                className="pl-10 h-11 bg-card border-border text-foreground placeholder:text-muted-foreground/80 font-body text-sm rounded-md"
               />
             </div>
           </form>
@@ -191,9 +191,9 @@ export default function Navbar({ onSearch }) {
               key={to}
               to={to}
               onClick={() => setMobileOpen(false)}
-              className="flex items-center gap-3 px-3 py-3 text-sm font-heading font-bold tracking-wide text-foreground hover:text-primary hover:bg-primary/10 transition-all rounded-md min-h-[44px]"
+              className="flex items-center gap-3 px-3.5 py-3 text-sm font-heading font-bold tracking-wide text-foreground hover:bg-primary hover:text-primary-foreground transition-all rounded-md min-h-[44px]"
             >
-              <Icon className="w-4 h-4 text-primary" />
+              <Icon className="w-4 h-4 shrink-0" />
               {label}
             </Link>
           ))}

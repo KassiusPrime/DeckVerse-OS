@@ -166,16 +166,16 @@ class ImportService {
       { code: "COL-02-WITCHER", name: "The Witcher", bank: "COL-02", description: "Geralt de Rívia, Bruxos, Caçada Selvagem e Sinais Mágicos." },
 
       // COL-03 — CINEMA & FRANQUIAS (8)
-      { code: "COL-03-DC", name: "DC Universe", bank: "COL-03", description: "Liga da Justiça, Bat-família, Tropa dos Lanternas e Crises Cósmicas." },
+      { code: "COL-03-DC", name: "DC Universe", bank: "COL-03", description: "Liga da Justiça, Bat-família, Justiça Jovem, Super-Choque, Lanternas e Crises Cósmicas." },
       { code: "COL-03-DUNE", name: "Dune", bank: "COL-03", description: "Arrakis, Especiaria Melange, Paul Atreides e os Vermes da Areia." },
       { code: "COL-03-GOT", name: "Game of Thrones", bank: "COL-03", description: "Casas de Westeros, Trono de Ferro, Dragões e Caminhantes Brancos." },
       { code: "COL-03-HP", name: "Harry Potter", bank: "COL-03", description: "Escola de Hogwarts, Casas de Magia, Feitiços e Comensais." },
       { code: "COL-03-LOTR", name: "Lord of the Rings", bank: "COL-03", description: "Sociedade do Anel, Um Anel, Sauron e a Terra-Média." },
       { code: "COL-03-SW", name: "Star Wars", bank: "COL-03", description: "Cavaleiros Jedi, Lordes Sith, a Força e a Aliança Rebelde." },
       { code: "COL-03-BOYS", name: "The Boys", bank: "COL-03", description: "Vought International, Os Sete, Composto V e Os Boys." },
-      { code: "COL-03-MARVEL", name: "X-Men / Marvel Universe", bank: "COL-03", description: "Mutantes, Vingadores, Joias do Infinito e Heróis Cósmicos." },
+      { code: "COL-03-MARVEL", name: "Marvel Comics Universe", bank: "COL-03", description: "Mutantes, Vingadores, Joias do Infinito, Quarteto Fantástico e Heróis Cósmicos." },
 
-      // COL-04 — SÉRIES & ANIMAÇÃO OCIDENTAL (9)
+      // COL-04 — SÉRIES & ANIMAÇÃO OCIDENTAL (7)
       { code: "COL-04-ARC", name: "Arcane", bank: "COL-04", description: "A Cidade do Progresso Piltover, o Submundo de Zaun e Cristais Hextech." },
       { code: "COL-04-ATLA", name: "Avatar: The Last Airbender", bank: "COL-04", description: "Avatar, Dobradores dos Quatro Elementos e a Nação do Fogo." },
       { code: "COL-04-BEN10", name: "Ben 10", bank: "COL-04", description: "Omnitrix, Transformações Alienígenas e Encanadores Galácticos." },
@@ -183,8 +183,6 @@ class ImportService {
       { code: "COL-04-HAZBIN", name: "Hazbin Hotel", bank: "COL-04", description: "Redenção no Inferno, Charlie Morningstar e o Hotel Hazbin." },
       { code: "COL-04-AT", name: "Hora de Aventura", bank: "COL-04", description: "Terra de Ooo, Finn o Humano, Jake o Cão e Rei Gelado." },
       { code: "COL-04-INV", name: "Invencível", bank: "COL-04", description: "Mark Grayson, Viltrumitas, Guardiões do Globo e Omni-Man." },
-      { code: "COL-04-STATIC", name: "Super-Choque", bank: "COL-04", description: "Virgil Hawkins, Metahumanos da Explosão de Gás e Dakota City." },
-      { code: "COL-04-YJ", name: "Justiça Jovem", bank: "COL-04", description: "Equipe de Jovens Heróis, A Luz e Operações Secretas da Liga." },
 
       // COL-05 — MITOLOGIAS (6)
       { code: "COL-05-EGY", name: "Mitologia Egípcia", bank: "COL-05", description: "Deuses do Nilo, Rá, Anúbis, Osíris e Faraós Sagrados." },

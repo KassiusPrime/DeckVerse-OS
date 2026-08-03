@@ -47,7 +47,8 @@ export function runKnowledgeBaseMigration() {
 
     // 3. Mapeia Coleções Existentes para Franchises
     const rawCols = localStorage.getItem("deckverse_Collection");
-    const existingCols = rawCols ? JSON.parse(rawCols) : MEGA_COLLECTIONS;
+    const parsedCols = rawCols ? JSON.parse(rawCols) : [];
+    const existingCols = parsedCols.length >= MEGA_COLLECTIONS.length ? parsedCols : MEGA_COLLECTIONS;
 
     const franchises = existingCols.map((col, idx) => ({
       id: `fran_${col.code?.toLowerCase() || idx}`,
@@ -59,10 +60,13 @@ export function runKnowledgeBaseMigration() {
     }));
 
     localStorage.setItem("deckverse_Franchise", JSON.stringify(franchises));
+    localStorage.setItem("deckverse_Collection", JSON.stringify(MEGA_COLLECTIONS));
 
     // 4. Mapeia Cartas Existentes para Character -> CharacterVersion -> Card
     const rawCards = localStorage.getItem("deckverse_Card");
-    const cardsToMigrate = rawCards ? JSON.parse(rawCards) : generateExpandedCards();
+    const parsedCards = rawCards ? JSON.parse(rawCards) : [];
+    const expandedCards = generateExpandedCards();
+    const cardsToMigrate = parsedCards.length >= expandedCards.length ? parsedCards : expandedCards;
 
     const charactersMap = new Map();
     const characterVersions = [];
