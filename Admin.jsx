@@ -366,6 +366,52 @@ export default function Admin() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <button
                   onClick={async () => {
+                    const res = await adminController.seedAcervo62();
+                    toast({ title: `🌱 Semente Concluída! ${res.seededCount} coleções garantidas.` });
+                    refetchCollections();
+                    refetchSummary();
+                  }}
+                  className="p-3 border border-border/40 hover:border-cyan-500/50 bg-cyan-950/20 hover:bg-cyan-950/40 rounded text-left space-y-1 transition-all"
+                >
+                  <div className="flex items-center gap-2 text-xs font-heading font-bold text-cyan-400">
+                    <Database className="w-4 h-4" /> SEMENTE ACERVO (62)
+                  </div>
+                  <p className="text-[10px] font-mono text-muted-foreground">Popula o acervo completo com os 62 universos canônicos.</p>
+                </button>
+
+                <button
+                  onClick={async () => {
+                    const res = await adminController.mergeDuplicateCollections();
+                    toast({ title: `🔀 Fusão Concluída! ${res.mergedCount} duplicatas unificadas.` });
+                    refetchCollections();
+                    refetchCards();
+                    refetchSummary();
+                  }}
+                  className="p-3 border border-border/40 hover:border-purple-500/50 bg-purple-950/20 hover:bg-purple-950/40 rounded text-left space-y-1 transition-all"
+                >
+                  <div className="flex items-center gap-2 text-xs font-heading font-bold text-purple-400">
+                    <Layers className="w-4 h-4" /> FUNDIR COLEÇÕES DUPLICADAS
+                  </div>
+                  <p className="text-[10px] font-mono text-muted-foreground">Consolida universos repetidos por nome ou idioma.</p>
+                </button>
+
+                <button
+                  onClick={async () => {
+                    const res = await adminController.reclassifyCards();
+                    toast({ title: `🏷️ Reclassificação Concluída! ${res.reclassifiedCount} cartas reclassificadas.` });
+                    refetchCards();
+                    refetchSummary();
+                  }}
+                  className="p-3 border border-border/40 hover:border-amber-500/50 bg-amber-950/20 hover:bg-amber-950/40 rounded text-left space-y-1 transition-all"
+                >
+                  <div className="flex items-center gap-2 text-xs font-heading font-bold text-amber-400">
+                    <CheckCircle2 className="w-4 h-4" /> RECLASSIFICAR
+                  </div>
+                  <p className="text-[10px] font-mono text-muted-foreground">Padroniza códigos de raridade, elementos e chefes.</p>
+                </button>
+
+                <button
+                  onClick={async () => {
                     await adminController.triggerDataQualityAudit();
                     toast({ title: "⚡ Auditoria iniciada na fila de tarefas!" });
                     refetchSummary();

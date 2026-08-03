@@ -1,9 +1,16 @@
 import React, { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Terminal, Lock, Unlock, PlusCircle, X } from 'lucide-react';
 import { useToast } from './use-toast';
 import { db } from './base44Client';
 
 export default function AdminTerminal({ onAddCard }) {
+  const location = useLocation();
+  const hiddenRoutes = ['/adm', '/admin', '/architect'];
+  if (hiddenRoutes.includes(location.pathname)) {
+    return null;
+  }
+
   const [isOpen, setIsOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');

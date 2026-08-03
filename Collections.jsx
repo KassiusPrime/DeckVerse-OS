@@ -260,11 +260,24 @@ function BossTile({ boss }) {
   );
 }
 
+const BANKS = [
+  { id: "all", code: "TODOS", label: "Todos os Bancos", icon: "🌐" },
+  { id: "COL-01", code: "B1", label: "COL-01 — Animes, Mangás, LN & Webtoons", icon: "🎴" },
+  { id: "COL-02", code: "B2", label: "COL-02 — Jogos", icon: "🎮" },
+  { id: "COL-03", code: "B3", label: "COL-03 — Filmes", icon: "🎬" },
+  { id: "COL-04", code: "B4", label: "COL-04 — Séries & Animação Ocidental", icon: "📺" },
+  { id: "COL-05", code: "B5", label: "COL-05 — Mitologias", icon: "🏛" },
+  { id: "COL-06", code: "B6", label: "COL-06 — Históricos & Realidade", icon: "📜" }
+];
+
 export default function Collections() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("collections"); // "collections" | "bosses" | "items"
   const [activeCollection, setActiveCollection] = useState(null);
-  const [collectionSubTab, setCollectionSubTab] = useState("characters"); // "characters" | "items"
+  const [collectionSubTab, setCollectionSubTab] = useState("characters"); // "characters" | "items" | "bosses"
+  const [selectedBank, setSelectedBank] = useState("all");
+  const [sortBy, setSortBy] = useState("code"); // "code" | "name" | "cards" | "progress"
+  const [showMetadata, setShowMetadata] = useState(false);
   
   const [rarityFilter, setRarityFilter] = useState("all");
   const [roleFilter, setRoleFilter] = useState("all");
@@ -398,7 +411,7 @@ export default function Collections() {
 
   const [overviewStatusFilter, setOverviewStatusFilter] = useState("all"); // "all" | "completed" | "in_progress" | "unstarted"
 
-  // Filtered collections by overview status & search
+  // Filtered collections by overview status, bank & search
   const filteredCollections = useMemo(() => {
     return collections.filter(col => {
       const stats = collectionStats[col.name] || { totalCards: 0, ownedCards: 0, totalItems: 0, ownedItems: 0 };
@@ -413,11 +426,35 @@ export default function Collections() {
       else if (overviewStatusFilter === "in_progress") matchesStatus = owned > 0 && owned < total;
       else if (overviewStatusFilter === "unstarted") matchesStatus = owned === 0;
 
-      return matchesSearch && matchesStatus;
-    });
-  }, [collections, collectionStats, searchQuery, overviewStatusFilter]);
+      let matchesBank = true;
+      if (selectedBank !== "all") {
+        matchesBank = (col.code && col.code.startsWith(selectedBank)) || col.bank === selectedBank || col.bank_id === selectedBank;
+      }
 
-  // Filtered Cards for active selection
+      return matchesSearch && matchesStatus && matchesBank;
+    }).sort((a, b) => {
+      if (sortBy === "name") {
+        return (a.name || "").localeCompare(b.name || "", "pt-BR", { sensitivity: 'base' });
+      } else if (sortBy === "cards") {
+        const statsA = collectionStats[a.name]?.totalCards || 0;
+        const statsB = collectionStats[b.name]?.totalCards || 0;
+        return statsB - statsA;
+      } else if (sortBy === "progress") {
+        const sA = collectionStats[a.name] || { totalCards: 0, ownedCards: 0, totalItems: 0, ownedItems: 0 };
+        const sB = collectionStats[b.name] || { totalCards: 0, ownedCards: 0, totalItems: 0, ownedItems: 0 };
+        const pctA = (sA.totalCards + sA.totalItems) > 0 ? (sA.ownedCards + sA.ownedItems) / (sA.totalCards + sA.totalItems) : 0;
+        const pctB = (sB.totalCards + sB.totalItems) > 0 ? (sB.ownedCards + sB.ownedItems) / (sB.totalCards + sB.totalItems) : 0;
+        return pctB - pctA;
+      } else {
+        // "code" (default numeral sort)
+        const codeA = a.code || a.name || "";
+        const codeB = b.code || b.name || "";
+        return codeA.localeCompare(codeB, undefined, { numeric: true, sensitivity: 'base' });
+      }
+    });
+  }, [collections, collectionStats, searchQuery, overviewStatusFilter, selectedBank, sortBy]);
+
+  // Filtered Cards for active selection (Sorted Alphabetically by Name)
   const filteredCards = useMemo(() => {
     const normalizeRarity = (r) => RARITY_ALIAS[r] || r;
     return cards.filter((card) => {
@@ -434,10 +471,10 @@ export default function Collections() {
       const matchesCollection = !activeCollection || card.series === activeCollection.name || card.collection_id === activeCollection.code;
       const isValidStatus = card.status !== "quarantine" && card.status !== "rejected";
       return matchesRarity && matchesRole && matchesElement && matchesGender && matchesLevel && matchesSearch && matchesCollection && isValidStatus;
-    });
+    }).sort((a, b) => (a.name || "").localeCompare(b.name || "", "pt-BR", { sensitivity: 'base' }));
   }, [cards, rarityFilter, roleFilter, elementFilter, genderFilter, levelFilter, searchQuery, activeCollection, ownedCardIds]);
 
-  // Filtered Items for active selection
+  // Filtered Items for active selection (Sorted Alphabetically by Name)
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
       const matchesSearch = !searchQuery ||
@@ -446,10 +483,10 @@ export default function Collections() {
       const itemSeries = item.series || item.collection_name;
       const matchesCollection = !activeCollection || itemSeries === activeCollection.name || item.collection_id === activeCollection.code;
       return matchesSearch && matchesCollection;
-    });
+    }).sort((a, b) => (a.name || "").localeCompare(b.name || "", "pt-BR", { sensitivity: 'base' }));
   }, [items, searchQuery, activeCollection]);
 
-  // Filtered Bosses strictly bound to active collection
+  // Filtered Bosses strictly bound to active collection (Sorted Alphabetically by Name)
   const filteredBosses = useMemo(() => {
     return bosses.filter((boss) => {
       const matchesSearch = !searchQuery ||
@@ -459,7 +496,7 @@ export default function Collections() {
         boss.collection_id === activeCollection.code ||
         boss.series === activeCollection.name;
       return matchesSearch && matchesCollection;
-    });
+    }).sort((a, b) => (a.name || "").localeCompare(b.name || "", "pt-BR", { sensitivity: 'base' }));
   }, [bosses, searchQuery, activeCollection]);
 
   const hasActiveFilters = rarityFilter !== "all" || roleFilter !== "all" || elementFilter !== "all" || genderFilter !== "all" || levelFilter !== "all" || searchQuery;
@@ -564,15 +601,66 @@ export default function Collections() {
                   </div>
                 </div>
               </div>
+
+              {/* Collapsible Universe Metadata */}
+              <div className="mt-4 pt-4 border-t border-border/30 relative z-10">
+                <button
+                  onClick={() => setShowMetadata(!showMetadata)}
+                  className="flex items-center gap-2 text-xs font-heading font-bold text-primary hover:underline"
+                >
+                  <Info className="w-4 h-4" />
+                  <span>Metadados do universo {showMetadata ? "▲" : "▾"}</span>
+                </button>
+
+                {showMetadata && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    className="mt-3 p-4 bg-background/90 border border-border/40 rounded-lg space-y-3 text-xs font-body"
+                  >
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                      <div>
+                        <span className="text-muted-foreground block text-[10px] font-mono">CÓDIGO FULL</span>
+                        <span className="font-mono font-bold text-foreground">{activeCollection.code}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground block text-[10px] font-mono">BANCO</span>
+                        <span className="font-mono font-bold text-foreground">
+                          {activeCollection.code?.substring(0, 6) || "COL-01"}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground block text-[10px] font-mono">FANDOM / SÉRIE</span>
+                        <span className="font-mono font-bold text-foreground">{activeCollection.name}</span>
+                      </div>
+                    </div>
+
+                    {filteredBosses.length > 0 && (
+                      <div className="pt-2 border-t border-border/20">
+                        <span className="text-[10px] font-mono text-amber-400 font-bold block mb-1">
+                          4 SERES MAIS FORTES (BOSSES CANÔNICOS):
+                        </span>
+                        <div className="flex flex-wrap gap-2">
+                          {filteredBosses.slice(0, 4).map((boss, idx) => (
+                            <span key={boss.id || idx} className="px-2 py-0.5 bg-red-950/40 border border-red-500/30 text-red-300 rounded font-mono text-[11px]">
+                              {idx + 1}. {boss.name} (Lvl {boss.level || 99})
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </div>
             </div>
 
             {/* Collection Content Sub-Tabs */}
-            <div className="flex items-center justify-between border-b border-border/30 pb-3">
-              <div className="flex items-center gap-4">
+            <div className="sticky top-14 z-20 bg-background/95 backdrop-blur-md py-3 border-b border-border/40 mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto no-scrollbar py-1">
                 <button
                   onClick={() => setCollectionSubTab("characters")}
-                  className={`font-heading text-sm font-bold flex items-center gap-2 pb-2 border-b-2 transition-all ${
-                    collectionSubTab === "characters" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+                  className={`font-heading text-xs sm:text-sm font-bold flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all shrink-0 ${
+                    collectionSubTab === "characters" ? "border-primary bg-primary/10 text-primary" : "border-border/30 text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   <Zap className="w-4 h-4" /> Personagens & Cartas ({filteredCards.length})
@@ -580,17 +668,17 @@ export default function Collections() {
 
                 <button
                   onClick={() => setCollectionSubTab("items")}
-                  className={`font-heading text-sm font-bold flex items-center gap-2 pb-2 border-b-2 transition-all ${
-                    collectionSubTab === "items" ? "border-emerald-400 text-emerald-400" : "border-transparent text-muted-foreground hover:text-foreground"
+                  className={`font-heading text-xs sm:text-sm font-bold flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all shrink-0 ${
+                    collectionSubTab === "items" ? "border-emerald-400 bg-emerald-950/20 text-emerald-400" : "border-border/30 text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  <Package className="w-4 h-4" /> Objetos & Equipamentos ({filteredItems.length})
+                  <Package className="w-4 h-4 text-emerald-400" /> Objetos & Equip. ({filteredItems.length})
                 </button>
 
                 <button
                   onClick={() => setCollectionSubTab("bosses")}
-                  className={`font-heading text-sm font-bold flex items-center gap-2 pb-2 border-b-2 transition-all ${
-                    collectionSubTab === "bosses" ? "border-red-500 text-red-400" : "border-transparent text-muted-foreground hover:text-foreground"
+                  className={`font-heading text-xs sm:text-sm font-bold flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all shrink-0 ${
+                    collectionSubTab === "bosses" ? "border-red-500 bg-red-950/20 text-red-400" : "border-border/30 text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   <Skull className="w-4 h-4 text-red-400" /> Chefes da Coleção ({filteredBosses.length})
@@ -896,6 +984,56 @@ export default function Collections() {
                 </div>
               </div>
             </motion.div>
+
+            {/* BANK SELECTOR BAR & LEGEND */}
+            <div className="bg-card/40 border border-border/40 p-4 rounded-xl space-y-3">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <span className="font-heading text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                  <Layers className="w-4 h-4 text-primary" /> BANCOS DO MULTIVERSO:
+                </span>
+                
+                {/* SORTING CONTROLS */}
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-[11px] text-muted-foreground uppercase font-bold">ORDENAR POR:</span>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="bg-background border border-border/60 text-foreground font-mono text-xs px-2.5 py-1 rounded-md focus:outline-none focus:border-primary font-bold cursor-pointer"
+                  >
+                    <option value="code">🔢 Código (Numeral)</option>
+                    <option value="name">🔤 Nome (A-Z)</option>
+                    <option value="cards">🎴 Mais Cartas</option>
+                    <option value="progress">📊 Maior Progresso %</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+                {BANKS.map(bank => (
+                  <button
+                    key={bank.id}
+                    onClick={() => setSelectedBank(bank.id)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-heading font-bold transition-all border shrink-0 flex items-center gap-1.5 ${
+                      selectedBank === bank.id
+                        ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                        : "bg-muted/20 border-border/40 text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                    }`}
+                  >
+                    <span>{bank.icon}</span>
+                    <span>{bank.code}</span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="pt-1 border-t border-border/20 flex items-center justify-between">
+                <span className="font-mono text-[11px] text-muted-foreground">
+                  Legenda: <span className="text-primary font-bold">{BANKS.find(b => b.id === selectedBank)?.label || "COL-01 — Animes, Mangás, LN & Webtoons"}</span>
+                </span>
+                <span className="font-mono text-[11px] text-muted-foreground">
+                  Exibindo <span className="text-foreground font-bold">{filteredCollections.length}</span> coleções
+                </span>
+              </div>
+            </div>
 
             {/* COLLECTIONS GRID */}
             {loadingCards ? (

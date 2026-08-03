@@ -19,25 +19,30 @@ class EntityRepository {
   }
 
   async saveCard(cardData) {
-    if (!cardData.name) {
-      throw new Error("Nome da carta é obrigatório");
+    if (!cardData) {
+      throw new Error("Dados da carta são obrigatórios");
     }
+    const data = cardData.data || cardData;
+    const name = (data.name || data.title || "Carta Sem Nome").trim();
+
     const cards = await this.getAllCards();
-    const existing = cards.find(c => (cardData.id && c.id === cardData.id) || (cardData.card_id && c.card_id === cardData.card_id));
+    const existing = cards.find(c => (data.id && c.id === data.id) || (data.card_id && c.card_id === data.card_id));
 
     if (existing) {
       return await db.entities.Card.update(existing.id, {
-        ...cardData,
+        ...data,
+        name,
         updated_at: new Date().toISOString()
       });
     } else {
-      const id = cardData.id || `card_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-      const card_id = cardData.card_id || `${cardData.collection_id || 'CUS'}-${Date.now().toString().slice(-6)}`;
+      const id = data.id || `card_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      const card_id = data.card_id || `${data.collection_id || 'CUS'}-${Date.now().toString().slice(-6)}`;
       return await db.entities.Card.create({
-        ...cardData,
+        ...data,
+        name,
         id,
         card_id,
-        created_date: cardData.created_date || new Date().toISOString()
+        created_date: data.created_date || new Date().toISOString()
       });
     }
   }
@@ -68,23 +73,38 @@ class EntityRepository {
   }
 
   async saveCollection(collectionData) {
-    if (!collectionData.name || !collectionData.code) {
+    if (!collectionData) {
+      throw new Error("Dados da coleção são obrigatórios");
+    }
+    const data = collectionData.data || collectionData;
+    const name = (data.name || data.title || "").trim();
+    const rawCode = data.code || data.id || data.collection_id || name;
+    const code = rawCode ? rawCode.toString().toUpperCase().replace(/[^A-Z0-9_-]/g, "_") : "";
+
+    if (!name || !code) {
       throw new Error("Nome e Código da coleção são obrigatórios");
     }
+
+    const payload = {
+      ...data,
+      name,
+      code
+    };
+
     const collections = await this.getAllCollections();
-    const existing = collections.find(c => (collectionData.id && c.id === collectionData.id) || c.code === collectionData.code);
+    const existing = collections.find(c => (payload.id && c.id === payload.id) || c.code === payload.code);
 
     if (existing) {
       return await db.entities.Collection.update(existing.id, {
-        ...collectionData,
+        ...payload,
         updated_at: new Date().toISOString()
       });
     } else {
-      const id = collectionData.id || `col_${Date.now()}`;
+      const id = payload.id || `col_${Date.now()}`;
       return await db.entities.Collection.create({
-        ...collectionData,
+        ...payload,
         id,
-        created_date: collectionData.created_date || new Date().toISOString()
+        created_date: payload.created_date || new Date().toISOString()
       });
     }
   }

@@ -159,6 +159,21 @@ class AdminController {
   /**
    * System Maintenance
    */
+  /**
+   * System Maintenance & Acervo Tools
+   */
+  async seedAcervo62() {
+    return await importService.seedAcervo62();
+  }
+
+  async mergeDuplicateCollections() {
+    return await importService.mergeDuplicateCollections();
+  }
+
+  async reclassifyCards() {
+    return await importService.reclassifyCards();
+  }
+
   async clearCaches() {
     return await entityRepository.clearAllCaches();
   }

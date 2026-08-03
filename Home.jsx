@@ -25,11 +25,12 @@ const SERVERS = [
 { name: "BOT ENGINE", status: "online", latency: 45 }];
 
 const LIVE_DROPS = [
-{ user: "void_hunter", card: "Vexor the Hollow", rarity: "Mythic", time: "2m ago" },
-{ user: "stormcaller99", card: "Kaelith Stormfang", rarity: "Legendary", time: "7m ago" },
-{ user: "frost_witch", card: "Lyra Frostweaver", rarity: "Legendary", time: "15m ago" },
-{ user: "ironwall_fan", card: "Grommash Ironwall", rarity: "Rare", time: "22m ago" },
-{ user: "dawn_keeper", card: "Seraphina Dawnkeeper", rarity: "Epic", time: "31m ago" }];
+  { user: "shadow_ninja", card: "Naruto Uzumaki", rarity: "Legendary", time: "2m ago" },
+  { user: "saiyan_god", card: "Son Goku", rarity: "Mythic", time: "7m ago" },
+  { user: "titan_slayer", card: "Eren Yeager", rarity: "Legendary", time: "15m ago" },
+  { user: "pirate_king", card: "Monkey D. Luffy", rarity: "Epic", time: "22m ago" },
+  { user: "one_punch_hero", card: "Saitama", rarity: "Mythic", time: "31m ago" }
+];
 
 const RARITY_DOT = {
   Mythic: "bg-red-400",
@@ -151,9 +152,31 @@ export default function Home() {
           <div className="flex justify-center mb-6">
             <DeckVerseLogo size="lg" showTagline={true} />
           </div>
-          <p className="text-[#D1D5DB] font-mono text-xs sm:text-sm mb-8 max-w-xl mx-auto border-y border-[#00F0FF]/20 py-2.5 bg-black/40">
+          <p className="text-[#D1D5DB] font-mono text-xs sm:text-sm mb-6 max-w-xl mx-auto border-y border-[#00F0FF]/20 py-2.5 bg-black/40">
             [SYSTEM_READY] Terminal tático de alta tecnologia do Caçador de Anomalias.
           </p>
+
+          {/* Big Navigation CTAs */}
+          <div className="flex flex-wrap items-center justify-center gap-3 mb-8">
+            <Link
+              to="/collections"
+              className="px-5 py-3 bg-primary text-primary-foreground font-heading text-xs font-black tracking-wider hover:bg-primary/90 transition-all shadow-md shadow-primary/20 flex items-center gap-2 rounded"
+            >
+              <span>📚 ABRIR COLEÇÕES</span>
+            </Link>
+            <Link
+              to="/gacha"
+              className="px-5 py-3 bg-amber-500 text-black font-heading text-xs font-black tracking-wider hover:bg-amber-400 transition-all shadow-md shadow-amber-500/20 flex items-center gap-2 rounded"
+            >
+              <span>⚡ GACHA</span>
+            </Link>
+            <Link
+              to="/arena"
+              className="px-5 py-3 bg-red-600 text-white font-heading text-xs font-black tracking-wider hover:bg-red-500 transition-all shadow-md shadow-red-600/20 flex items-center gap-2 rounded"
+            >
+              <span>⚔️ ARENA</span>
+            </Link>
+          </div>
 
           {/* Terminal search */}
           <form onSubmit={handleSearch} className="relative max-w-2xl mx-auto">

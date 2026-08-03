@@ -87,7 +87,7 @@ export default function Navbar({ onSearch }) {
   const allMobileLinks = [...primaryLinks, ...secondaryLinks];
 
   return (
-    <nav className="sticky top-0 z-50 h-14 border-b border-border/50 bg-background/90 backdrop-blur-xl">
+    <nav className="sticky top-0 z-50 h-14 border-b border-border bg-background shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-3">
 
         {/* Logo canonical DeckVerse OS */}
@@ -104,9 +104,9 @@ export default function Navbar({ onSearch }) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onFocus={openGlobalSearch}
-              className="pl-9 pr-14 h-8 bg-muted/30 border-border/40 focus:border-primary/60 font-body text-xs cursor-pointer"
+              className="pl-9 pr-14 h-8 bg-card border-border text-foreground placeholder:text-muted-foreground focus:border-primary font-body text-xs cursor-pointer"
             />
-            <kbd className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] font-mono text-muted-foreground/50 border border-border/30 px-1 py-0.2 rounded bg-muted/20 pointer-events-none">
+            <kbd className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] font-mono text-muted-foreground border border-border px-1 py-0.2 rounded bg-muted/40 pointer-events-none">
               Ctrl+K
             </kbd>
           </div>
@@ -118,9 +118,9 @@ export default function Navbar({ onSearch }) {
             <Link
               key={to}
               to={to}
-              className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-heading font-bold tracking-wide text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all rounded"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-heading font-bold tracking-wide text-foreground hover:text-primary hover:bg-primary/10 transition-all rounded"
             >
-              <Icon className="w-3.5 h-3.5" />
+              <Icon className="w-3.5 h-3.5 text-primary" />
               {label}
             </Link>
           ))}
@@ -129,22 +129,22 @@ export default function Navbar({ onSearch }) {
           <div className="relative" ref={moreRef}>
             <button
               onClick={() => setMoreOpen(!moreOpen)}
-              className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-heading font-bold tracking-wide text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all rounded"
+              className="flex items-center gap-1 px-3 py-1.5 text-[11px] font-heading font-bold tracking-wide text-foreground hover:text-primary hover:bg-primary/10 transition-all rounded"
             >
               Mais
               <ChevronDown className={`w-3 h-3 transition-transform ${moreOpen ? "rotate-180" : ""}`} />
             </button>
 
             {moreOpen && (
-              <div className="absolute right-0 top-9 w-48 border border-border/50 bg-background/98 backdrop-blur-xl shadow-xl p-1.5 grid grid-cols-1 gap-0.5 z-[9998] rounded-md">
+              <div className="absolute right-0 top-10 w-52 border border-border bg-background shadow-2xl p-2 grid grid-cols-1 gap-1 z-[9998] rounded-md">
                 {secondaryLinks.map(({ to, icon: Icon, label }) => (
                   <Link
                     key={to}
                     to={to}
                     onClick={() => setMoreOpen(false)}
-                    className="flex items-center gap-2 px-3 py-1.5 text-[11px] font-heading font-bold text-muted-foreground hover:text-primary hover:bg-primary/10 rounded transition-colors"
+                    className="flex items-center gap-2.5 px-3 py-2 text-xs font-heading font-bold text-foreground hover:text-primary hover:bg-primary/10 rounded transition-colors"
                   >
-                    <Icon className="w-3.5 h-3.5 text-primary" />
+                    <Icon className="w-4 h-4 text-primary" />
                     {label}
                   </Link>
                 ))}
@@ -164,24 +164,25 @@ export default function Navbar({ onSearch }) {
           {/* Mobile toggle */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="md:hidden p-2 border border-border/40 text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors rounded"
+            className="md:hidden p-2.5 border border-border bg-card text-foreground hover:text-primary hover:border-primary transition-colors rounded-md min-h-[44px] min-w-[44px] flex items-center justify-center"
+            aria-label="Alternar Menu"
           >
-            {mobileOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+            {mobileOpen ? <X className="w-5 h-5 text-foreground" /> : <Menu className="w-5 h-5 text-foreground" />}
           </button>
         </div>
       </div>
 
-      {/* Mobile dropdown */}
+      {/* Mobile dropdown 100% opaque */}
       {mobileOpen && (
-        <div className="md:hidden border-t border-border/50 bg-background/98 backdrop-blur-xl px-4 py-3 space-y-0.5 max-h-[80vh] overflow-y-auto">
-          <form onSubmit={handleSearch} className="mb-3">
+        <div className="md:hidden border-t border-border bg-background px-4 py-4 space-y-1 max-h-[80vh] overflow-y-auto shadow-2xl z-50">
+          <form onSubmit={handleSearch} className="mb-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar cartas..."
+                placeholder="Buscar no DeckVerse..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="pl-10 bg-muted/30 border-border/50 font-body text-sm"
+                className="pl-10 h-10 bg-card border-border text-foreground placeholder:text-muted-foreground font-body text-sm"
               />
             </div>
           </form>
@@ -190,9 +191,9 @@ export default function Navbar({ onSearch }) {
               key={to}
               to={to}
               onClick={() => setMobileOpen(false)}
-              className="flex items-center gap-2 px-3 py-2 text-xs font-heading font-bold tracking-wide text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all rounded"
+              className="flex items-center gap-3 px-3 py-3 text-sm font-heading font-bold tracking-wide text-foreground hover:text-primary hover:bg-primary/10 transition-all rounded-md min-h-[44px]"
             >
-              <Icon className="w-3.5 h-3.5" />
+              <Icon className="w-4 h-4 text-primary" />
               {label}
             </Link>
           ))}
