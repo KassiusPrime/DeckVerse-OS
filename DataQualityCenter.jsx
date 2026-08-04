@@ -66,25 +66,26 @@ export default function DataQualityCenter() {
     }
   };
 
-  // Executar Limpeza e Deduplicação Multi-Idioma
+  // Executar Limpeza e Deduplicação Multi-Idioma + Expurgar Inválidas
   const handlePurgeDuplicates = async () => {
     setIsRunning(true);
-    addLog("🧹 Executando Limpeza & Deduplicação de Cartas e Coleções (Multi-Idioma)...");
+    addLog("🧹 Executando Limpeza, Expulso de Cartas Inválidas e Deduplicação...");
 
     try {
       const auditRes = await dataQualityEngine.runDataQualityAudit((msg, type) => addLog(msg, type));
+      const purgedCount = await dataQualityEngine.purgeInvalidCards((msg, type) => addLog(msg, type));
       const storageRes = cleanAndDeduplicateAllStorage();
       qc.invalidateQueries();
 
-      const totalRemoved = (auditRes.stats.mergedDuplicates || 0) + (storageRes.cardsRemoved || 0) + (storageRes.collectionsRemoved || 0);
+      const totalRemoved = (auditRes.stats.mergedDuplicates || 0) + purgedCount + (storageRes.cardsRemoved || 0) + (storageRes.collectionsRemoved || 0);
 
-      addLog(`✓ Deduplicação concluída: ${totalRemoved} registros repetidos mesclados/purgados com sucesso!`, "success");
+      addLog(`✓ Sanitização concluída: ${totalRemoved} registros inválidos/duplicados purgados com sucesso!`, "success");
       toast({
-        title: "Deduplicação Concluída!",
-        description: `${totalRemoved} cartas/coleções repetidas (mesmo nome em qualquer idioma) foram mescladas e removidas.`
+        title: "Limpeza & Sanitização Concluída!",
+        description: `Cartas válidas foram direcionadas para suas coleções. ${totalRemoved} cartas/coleções inválidas ou duplicadas foram expurgadas.`
       });
     } catch (err) {
-      addLog(`💥 Erro na deduplicação: ${err.message}`, "error");
+      addLog(`💥 Erro na sanitização: ${err.message}`, "error");
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     } finally {
       setIsRunning(false);

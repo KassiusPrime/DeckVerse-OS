@@ -21,6 +21,29 @@ const FALLBACK_IMAGES = {
 };
 
 /**
+ * Infere o código da coleção correta a partir do universo/série/propriedades da carta
+ */
+export function inferCollectionCode(card = {}) {
+  if (card.collection_id && card.collection_id !== "MULTIVERSE" && card.collection_id !== "GENERIC") {
+    return normalizeCode(card.collection_id);
+  }
+  const univ = (card.universe || card.series || card.franchise || card.collection || "").toLowerCase();
+  if (univ.includes("naruto") || univ.includes("boruto")) return "NAR";
+  if (univ.includes("dragon") || univ.includes("ball") || univ.includes("dbz")) return "DBZ";
+  if (univ.includes("attack") || univ.includes("titan") || univ.includes("aot") || univ.includes("shingeki")) return "AOT";
+  if (univ.includes("jujutsu") || univ.includes("jjk") || univ.includes("kaisen")) return "JJK";
+  if (univ.includes("cyberpunk") || univ.includes("cyb") || univ.includes("edgerunners")) return "CYB";
+  if (univ.includes("marvel") || univ.includes("capcom") || univ.includes("mvc")) return "MVC";
+  if (univ.includes("one piece") || univ.includes("opc") || univ.includes("luffy")) return "OPC";
+  if (univ.includes("bleach") || univ.includes("blc") || univ.includes("ichigo")) return "BLC";
+  if (univ.includes("hunter") || univ.includes("hxh") || univ.includes("gon")) return "HXH";
+  if (univ.includes("solo leveling") || univ.includes("slv") || univ.includes("sung")) return "SLV";
+  if (univ.includes("jojo") || univ.includes("jjba") || univ.includes("bizarre")) return "JJBA";
+  if (univ.includes("berserk") || univ.includes("bsk") || univ.includes("guts")) return "BSK";
+  return card.collection_id || "MULTIVERSE";
+}
+
+/**
  * Valida se uma URL de imagem pode ser carregada sem erro HTTP / CORS / link quebrado
  */
 export async function validateImageUrl(url, timeoutMs = 4000) {
@@ -232,30 +255,67 @@ export async function runDataQualityAudit(onLog = () => {}) {
       }
 
       // 2. Recalcula Score e Status de Qualidade
-      const cardEvaluated = { ...card, ...updates, image_url: primaryImage };
+      const collectionCode = inferCollectionCode(card);
+      const cardEvaluated = { ...card, ...updates, collection_id: collectionCode, image_url: primaryImage };
       const qualityScore = calculateCardQualityScore(cardEvaluated);
       const statusEval = determineCardStatus(cardEvaluated, qualityScore);
 
+      updates.collection_id = collectionCode;
       updates.quality_score = qualityScore;
-      updates.status = statusEval.status;
-      updates.rejection_reason = statusEval.reason;
-      updates.last_validation = new Date().toISOString();
-      updates.last_sync = card.last_sync || new Date().toISOString();
-      updates.data_source = card.data_source || "Fandom + Gemini IA (DataQualityEngine)";
 
-      if (statusEval.status === "valid") stats.validCards++;
-      else if (statusEval.status === "quarantine") stats.quarantinedCards++;
-      else stats.rejectedCards++;
+      // Regra Canônica: Se a carta for VÁLIDA -> Vai para a sua Coleção e vira carta ativa
+      // Se for INVÁLIDA (rejeitada/corrompida/sem nome) -> É expurgada (deletada)
+      if (statusEval.status === "valid" || qualityScore >= 50) {
+        updates.status = "valid";
+        updates.rejection_reason = "";
+        updates.last_validation = new Date().toISOString();
+        updates.last_sync = card.last_sync || new Date().toISOString();
+        updates.data_source = card.data_source || "Fandom + Gemini IA (DataQualityEngine)";
+        stats.validCards++;
 
-      await db.entities.Card.update(card.id, updates);
+        await db.entities.Card.update(card.id, updates);
+        log(`  ✨ Carta "${card.name}" validada e direcionada para a coleção [${collectionCode}].`, "success");
+      } else if (statusEval.status === "rejected" || !card.name || !card.name.trim()) {
+        // Expulsa e purga do sistema
+        await db.entities.Card.delete(card.id);
+        stats.rejectedCards++;
+        log(`  🗑️ Carta inválida "${card.name || card.id}" foi purgada com sucesso.`, "warning");
+      } else {
+        // Caso limiar (Quarentena com chance de reparo)
+        updates.status = "quarantine";
+        updates.rejection_reason = statusEval.reason;
+        updates.last_validation = new Date().toISOString();
+        stats.quarantinedCards++;
+
+        await db.entities.Card.update(card.id, updates);
+      }
     }
 
-    log(`✅ [DATA QUALITY ENGINE] Auditoria concluída com sucesso! Válidas: ${stats.validCards} | Quarentena: ${stats.quarantinedCards} | Rejeitadas: ${stats.rejectedCards}`, "success");
+    log(`✅ [DATA QUALITY ENGINE] Auditoria concluída! Válidas nas coleções: ${stats.validCards} | Quarentena: ${stats.quarantinedCards} | Purgadas: ${stats.rejectedCards}`, "success");
     return { ok: true, stats };
   } catch (err) {
     log(`💥 Erro fatal no Data Quality Engine: ${err.message}`, "error");
     throw err;
   }
+}
+
+/**
+ * Expurga todas as cartas rejeitadas ou sem nome do banco de dados
+ */
+export async function purgeInvalidCards(onLog = () => {}) {
+  const allCards = await db.entities.Card.list("-created_date", 2000);
+  let purgedCount = 0;
+
+  for (const card of allCards) {
+    const isInvalid = !card.name || !card.name.trim() || card.status === "rejected" || (card.quality_score && card.quality_score < 30);
+    if (isInvalid) {
+      await db.entities.Card.delete(card.id);
+      purgedCount++;
+      onLog(`🗑️ Carta "${card.name || card.id}" expurgada do sistema.`, "warning");
+    }
+  }
+
+  return purgedCount;
 }
 
 /**
@@ -299,10 +359,12 @@ export async function repairQuarantinedCard(cardId, onLog = () => {}) {
 
 export const dataQualityEngine = {
   runDataQualityAudit,
+  purgeInvalidCards,
   repairQuarantinedCard,
   calculateCardQualityScore,
   determineCardStatus,
-  validateImageUrl
+  validateImageUrl,
+  inferCollectionCode
 };
 
 export default dataQualityEngine;
