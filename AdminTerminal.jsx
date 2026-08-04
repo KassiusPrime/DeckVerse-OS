@@ -6,11 +6,6 @@ import { db } from './base44Client';
 
 export default function AdminTerminal({ onAddCard }) {
   const location = useLocation();
-  const hiddenRoutes = ['/adm', '/admin', '/architect'];
-  if (hiddenRoutes.includes(location.pathname)) {
-    return null;
-  }
-
   const [isOpen, setIsOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
@@ -20,6 +15,11 @@ export default function AdminTerminal({ onAddCard }) {
   const [newCard, setNewCard] = useState({
     name: '', title: '', verse: 'Multiverse', rarity: 'Lendário', hp: 500, atk: 120, def: 100, imgUrl: ''
   });
+
+  const hiddenRoutes = ['/adm', '/admin', '/architect'];
+  if (hiddenRoutes.includes(location.pathname)) {
+    return null;
+  }
 
   const handleLogin = (e) => {
     e.preventDefault();

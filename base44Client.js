@@ -5,9 +5,11 @@
 import { MEGA_COLLECTIONS, MEGA_ITEMS, MEGA_BOSSES, generateExpandedCards } from "./src/data/megaCollectionsData.js";
 import { runKnowledgeBaseMigration, DEFAULT_UNIVERSES } from "./scripts/migrateToKnowledgeBase.js";
 import { SEED_ARCHETYPES, SEED_PERSONALITIES } from "./services/ai/enrichmentService.js";
+import { deduplicateCollections, deduplicateCards, cleanAndDeduplicateAllStorage, normalizeNameKey } from "./src/utils/deduplication.js";
 
-// Run knowledge base migration automatically on startup if needed
+// Run automatic deduplication and knowledge base migration on startup
 if (typeof window !== "undefined") {
+  cleanAndDeduplicateAllStorage();
   runKnowledgeBaseMigration();
 }
 
@@ -250,23 +252,57 @@ const DEFAULT_LORE = [
   }
 ];
 
+// Helper to track deleted entity keys in LocalStorage
+function getDeletedKeys(tableName) {
+  try {
+    const raw = localStorage.getItem(`deckverse_deleted_${tableName}`);
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch (e) {
+    return new Set();
+  }
+}
+
+function saveDeletedKeys(tableName, deletedSet) {
+  try {
+    localStorage.setItem(`deckverse_deleted_${tableName}`, JSON.stringify(Array.from(deletedSet)));
+  } catch (e) {
+    console.warn(`Failed saving deleted keys for ${tableName}:`, e);
+  }
+}
+
+function addDeletedKeys(tableName, itemKeysArray) {
+  const deletedSet = getDeletedKeys(tableName);
+  itemKeysArray.forEach(k => {
+    if (k) deletedSet.add(String(k));
+  });
+  saveDeletedKeys(tableName, deletedSet);
+}
+
 // Helper to initialize LocalStorage storage table
 function getStorageTable(tableName, defaultData) {
+  const deletedKeys = getDeletedKeys(tableName);
   try {
     const raw = localStorage.getItem(`deckverse_${tableName}`);
     if (raw) {
-      const parsed = JSON.parse(raw);
+      let parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && Array.isArray(defaultData)) {
-        if (tableName === "Collection" && parsed.length < defaultData.length) {
-          saveStorageTable(tableName, defaultData);
-          return [...defaultData];
+        // Run table-level deduplication on load
+        if (tableName === "Collection" || tableName === "Franchise") {
+          parsed = deduplicateCollections(parsed);
+        } else if (tableName === "Card") {
+          parsed = deduplicateCards(parsed);
         }
+
         const existingKeys = new Set();
         parsed.forEach(i => {
-          if (i.id) existingKeys.add(i.id);
-          if (i.card_id) existingKeys.add(i.card_id);
-          if (i.code) existingKeys.add(i.code);
-          if (i.name) existingKeys.add(i.name);
+          if (i.id) existingKeys.add(String(i.id));
+          if (i.card_id) existingKeys.add(String(i.card_id));
+          if (i.code) existingKeys.add(String(i.code));
+          if (i.name) {
+            existingKeys.add(String(i.name));
+            const normKey = normalizeNameKey(i.name);
+            if (normKey) existingKeys.add(String(normKey));
+          }
         });
 
         let added = false;
@@ -275,24 +311,38 @@ function getStorageTable(tableName, defaultData) {
           const keyCardId = item.card_id;
           const keyCode = item.code;
           const keyName = item.name;
+          const normKey = normalizeNameKey(keyName);
 
-          const exists = (keyId && existingKeys.has(keyId)) ||
-                         (keyCardId && existingKeys.has(keyCardId)) ||
-                         (keyCode && existingKeys.has(keyCode)) ||
-                         (keyName && existingKeys.has(keyName));
+          const isDeleted = (keyId && deletedKeys.has(String(keyId))) ||
+                            (keyCardId && deletedKeys.has(String(keyCardId))) ||
+                            (keyCode && deletedKeys.has(String(keyCode))) ||
+                            (keyName && deletedKeys.has(String(keyName))) ||
+                            (normKey && deletedKeys.has(String(normKey)));
 
-          if (!exists) {
+          const exists = (keyId && existingKeys.has(String(keyId))) ||
+                         (keyCardId && existingKeys.has(String(keyCardId))) ||
+                         (keyCode && existingKeys.has(String(keyCode))) ||
+                         (keyName && existingKeys.has(String(keyName))) ||
+                         (normKey && existingKeys.has(String(normKey)));
+
+          if (!exists && !isDeleted) {
             parsed.push(item);
-            if (keyId) existingKeys.add(keyId);
-            if (keyCardId) existingKeys.add(keyCardId);
-            if (keyCode) existingKeys.add(keyCode);
-            if (keyName) existingKeys.add(keyName);
+            if (keyId) existingKeys.add(String(keyId));
+            if (keyCardId) existingKeys.add(String(keyCardId));
+            if (keyCode) existingKeys.add(String(keyCode));
+            if (keyName) existingKeys.add(String(keyName));
+            if (normKey) existingKeys.add(String(normKey));
             added = true;
           }
         }
-        if (added) {
-          saveStorageTable(tableName, parsed);
+
+        if (tableName === "Collection" || tableName === "Franchise") {
+          parsed = deduplicateCollections(parsed);
+        } else if (tableName === "Card") {
+          parsed = deduplicateCards(parsed);
         }
+
+        saveStorageTable(tableName, parsed);
         return parsed;
       }
       return parsed;
@@ -301,7 +351,28 @@ function getStorageTable(tableName, defaultData) {
     console.warn(`Failed reading storage for ${tableName}:`, e);
   }
   try {
-    localStorage.setItem(`deckverse_${tableName}`, JSON.stringify(defaultData));
+    let cleanDefault = (defaultData || []).filter(item => {
+      const keyId = item.id;
+      const keyCardId = item.card_id;
+      const keyCode = item.code;
+      const keyName = item.name;
+      const normKey = normalizeNameKey(keyName);
+      return !(
+        (keyId && deletedKeys.has(String(keyId))) ||
+        (keyCardId && deletedKeys.has(String(keyCardId))) ||
+        (keyCode && deletedKeys.has(String(keyCode))) ||
+        (keyName && deletedKeys.has(String(keyName))) ||
+        (normKey && deletedKeys.has(String(normKey)))
+      );
+    });
+
+    if (tableName === "Collection" || tableName === "Franchise") {
+      cleanDefault = deduplicateCollections(cleanDefault);
+    } else if (tableName === "Card") {
+      cleanDefault = deduplicateCards(cleanDefault);
+    }
+    localStorage.setItem(`deckverse_${tableName}`, JSON.stringify(cleanDefault));
+    return cleanDefault;
   } catch (e) {}
   return [...defaultData];
 }
@@ -372,7 +443,24 @@ function createEntityStore(tableName, defaultData) {
 
     delete: async (id) => {
       let items = getStorageTable(tableName, defaultData);
-      items = items.filter(item => item.id !== id && item.card_id !== id);
+      const toDelete = items.filter(item =>
+        item.id === id || item.card_id === id || item.code === id || item.name === id
+      );
+
+      const keysToMark = [id];
+      toDelete.forEach(item => {
+        if (item.id) keysToMark.push(item.id);
+        if (item.card_id) keysToMark.push(item.card_id);
+        if (item.code) keysToMark.push(item.code);
+        if (item.name) {
+          keysToMark.push(item.name);
+          const nk = normalizeNameKey(item.name);
+          if (nk) keysToMark.push(nk);
+        }
+      });
+      addDeletedKeys(tableName, keysToMark);
+
+      items = items.filter(item => item.id !== id && item.card_id !== id && item.code !== id && item.name !== id);
       saveStorageTable(tableName, items);
       return { success: true };
     }

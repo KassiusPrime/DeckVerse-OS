@@ -12,21 +12,7 @@ import {
 import Navbar from "@/Navbar";
 import { RarityBadge } from "@/RarityBadge";
 import { useToast } from "@/use-toast";
-
-const RARITY_POWER = {
-  Recruit: 0.8, Adept: 1.2, Elite: 1.7, Champion: 2.3, Sovereign: 3.2, Ascendant: 4.5, Divine: 6.0,
-  Common: 1, Uncommon: 1.3, Rare: 1.7, Epic: 2.2, Legendary: 3.0, Mythic: 4.0,
-};
-
-const ELEMENT_ADVANTAGE = {
-  Fire: "Wind", Wind: "Earth", Earth: "Water", Water: "Fire",
-  Lightning: "Water", Shadow: "Light", Light: "Shadow",
-};
-
-const ELEMENT_EMOJI = {
-  Fire: "🔥", Water: "💧", Earth: "🪨", Wind: "🌪️",
-  Lightning: "⚡", Shadow: "🌑", Light: "✨",
-};
+import { RARITY_POWER, ELEMENT_ADVANTAGE, ELEMENT_EMOJI } from "@/constants";
 
 // PVE Difficulty Tiers
 const DIFFICULTIES = [

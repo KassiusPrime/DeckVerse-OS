@@ -7,6 +7,7 @@ import React, { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { db } from "@/base44Client";
 import { dataQualityEngine } from "@/services/ai/dataQualityEngine";
+import { cleanAndDeduplicateAllStorage } from "@/src/utils/deduplication";
 import { useToast } from "@/use-toast";
 import { pushCRTLog } from "./CRTTerminalOverlay";
 import {
@@ -60,6 +61,31 @@ export default function DataQualityCenter() {
     } catch (err) {
       addLog(`💥 Erro fatal: ${err.message}`, "error");
       toast({ title: "Erro na Auditoria", description: err.message, variant: "destructive" });
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
+  // Executar Limpeza e Deduplicação Multi-Idioma
+  const handlePurgeDuplicates = async () => {
+    setIsRunning(true);
+    addLog("🧹 Executando Limpeza & Deduplicação de Cartas e Coleções (Multi-Idioma)...");
+
+    try {
+      const auditRes = await dataQualityEngine.runDataQualityAudit((msg, type) => addLog(msg, type));
+      const storageRes = cleanAndDeduplicateAllStorage();
+      qc.invalidateQueries();
+
+      const totalRemoved = (auditRes.stats.mergedDuplicates || 0) + (storageRes.cardsRemoved || 0) + (storageRes.collectionsRemoved || 0);
+
+      addLog(`✓ Deduplicação concluída: ${totalRemoved} registros repetidos mesclados/purgados com sucesso!`, "success");
+      toast({
+        title: "Deduplicação Concluída!",
+        description: `${totalRemoved} cartas/coleções repetidas (mesmo nome em qualquer idioma) foram mescladas e removidas.`
+      });
+    } catch (err) {
+      addLog(`💥 Erro na deduplicação: ${err.message}`, "error");
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
     } finally {
       setIsRunning(false);
     }
@@ -154,14 +180,25 @@ export default function DataQualityCenter() {
           </p>
         </div>
 
-        <button
-          onClick={handleRunFullAudit}
-          disabled={isRunning}
-          className="px-4 py-2.5 bg-primary hover:bg-primary/80 text-primary-foreground font-heading text-xs font-bold rounded-lg shadow-md transition-all flex items-center gap-2 shrink-0 disabled:opacity-50"
-        >
-          {isRunning ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-          EXECUTAR AUDITORIA & CORREÇÃO COMPLETA
-        </button>
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <button
+            onClick={handlePurgeDuplicates}
+            disabled={isRunning}
+            className="px-3.5 py-2.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-heading text-xs font-bold rounded-lg transition-all flex items-center gap-2 disabled:opacity-50"
+          >
+            <Trash2 className="w-4 h-4 text-amber-400" />
+            PURGAR DUPLICATAS (MULTI-IDIOMA)
+          </button>
+
+          <button
+            onClick={handleRunFullAudit}
+            disabled={isRunning}
+            className="px-4 py-2.5 bg-primary hover:bg-primary/80 text-primary-foreground font-heading text-xs font-bold rounded-lg shadow-md transition-all flex items-center gap-2 shrink-0 disabled:opacity-50"
+          >
+            {isRunning ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+            AUDITORIA COMPLETA
+          </button>
+        </div>
       </div>
 
       {/* KPI Cards */}

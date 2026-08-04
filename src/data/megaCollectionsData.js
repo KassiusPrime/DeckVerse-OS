@@ -4,79 +4,83 @@
 // Image URLs are intentionally empty so the user can easily edit and add images.
 // ════════════════════════════════════════════════════════════════════════════
 
-export const MEGA_COLLECTIONS = [
+import { deduplicateCards, deduplicateCollections } from "../utils/deduplication.js";
+
+const RAW_MEGA_COLLECTIONS = [
   // COL-01 — ANIMES / MANGÁS / LN & WEBTOONS (22)
-  { id: "col_aot", code: "COL-01-AOT", bank: "COL-01", name: "Attack on Titan", description: "⚔ Tropa de Exploração, Titãs Shifters e Guerreiros de Marley", image_url: "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=800&auto=format&fit=crop&q=80" },
-  { id: "col_berserk", code: "COL-01-BER", bank: "COL-01", name: "Berserk", description: "🗡 Guts, Marca do Sacrifício, Bando do Falcão e Mão de Deus", image_url: "" },
-  { id: "col_blackclover", code: "COL-01-BCL", bank: "COL-01", name: "Black Clover", description: "🍀 Cavaleiros Mágicos, Anti-magia, Demônios e Reino Clover", image_url: "" },
-  { id: "col_bleach", code: "COL-01-BLC", bank: "COL-01", name: "Bleach", description: "⚔ Gotei 13, Espadas, Quincy e Shinigamis Substitutos", image_url: "" },
-  { id: "col_csm", code: "COL-01-CSM", bank: "COL-01", name: "Chainsaw Man", description: "🪚 Caçadores de demônios da Segurança Pública e Pactos", image_url: "" },
-  { id: "col_demonslayer", code: "COL-01-DS", bank: "COL-01", name: "Demon Slayer", description: "👹 Hashiras, Esquadrão de Caçadores e Doze Kizuki", image_url: "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=800&auto=format&fit=crop&q=80" },
-  { id: "col_dragonball", code: "COL-01-DBZ", bank: "COL-01", name: "Dragon Ball Z", description: "🐉 Guerreiros Z, Saiyajins, Torneio do Poder e Deuses", image_url: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&auto=format&fit=crop&q=80" },
-  { id: "col_fate", code: "COL-01-FATE", bank: "COL-01", name: "Fate Series", description: "🍷 Servos, Espíritos Heroicos, Mestres e Cálice Sagrado", image_url: "" },
-  { id: "col_fma", code: "COL-01-FMA", bank: "COL-01", name: "Fullmetal Alchemist", description: "⚗ Alquimistas de Amestris, Homúnculos e Troca Equivalente", image_url: "" },
-  { id: "col_hxh", code: "COL-01-HXH", bank: "COL-01", name: "Hunter x Hunter", description: "🕸 Usuários de Nen, Trupe Fantasma e Formigas Quimera", image_url: "" },
-  { id: "col_jojo", code: "COL-01-JOJO", bank: "COL-01", name: "JoJo Bizarre Adventure", description: "👊 Linhagem Joestar, Usuários de Stand e Homens do Pilar", image_url: "https://images.unsplash.com/photo-1563089145-599997674d42?w=800&auto=format&fit=crop&q=80" },
-  { id: "col_jjk", code: "COL-01-JJK", bank: "COL-01", name: "Jujutsu Kaisen", description: "⛩ Feiticeiros de Jujutsu, Maldições e Expansões de Domínio", image_url: "https://images.unsplash.com/photo-1563089145-599997674d42?w=800&auto=format&fit=crop&q=80" },
-  { id: "col_mha", code: "COL-01-MHA", bank: "COL-01", name: "My Hero Academia", description: "🦸‍♂️ Heróis Profissionais, Peculiaridades e Liga dos Vilões", image_url: "" },
-  { id: "col_naruto", code: "COL-01-NRT", bank: "COL-01", name: "Naruto", description: "🍥 Ninjas de Konoha, Akatsuki, Hokages e Jinchurikis", image_url: "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&auto=format&fit=crop&q=80" },
-  { id: "col_onepiece", code: "COL-01-OP", bank: "COL-01", name: "One Piece", description: "🏴‍☠️ Chapéus de Palha, Marinha, Akuma no Mi e Yonkous", image_url: "" },
-  { id: "col_opm", code: "COL-01-OPM", bank: "COL-01", name: "One Punch Man", description: "👊 Associação de Heróis Classe S e Ameaças Nível Deus", image_url: "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=800&auto=format&fit=crop&q=80" },
-  { id: "col_ss", code: "COL-01-SS", bank: "COL-01", name: "Saint Seiya", description: "🏛 Cavaleiros de Atena, Armaduras de Ouro e Sétimo Sentido", image_url: "" },
-  { id: "col_sololeveling", code: "COL-01-SL", bank: "COL-01", name: "Solo Leveling", description: "🗡 Exército das Sombras, Caçadores Nível S e Monarcas", image_url: "" },
-  { id: "col_tg", code: "COL-01-TG", bank: "COL-01", name: "Tokyo Ghoul", description: "☕ Ghouls, Quinques, Kagunes e a CCG", image_url: "" },
-  { id: "col_tog", code: "COL-01-TOG", bank: "COL-01", name: "Tower of God", description: "🗼 A Torre de Deus, Regulares, Irregulares e Testes", image_url: "" },
-  { id: "col_vs", code: "COL-01-VS", bank: "COL-01", name: "Vinland Saga", description: "🪓 Guerreiros Vikings, Thorfinn, Vingança e Vinland", image_url: "" },
-  { id: "col_yyh", code: "COL-01-YYH", bank: "COL-01", name: "Yu Yu Hakusho", description: "👻 Detetive Espiritual, Torneio das Trevas e Leikou", image_url: "" },
+  { id: "col_aot", code: "COL-01-AOT", bank: "COL-01", name: "Attack on Titan", category: "Anime", publisher: "Kodansha", description: "⚔ Tropa de Exploração, Titãs Shifters e Guerreiros de Marley", image_url: "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=800&auto=format&fit=crop&q=80", color_primary: "#B91C1C", color_secondary: "#78350F" },
+  { id: "col_berserk", code: "COL-01-BER", bank: "COL-01", name: "Berserk", category: "Mangá", publisher: "Hakusensha", description: "🗡 Guts, Marca do Sacrifício, Bando do Falcão e Mão de Deus", image_url: "", color_primary: "#450A0A", color_secondary: "#18181B" },
+  { id: "col_blackclover", code: "COL-01-BCL", bank: "COL-01", name: "Black Clover", category: "Anime", publisher: "Shueisha", description: "🍀 Cavaleiros Mágicos, Anti-magia, Demônios e Reino Clover", image_url: "", color_primary: "#15803D", color_secondary: "#065F46" },
+  { id: "col_bleach", code: "COL-01-BLC", bank: "COL-01", name: "Bleach", category: "Anime", publisher: "Shueisha", description: "⚔ Gotei 13, Espadas, Quincy e Shinigamis Substitutos", image_url: "", color_primary: "#1E3A8A", color_secondary: "#F59E0B" },
+  { id: "col_csm", code: "COL-01-CSM", bank: "COL-01", name: "Chainsaw Man", category: "Mangá", publisher: "Shueisha", description: "🪚 Caçadores de demônios da Segurança Pública e Pactos", image_url: "", color_primary: "#EA580C", color_secondary: "#991B1B" },
+  { id: "col_demonslayer", code: "COL-01-DS", bank: "COL-01", name: "Demon Slayer", category: "Anime", publisher: "Shueisha", description: "👹 Hashiras, Esquadrão de Caçadores e Doze Kizuki", image_url: "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=800&auto=format&fit=crop&q=80", color_primary: "#0284C7", color_secondary: "#B91C1C" },
+  { id: "col_dragonball", code: "COL-01-DBZ", bank: "COL-01", name: "Dragon Ball Z", category: "Anime", publisher: "Toei / Shueisha", description: "🐉 Guerreiros Z, Saiyajins, Torneio do Poder e Deuses", image_url: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&auto=format&fit=crop&q=80", color_primary: "#D97706", color_secondary: "#2563EB" },
+  { id: "col_fate", code: "COL-01-FATE", bank: "COL-01", name: "Fate Series", category: "Anime", publisher: "Type-Moon", description: "🍷 Servos, Espíritos Heroicos, Mestres e Cálice Sagrado", image_url: "", color_primary: "#7E22CE", color_secondary: "#1D4ED8" },
+  { id: "col_fma", code: "COL-01-FMA", bank: "COL-01", name: "Fullmetal Alchemist", category: "Anime", publisher: "Square Enix", description: "⚗ Alquimistas de Amestris, Homúnculos e Troca Equivalente", image_url: "", color_primary: "#B45309", color_secondary: "#1E293B" },
+  { id: "col_hxh", code: "COL-01-HXH", bank: "COL-01", name: "Hunter x Hunter", category: "Mangá", publisher: "Shueisha", description: "🕸 Usuários de Nen, Trupe Fantasma e Formigas Quimera", image_url: "", color_primary: "#047857", color_secondary: "#1D4ED8" },
+  { id: "col_jojo", code: "COL-01-JOJO", bank: "COL-01", name: "JoJo Bizarre Adventure", category: "Anime", publisher: "Shueisha", description: "👊 Linhagem Joestar, Usuários de Stand e Homens do Pilar", image_url: "https://images.unsplash.com/photo-1563089145-599997674d42?w=800&auto=format&fit=crop&q=80", color_primary: "#C026D3", color_secondary: "#0284C7" },
+  { id: "col_jjk", code: "COL-01-JJK", bank: "COL-01", name: "Jujutsu Kaisen", category: "Anime", publisher: "Shueisha", description: "⛩ Feiticeiros de Jujutsu, Maldições e Expansões de Domínio", image_url: "https://images.unsplash.com/photo-1563089145-599997674d42?w=800&auto=format&fit=crop&q=80", color_primary: "#4338CA", color_secondary: "#991B1B" },
+  { id: "col_mha", code: "COL-01-MHA", bank: "COL-01", name: "My Hero Academia", category: "Anime", publisher: "Shueisha", description: "🦸‍♂️ Heróis Profissionais, Peculiaridades e Liga dos Vilões", image_url: "", color_primary: "#16A34A", color_secondary: "#DC2626" },
+  { id: "col_naruto", code: "COL-01-NRT", bank: "COL-01", name: "Naruto", category: "Anime", publisher: "Shueisha", description: "🍥 Ninjas de Konoha, Akatsuki, Hokages e Jinchurikis", image_url: "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&auto=format&fit=crop&q=80", color_primary: "#EA580C", color_secondary: "#1E3A8A" },
+  { id: "col_onepiece", code: "COL-01-OP", bank: "COL-01", name: "One Piece", category: "Anime", publisher: "Shueisha", description: "🏴‍☠️ Chapéus de Palha, Marinha, Akuma no Mi e Yonkous", image_url: "", color_primary: "#DC2626", color_secondary: "#0284C7" },
+  { id: "col_opm", code: "COL-01-OPM", bank: "COL-01", name: "One Punch Man", category: "Anime", publisher: "Shueisha", description: "👊 Associação de Heróis Classe S e Ameaças Nível Deus", image_url: "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=800&auto=format&fit=crop&q=80", color_primary: "#CA8A04", color_secondary: "#B91C1C" },
+  { id: "col_ss", code: "COL-01-SS", bank: "COL-01", name: "Saint Seiya", category: "Anime", publisher: "Toei / Akita Shoten", description: "🏛 Cavaleiros de Atena, Armaduras de Ouro e Sétimo Sentido", image_url: "", color_primary: "#EAB308", color_secondary: "#1D4ED8" },
+  { id: "col_sololeveling", code: "COL-01-SL", bank: "COL-01", name: "Solo Leveling", category: "Mangá", publisher: "D&C Media", description: "🗡 Exército das Sombras, Caçadores Nível S e Monarcas", image_url: "", color_primary: "#312E81", color_secondary: "#6366F1" },
+  { id: "col_tg", code: "COL-01-TG", bank: "COL-01", name: "Tokyo Ghoul", category: "Mangá", publisher: "Shueisha", description: "☕ Ghouls, Quinques, Kagunes e a CCG", image_url: "", color_primary: "#881337", color_secondary: "#18181B" },
+  { id: "col_tog", code: "COL-01-TOG", bank: "COL-01", name: "Tower of God", category: "Mangá", publisher: "Naver Webtoon", description: "🗼 A Torre de Deus, Regulares, Irregulares e Testes", image_url: "", color_primary: "#0369A1", color_secondary: "#B45309" },
+  { id: "col_vs", code: "COL-01-VS", bank: "COL-01", name: "Vinland Saga", category: "Mangá", publisher: "Kodansha", description: "🪓 Guerreiros Vikings, Thorfinn, Vingança e Vinland", image_url: "", color_primary: "#B45309", color_secondary: "#15803D" },
+  { id: "col_yyh", code: "COL-01-YYH", bank: "COL-01", name: "Yu Yu Hakusho", category: "Anime", publisher: "Shueisha", description: "👻 Detetive Espiritual, Torneio das Trevas e Leikou", image_url: "", color_primary: "#0D9488", color_secondary: "#1E1B4B" },
 
   // COL-02 — JOGOS (13)
-  { id: "col_bb", code: "COL-02-BB", bank: "COL-02", name: "Bloodborne", description: "🩸 Yharnam, Caçadores, Sangue Antigo e Grandes Antigos", image_url: "" },
-  { id: "col_cp77", code: "COL-02-CP77", bank: "COL-02", name: "Cyberpunk 2077", description: "🌃 Night City, Cyberware, Mercenários, Arasaka e Lendas", image_url: "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&auto=format&fit=crop&q=80" },
-  { id: "col_ds", code: "COL-02-DS", bank: "COL-02", name: "Dark Souls", description: "🔥 Era do Fogo, Lordes de Cinder e Mortos-Vivos", image_url: "" },
-  { id: "col_dmc", code: "COL-02-DMC", bank: "COL-02", name: "Devil May Cry", description: "🔴 Dante, Vergil, Caçadores e espada Rebellion", image_url: "" },
-  { id: "col_er", code: "COL-02-ER", bank: "COL-02", name: "Elden Ring", description: "💍 Maculados, Demideuses, Anel Prístino e Térvore", image_url: "" },
-  { id: "col_ff", code: "COL-02-FF", bank: "COL-02", name: "Final Fantasy", description: "💎 Guerreiros da Luz, Cristais Primordiais e Summons", image_url: "" },
-  { id: "col_gow", code: "COL-02-GOW", bank: "COL-02", name: "God of War", description: "🪓 Kratos, Deuses das Mitologias Grega e Nórdica", image_url: "" },
-  { id: "col_lol", code: "COL-02-LOL", bank: "COL-02", name: "League of Legends", description: "⚔ Campeões de Runeterra, Zaun, Noxus, Demacia e Ionia", image_url: "" },
-  { id: "col_mk", code: "COL-02-MK", bank: "COL-02", name: "Mortal Kombat", description: "🐉 Protetores de Earthrealm, Fatalities e Outworld", image_url: "" },
-  { id: "col_skr", code: "COL-02-SKR", bank: "COL-02", name: "The Elder Scrolls V: Skyrim", description: "🐉 Dragonborn, Shouts, Alduin e Província de Skyrim", image_url: "" },
-  { id: "col_tlou", code: "COL-02-TLOU", bank: "COL-02", name: "The Last of Us", description: "🌿 Sobreviventes, Infectados, Vira-Lupas e Joel & Ellie", image_url: "" },
-  { id: "col_zld", code: "COL-02-ZLD", bank: "COL-02", name: "The Legend of Zelda", description: "🗡 Herói da Legenda, Princesa Zelda, Triforce e Ganondorf", image_url: "" },
-  { id: "col_witcher", code: "COL-02-WITCHER", bank: "COL-02", name: "The Witcher", description: "🐺 Geralt de Rívia, Bruxos, Caçada Selvagem e Sinais", image_url: "" },
+  { id: "col_bb", code: "COL-02-BB", bank: "COL-02", name: "Bloodborne", category: "Games", publisher: "Sony / FromSoftware", description: "🩸 Yharnam, Caçadores, Sangue Antigo e Grandes Antigos", image_url: "", color_primary: "#881337", color_secondary: "#09090B" },
+  { id: "col_cp77", code: "COL-02-CP77", bank: "COL-02", name: "Cyberpunk 2077", category: "Games", publisher: "CD Projekt Red", description: "🌃 Night City, Cyberware, Mercenários, Arasaka e Lendas", image_url: "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&auto=format&fit=crop&q=80", color_primary: "#FACC15", color_secondary: "#06B6D4" },
+  { id: "col_ds", code: "COL-02-DS", bank: "COL-02", name: "Dark Souls", category: "Games", publisher: "Bandai Namco / FromSoftware", description: "🔥 Era do Fogo, Lordes de Cinder e Mortos-Vivos", image_url: "", color_primary: "#C2410C", color_secondary: "#1C1917" },
+  { id: "col_dmc", code: "COL-02-DMC", bank: "COL-02", name: "Devil May Cry", category: "Games", publisher: "Capcom", description: "🔴 Dante, Vergil, Caçadores e espada Rebellion", image_url: "", color_primary: "#B91C1C", color_secondary: "#1E3A8A" },
+  { id: "col_er", code: "COL-02-ER", bank: "COL-02", name: "Elden Ring", category: "Games", publisher: "Bandai Namco / FromSoftware", description: "💍 Maculados, Demideuses, Anel Prístino e Térvore", image_url: "", color_primary: "#B45309", color_secondary: "#312E81" },
+  { id: "col_ff", code: "COL-02-FF", bank: "COL-02", name: "Final Fantasy", category: "Games", publisher: "Square Enix", description: "💎 Guerreiros da Luz, Cristais Primordiais e Summons", image_url: "", color_primary: "#0284C7", color_secondary: "#A855F7" },
+  { id: "col_gow", code: "COL-02-GOW", bank: "COL-02", name: "God of War", category: "Games", publisher: "Sony Santa Monica", description: "🪓 Kratos, Deuses das Mitologias Grega e Nórdica", image_url: "", color_primary: "#991B1B", color_secondary: "#334155" },
+  { id: "col_lol", code: "COL-02-LOL", bank: "COL-02", name: "League of Legends", category: "Games", publisher: "Riot Games", description: "⚔ Campeões de Runeterra, Zaun, Noxus, Demacia e Ionia", image_url: "", color_primary: "#0284C7", color_secondary: "#D97706" },
+  { id: "col_mk", code: "COL-02-MK", bank: "COL-02", name: "Mortal Kombat", category: "Games", publisher: "NetherRealm Studios", description: "🐉 Protetores de Earthrealm, Fatalities e Outworld", image_url: "", color_primary: "#B91C1C", color_secondary: "#CA8A04" },
+  { id: "col_skr", code: "COL-02-SKR", bank: "COL-02", name: "The Elder Scrolls V: Skyrim", category: "Games", publisher: "Bethesda Game Studios", description: "🐉 Dragonborn, Shouts, Alduin e Província de Skyrim", image_url: "", color_primary: "#475569", color_secondary: "#0284C7" },
+  { id: "col_tlou", code: "COL-02-TLOU", bank: "COL-02", name: "The Last of Us", category: "Games", publisher: "Naughty Dog / Sony", description: "🌿 Sobreviventes, Infectados, Vira-Lupas e Joel & Ellie", image_url: "", color_primary: "#15803D", color_secondary: "#78350F" },
+  { id: "col_zld", code: "COL-02-ZLD", bank: "COL-02", name: "The Legend of Zelda", category: "Games", publisher: "Nintendo", description: "🗡 Herói da Legenda, Princesa Zelda, Triforce e Ganondorf", image_url: "", color_primary: "#16A34A", color_secondary: "#EAB308" },
+  { id: "col_witcher", code: "COL-02-WITCHER", bank: "COL-02", name: "The Witcher", category: "Games", publisher: "CD Projekt Red / Orbit", description: "🐺 Geralt de Rívia, Bruxos, Caçada Selvagem e Sinais", image_url: "", color_primary: "#475569", color_secondary: "#991B1B" },
 
-  // COL-03 — CINEMA & FRANQUIAS (8)
-  { id: "col_dc", code: "COL-03-DC", bank: "COL-03", name: "DC Universe", description: "🦇 Liga da Justiça, Bat-família, Justiça Jovem, Super-Choque, Lanternas e Crises", image_url: "", works: ["DC Universe", "Justiça Jovem", "Super-Choque", "Batman", "Superman", "Flash", "Liga da Justiça"] },
-  { id: "col_dune", code: "COL-03-DUNE", bank: "COL-03", name: "Dune", description: "🏜 Arrakis, Especiaria Melange, Paul Atreides e Vermes", image_url: "" },
-  { id: "col_got", code: "COL-03-GOT", bank: "COL-03", name: "Game of Thrones", description: "👑 Casas de Westeros, Trono de Ferro, Dragões e Caminhantes", image_url: "" },
-  { id: "col_hp", code: "COL-03-HP", bank: "COL-03", name: "Harry Potter", description: "⚡ Escola de Hogwarts, Casas de Magia e Feitiços", image_url: "" },
-  { id: "col_lotr", code: "COL-03-LOTR", bank: "COL-03", name: "Lord of the Rings", description: "💍 Sociedade do Anel, Um Anel, Sauron e Terra-Média", image_url: "" },
-  { id: "col_starwars", code: "COL-03-SW", bank: "COL-03", name: "Star Wars", description: "🌌 Ordem Jedi, Império Sith, Mandalorianos e A Força", image_url: "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=800&auto=format&fit=crop&q=80" },
-  { id: "col_boys", code: "COL-03-BOYS", bank: "COL-03", name: "The Boys", description: "💥 Vought International, Os Sete, Composto V e Os Boys", image_url: "" },
-  { id: "col_marvel", code: "COL-03-MARVEL", bank: "COL-03", name: "Marvel Comics Universe", description: "🦸‍♂️ Mutantes, Vingadores, Joias do Infinito e Heróis Cósmicos", image_url: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&auto=format&fit=crop&q=80", works: ["Marvel Comics Universe", "Vingadores", "X-Men", "Homem-Aranha"] },
+  // COL-03 — CINEMA & HQ FRANQUIAS (8)
+  { id: "col_dc", code: "COL-03-DC", bank: "COL-03", name: "DC Universe", category: "Quadrinhos", publisher: "DC Comics", description: "🦇 Liga da Justiça, Bat-família, Justiça Jovem, Super-Choque, Lanternas e Crises", image_url: "", works: ["DC Universe", "Justiça Jovem", "Super-Choque", "Batman", "Superman", "Flash", "Liga da Justiça"], color_primary: "#2563EB", color_secondary: "#1E293B" },
+  { id: "col_dune", code: "COL-03-DUNE", bank: "COL-03", name: "Dune", category: "Cinema", publisher: "Legendary Pictures / Frank Herbert", description: "🏜 Arrakis, Especiaria Melange, Paul Atreides e Vermes", image_url: "", color_primary: "#D97706", color_secondary: "#78350F" },
+  { id: "col_got", code: "COL-03-GOT", bank: "COL-03", name: "Game of Thrones", category: "Séries", publisher: "HBO / George R.R. Martin", description: "👑 Casas de Westeros, Trono de Ferro, Dragões e Caminhantes", image_url: "", color_primary: "#475569", color_secondary: "#991B1B" },
+  { id: "col_hp", code: "COL-03-HP", bank: "COL-03", name: "Harry Potter", category: "Literatura", publisher: "Bloomsbury / Warner Bros", description: "⚡ Escola de Hogwarts, Casas de Magia e Feitiços", image_url: "", color_primary: "#7E22CE", color_secondary: "#CA8A04" },
+  { id: "col_lotr", code: "COL-03-LOTR", bank: "COL-03", name: "Lord of the Rings", category: "Literatura", publisher: "HarperCollins / J.R.R. Tolkien", description: "💍 Sociedade do Anel, Um Anel, Sauron e Terra-Média", image_url: "", color_primary: "#B45309", color_secondary: "#15803D" },
+  { id: "col_starwars", code: "COL-03-SW", bank: "COL-03", name: "Star Wars", category: "Cinema", publisher: "Lucasfilm / Disney", description: "🌌 Ordem Jedi, Império Sith, Mandalorianos e A Força", image_url: "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=800&auto=format&fit=crop&q=80", color_primary: "#0284C7", color_secondary: "#DC2626" },
+  { id: "col_boys", code: "COL-03-BOYS", bank: "COL-03", name: "The Boys", category: "Séries", publisher: "Amazon MGM Studios / Dynamite", description: "💥 Vought International, Os Sete, Composto V e Os Boys", image_url: "", color_primary: "#DC2626", color_secondary: "#1E293B" },
+  { id: "col_marvel", code: "COL-03-MARVEL", bank: "COL-03", name: "Marvel Comics Universe", category: "Quadrinhos", publisher: "Marvel Comics", description: "🦸‍♂️ Mutantes, Vingadores, Joias do Infinito e Heróis Cósmicos", image_url: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&auto=format&fit=crop&q=80", works: ["Marvel Comics Universe", "Vingadores", "X-Men", "Homem-Aranha"], color_primary: "#DC2626", color_secondary: "#2563EB" },
 
   // COL-04 — SÉRIES & ANIMAÇÃO OCIDENTAL (7)
-  { id: "col_arcane", code: "COL-04-ARC", bank: "COL-04", name: "Arcane", description: "⚙️ Cidade do Progresso Piltover, Zaun e Cristais Hextech", image_url: "" },
-  { id: "col_atla", code: "COL-04-ATLA", bank: "COL-04", name: "Avatar: The Last Airbender", description: "💨 Avatar, Dobradores dos Elementos e Nação do Fogo", image_url: "" },
-  { id: "col_ben10", code: "COL-04-BEN10", bank: "COL-04", name: "Ben 10", description: "⌚ Omnitrix, Transformações Alienígenas e Encanadores", image_url: "" },
-  { id: "col_castlevania", code: "COL-04-CASTLEVANIA", bank: "COL-04", name: "Castlevania", description: "🦇 Clã Belmont, Chicote Sagrado, Alucard e Drácula", image_url: "" },
-  { id: "col_hazbin", code: "COL-04-HAZBIN", bank: "COL-04", name: "Hazbin Hotel", description: "🏨 Redenção no Inferno, Charlie Morningstar e Hazbin Hotel", image_url: "" },
-  { id: "col_at", code: "COL-04-AT", bank: "COL-04", name: "Hora de Aventura", description: "⚔️ Terra de Ooo, Finn o Humano, Jake e Rei Gelado", image_url: "" },
-  { id: "col_inv", code: "COL-04-INV", bank: "COL-04", name: "Invencível", description: "🩸 Mark Grayson, Viltrumitas e Omni-Man", image_url: "" },
+  { id: "col_arcane", code: "COL-04-ARC", bank: "COL-04", name: "Arcane", category: "Animações", publisher: "Riot Games / Netflix", description: "⚙️ Cidade do Progresso Piltover, Zaun e Cristais Hextech", image_url: "", color_primary: "#0284C7", color_secondary: "#C026D3" },
+  { id: "col_atla", code: "COL-04-ATLA", bank: "COL-04", name: "Avatar: The Last Airbender", category: "Animações", publisher: "Nickelodeon", description: "💨 Avatar, Dobradores dos Elementos e Nação do Fogo", image_url: "", color_primary: "#2563EB", color_secondary: "#EA580C" },
+  { id: "col_ben10", code: "COL-04-BEN10", bank: "COL-04", name: "Ben 10", category: "Animações", publisher: "Cartoon Network / Man of Action", description: "⌚ Omnitrix, Transformações Alienígenas e Encanadores", image_url: "", color_primary: "#16A34A", color_secondary: "#1E293B" },
+  { id: "col_castlevania", code: "COL-04-CASTLEVANIA", bank: "COL-04", name: "Castlevania", category: "Animações", publisher: "Konami / Netflix", description: "🦇 Clã Belmont, Chicote Sagrado, Alucard e Drácula", image_url: "", color_primary: "#991B1B", color_secondary: "#09090B" },
+  { id: "col_hazbin", code: "COL-04-HAZBIN", bank: "COL-04", name: "Hazbin Hotel", category: "Animações", publisher: "A24 / SpindleHorse", description: "🏨 Redenção no Inferno, Charlie Morningstar e Hazbin Hotel", image_url: "", color_primary: "#E11D48", color_secondary: "#4C1D95" },
+  { id: "col_at", code: "COL-04-AT", bank: "COL-04", name: "Hora de Aventura", category: "Animações", publisher: "Cartoon Network", description: "⚔️ Terra de Ooo, Finn o Humano, Jake e Rei Gelado", image_url: "", color_primary: "#0284C7", color_secondary: "#EAB308" },
+  { id: "col_inv", code: "COL-04-INV", bank: "COL-04", name: "Invencível", category: "Animações", publisher: "Skybound / Amazon Studios", description: "🩸 Mark Grayson, Viltrumitas e Omni-Man", image_url: "", color_primary: "#D97706", color_secondary: "#2563EB" },
 
   // COL-05 — MITOLOGIAS (6)
-  { id: "col_egy", code: "COL-05-EGY", bank: "COL-05", name: "Mitologia Egípcia", description: "📿 Deuses do Nilo, Rá, Anúbis, Osíris e Faraós", image_url: "" },
-  { id: "col_grk", code: "COL-05-GRK", bank: "COL-05", name: "Mitologia Grega", description: "🏛 Olimpo, Zeus, Poseidon, Hades e Heróis", image_url: "" },
-  { id: "col_jpn", code: "COL-05-JPN", bank: "COL-05", name: "Mitologia Japonesa", description: "⛩ Kami, Amaterasu, Susanoo, Yokais e Shinto", image_url: "" },
-  { id: "col_poly", code: "COL-05-POLYNESIAN", bank: "COL-05", name: "Mitologia Maori & Polinésia", description: "🌊 Maui, Pele, Tangaroa e Lendas do Pacífico", image_url: "" },
-  { id: "col_meso", code: "COL-05-MESO", bank: "COL-05", name: "Mitologia Mesopotâmica", description: "📜 Gilgamesh, Enkidu, Ishtar e Marduk", image_url: "" },
-  { id: "col_norse", code: "COL-05-NORSE", bank: "COL-05", name: "Mitologia Nórdica", description: "⚡ Asgard, Odin, Thor, Loki, Yggdrasil e Ragnarok", image_url: "" },
+  { id: "col_egy", code: "COL-05-EGY", bank: "COL-05", name: "Mitologia Egípcia", category: "Mitologia", publisher: "Tradição Ancestral", description: "📿 Deuses do Nilo, Rá, Anúbis, Osíris e Faraós", image_url: "", color_primary: "#CA8A04", color_secondary: "#0D9488" },
+  { id: "col_grk", code: "COL-05-GRK", bank: "COL-05", name: "Mitologia Grega", category: "Mitologia", publisher: "Tradição Ancestral", description: "🏛 Olimpo, Zeus, Poseidon, Hades e Heróis", image_url: "", color_primary: "#0284C7", color_secondary: "#EAB308" },
+  { id: "col_jpn", code: "COL-05-JPN", bank: "COL-05", name: "Mitologia Japonesa", category: "Mitologia", publisher: "Tradição Ancestral", description: "⛩ Kami, Amaterasu, Susanoo, Yokais e Shinto", image_url: "", color_primary: "#DC2626", color_secondary: "#09090B" },
+  { id: "col_poly", code: "COL-05-POLYNESIAN", bank: "COL-05", name: "Mitologia Maori & Polinésia", category: "Mitologia", publisher: "Tradição Ancestral", description: "🌊 Maui, Pele, Tangaroa e Lendas do Pacífico", image_url: "", color_primary: "#0D9488", color_secondary: "#EA580C" },
+  { id: "col_meso", code: "COL-05-MESO", bank: "COL-05", name: "Mitologia Mesopotâmica", category: "Mitologia", publisher: "Tradição Ancestral", description: "📜 Gilgamesh, Enkidu, Ishtar e Marduk", image_url: "", color_primary: "#B45309", color_secondary: "#475569" },
+  { id: "col_norse", code: "COL-05-NORSE", bank: "COL-05", name: "Mitologia Nórdica", category: "Mitologia", publisher: "Tradição Ancestral", description: "⚡ Asgard, Odin, Thor, Loki, Yggdrasil e Ragnarok", image_url: "", color_primary: "#0284C7", color_secondary: "#1E293B" },
 
   // COL-06 — HISTÓRICOS & REALIDADE (4)
-  { id: "col_antiquity", code: "COL-06-ANTIQUITY", bank: "COL-06", name: "Antiguidade Clássica", description: "🏛 Imperadores Romanos, Falanges e Filósofos", image_url: "" },
-  { id: "col_revolutions", code: "COL-06-REVOLUTIONS", bank: "COL-06", name: "Era das Revoluções", description: "⚔ Líderes Revolucionários e Mudanças Mundiais", image_url: "" },
-  { id: "col_art", code: "COL-06-ART", bank: "COL-06", name: "Mestres da Arte & Ciência", description: "🎨 Da Vinci, Tesla, Newton, Galileu e Mentes Brilhantes", image_url: "" },
-  { id: "col_feudal", code: "COL-06-FEUDAL", bank: "COL-06", name: "Japão Feudal & Samurai", description: "⛩ Shoguns, Ninjas Shinobi, Ronins e Bushido", image_url: "" }
+  { id: "col_antiquity", code: "COL-06-ANTIQUITY", bank: "COL-06", name: "Antiguidade Clássica", category: "Outros", publisher: "História Universal", description: "🏛 Imperadores Romanos, Falanges e Filósofos", image_url: "", color_primary: "#991B1B", color_secondary: "#CA8A04" },
+  { id: "col_revolutions", code: "COL-06-REVOLUTIONS", bank: "COL-06", name: "Era das Revoluções", category: "Outros", publisher: "História Universal", description: "⚔ Líderes Revolucionários e Mudanças Mundiais", image_url: "", color_primary: "#2563EB", color_secondary: "#DC2626" },
+  { id: "col_art", code: "COL-06-ART", bank: "COL-06", name: "Mestres da Arte & Ciência", category: "Outros", publisher: "História Universal", description: "🎨 Da Vinci, Tesla, Newton, Galileu e Mentes Brilhantes", image_url: "", color_primary: "#7E22CE", color_secondary: "#0284C7" },
+  { id: "col_feudal", code: "COL-06-FEUDAL", bank: "COL-06", name: "Japão Feudal & Samurai", category: "Outros", publisher: "História Universal", description: "⛩ Shoguns, Ninjas Shinobi, Ronins e Bushido", image_url: "", color_primary: "#18181B", color_secondary: "#DC2626" }
 ];
+
+export const MEGA_COLLECTIONS = deduplicateCollections(RAW_MEGA_COLLECTIONS);
 
 export const MEGA_ITEMS = [
   // COL-01 Animes
@@ -170,7 +174,7 @@ export function generateExpandedCards() {
     { code: "COL-02-ER", series: "Elden Ring", energy: "Graça Prístina", characters: ["Tarnished", "Malenia", "Radahn", "Ranni the Witch", "Godfrey", "Morgott", "Maliketh", "Rykard", "Mohg", "Marika"], tags: ["Maculado", "Demideus", "Térvore"] },
     { code: "COL-02-FF", series: "Final Fantasy", energy: "Mana dos Cristais", characters: ["Cloud Strife", "Sephiroth", "Noctis Lucis Caelum", "Squall Leonhart", "Tidus", "Lightning", "Clive Rosfield", "Aerith Gainsborough", "Vivi Ornitier", "Kefka Palazzo"], tags: ["Guerreiro da Luz", "SOLDIER", "Summoner"] },
     { code: "COL-02-GOW", series: "God of War", energy: "Fúria Espartana", characters: ["Kratos", "Atreus", "Freya", "Thor", "Odin", "Zeus", "Baldur", "Valkyrie Sigrun", "Ares", "Athena"], tags: ["Deus da Guerra", "Panteão", "Espartano"] },
-    { code: "COL-02-LOL", series: "League of Legends", energy: "Magia de Runeterra", characters: ["Ahri", "Yasuo", "Zed", "Jinx", "Vi", "Viego", "Thresh", "Darius", "Garen", "Ryze"], tags: ["Campeão", "Runeterra", "Ionia", "Noxus"] },
+    { code: "COL-02-LOL", series: "League of Legends", energy: "Magia de Runeterra", characters: ["Ahri", "Yasuo", "Zed", "Lux", "Katarina", "Viego", "Thresh", "Darius", "Garen", "Ryze"], tags: ["Campeão", "Runeterra", "Ionia", "Noxus"] },
     { code: "COL-02-MK", series: "Mortal Kombat", energy: "Chi & Magia Sangrenta", characters: ["Scorpion", "Sub-Zero", "Raiden", "Liu Kang", "Shang Tsung", "Shao Kahn", "Johnny Cage", "Sonya Blade", "Kitana", "Mileena"], tags: ["Protetor de Earthrealm", "Outworld", "Shirai Ryu"] },
     { code: "COL-02-SKR", series: "Skyrim", energy: "Thu'um (Voz dos Dragões)", characters: ["Dragonborn", "Alduin", "Paarthurnax", "Ulfric Stormcloak", "General Tullius", "Astrid", "Mercer Frey", "Miraak", "Serana", "Sheogorath"], tags: ["Dovahkiin", "Dragão", "Skyrim"] },
     { code: "COL-02-TLOU", series: "The Last of Us", energy: "Instinto de Sobrevivência", characters: ["Joel Miller", "Ellie Williams", "Abby Anderson", "Tommy Miller", "Tess", "Marlene", "Bill", "David", "Lev", "Dina"], tags: ["Sobrevivente", "Vira-Lupa", "Imune"] },
@@ -225,12 +229,46 @@ export function generateExpandedCards() {
       else if (index < 9) rarity = "R";
       else rarity = "UC";
 
-      const roles = ["DPS", "Tank", "Support", "Assassin", "Mage", "Sniper", "Berserker"];
-      const elements = ["Fire", "Lightning", "Wind", "Earth", "Water", "Shadow", "Light"];
-      
-      const role = roles[index % roles.length];
-      const element = elements[index % elements.length];
-      
+      const roles = ["Combatente", "Mago", "Tanque", "Assassino", "Suporte", "Atirador", "Líder", "Cientista", "Detetive", "Invocador"];
+      const personalitiesPool = [
+        ["Determinado", "Estratégico", "Inspirador"],
+        ["Caótico", "Impiedoso", "Dominador"],
+        ["Calculista", "Pragmático", "Observador"],
+        ["Idealista", "Altruísta", "Protetor"],
+        ["Visionário", "Carismático", "Adaptável"],
+        ["Reservado", "Persistente", "Intuitivo"]
+      ];
+      const identityPool = [
+        ["Herói", "Humano"],
+        ["Vilão", "Entidade"],
+        ["Anti-herói", "Mutante"],
+        ["Deus", "Entidade"],
+        ["Alienígena", "Combatente"],
+        ["Civil", "Humano"]
+      ];
+      const originPool = [
+        ["Mística", "Divina"],
+        ["Tecnológica", "Artificial"],
+        ["Cósmica", "Dimensional"],
+        ["Biológica", "Mutante"],
+        ["Temporal", "Experimental"]
+      ];
+      const powerTypePool = ["Físico", "Mental", "Mágico", "Cósmico", "Tecnológico", "Temporal", "Espacial", "Biológico", "Elemental", "Multiversal"];
+
+      let narrative_role = "Coadjuvante";
+      if (index === 0) narrative_role = "Protagonista";
+      else if (index === 1) narrative_role = "Antagonista";
+      else if (index === 2) narrative_role = "Anti-herói";
+      else if (index < 5) narrative_role = "Aliado";
+      else if (index < 8) narrative_role = "Rival";
+      else narrative_role = "NPC";
+
+      const characterClass = roles[index % roles.length];
+      const personality = personalitiesPool[index % personalitiesPool.length];
+      const identity = identityPool[index % identityPool.length];
+      const origin = originPool[index % originPool.length];
+      const power_type = powerTypePool[index % powerTypePool.length];
+
       const cardCode = `${group.code}-CHR-${rarity}-${String(index + 1).padStart(3, '0')}`;
 
       cards.push({
@@ -240,9 +278,14 @@ export function generateExpandedCards() {
         collection_id: group.code,
         series: group.series,
         rarity: rarity,
-        role: role,
+        role: characterClass,
         gender: index % 2 === 0 ? "Male" : "Female",
-        element: element,
+        narrative_role: narrative_role,
+        personality: personality,
+        identity: identity,
+        origin: origin,
+        class: characterClass,
+        power_type: power_type,
         tags: group.tags,
         mag_source: group.energy,
         mag: 90 + (index * 6),
@@ -253,9 +296,9 @@ export function generateExpandedCards() {
         image_url: "",
         img_oficial: "",
         img_custom: "",
-        lore: `${charName} é uma figura lendária de ${group.series}. Domina ${group.energy} e combate no multiverso DeckVerse OS.`,
+        lore: `${charName} é uma figura lendária de ${group.series}. Domina ${group.energy} com perfil ${personality.join(", ")} e papel de ${narrative_role}.`,
         skills: [
-          { name: `Habilidade de ${charName}`, description: `Causa dano do tipo ${element} utilizando ${group.energy}.`, type: "Active" },
+          { name: `Habilidade de ${charName}`, description: `Canaliza poder do tipo ${power_type} utilizando ${group.energy}.`, type: "Active" },
           { name: `Despertar Supremo`, description: `Aumenta ATQ e VEL em +35% durante 3 turnos.`, type: "Ultimate" }
         ],
         version: "Standard Form",
@@ -264,7 +307,7 @@ export function generateExpandedCards() {
     });
   });
 
-  return cards;
+  return deduplicateCards(cards);
 }
 
 export function getAllExpandedCards() {

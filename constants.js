@@ -116,6 +116,38 @@ export const RARITY_POWER = {
   Common:1, Uncommon:1.3, Rare:1.7, Epic:2.2, Legendary:3.0, Mythic:4.0,
 };
 
+// Master Prompt Classification Enums
+export const PERSONALITIES = [
+  "Stoic", "Arrogant", "Heroic", "Chaotic", "Gentle", "Analytical",
+  "Ruthless", "Eccentric", "Melancholic", "Mysterious", "Proactive", "Loyal",
+  "Cold", "Humorous", "Protective", "Impulsive", "Idealistic", "Cynical", "Prideful"
+];
+
+export const IDENTITIES = [
+  "Hero", "Anti-Hero", "Villain", "Anti-Villain", "Neutral",
+  "Vigilante", "Tyrant", "Mercenary", "Savior", "Renegade"
+];
+
+export const ORIGINS = [
+  "Earth", "Extraterrestrial", "Interdimensional", "Mythological", "Cybernetic",
+  "Supernatural", "Mutation", "Artificial", "Cosmic", "Divine"
+];
+
+export const NARRATIVE_FUNCTIONS = [
+  "Protagonist", "Deuteragonist", "Antagonist", "Mentor", "Rival",
+  "Sidekick", "Boss", "Wildcard", "Anti-Hero", "Legend"
+];
+
+export const CHARACTER_CLASSES = [
+  "Warrior", "Mage", "Rogue", "Tank", "Ranger", "Summoner",
+  "Support", "Berserker", "Assassin", "Paladin", "Invoker", "Monk"
+];
+
+export const POWER_TYPES = [
+  "Physical", "Elemental", "Magic", "Psychic", "Tech",
+  "Cosmic", "Divine", "Demonic", "Spiritual", "Martial", "Hax/Reality"
+];
+
 // Player XP thresholds per level (1–50)
 export function getXpForLevel(lvl) {
   return Math.floor(100 * Math.pow(lvl, 1.5));

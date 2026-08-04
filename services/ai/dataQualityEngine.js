@@ -5,6 +5,7 @@
 
 import { db } from "@/base44Client";
 import { validateCollection, validateCard, normalizeCode } from "@/lib/importSchemas";
+import { normalizeNameKey, deduplicateCollections } from "@/src/utils/deduplication";
 import { fandomClient } from "../fandom/fandomClient";
 import { enrichmentService } from "./enrichmentService";
 
@@ -146,11 +147,10 @@ export async function runDataQualityAudit(onLog = () => {}) {
     const canonicalMap = new Map();
     const duplicatesToDelete = [];
 
-    // Passo 1: Auditoria e Deduplicação Inteligente
+    // Passo 1: Auditoria e Deduplicação Inteligente (Multi-Idioma)
     for (const card of allCards) {
-      const colCode = normalizeCode(card.collection_id || card.series || "MULTIVERSE");
-      const normName = (card.name || "").trim().toLowerCase().replace(/[^a-z0-9]/g, "_");
-      const key = `${colCode}_${normName}`;
+      const nameKey = normalizeNameKey(card.name || card.title || "");
+      const key = nameKey ? `card_${nameKey}` : `card_${card.id}`;
 
       const score = calculateCardQualityScore(card);
 

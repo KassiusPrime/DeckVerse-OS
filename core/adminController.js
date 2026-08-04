@@ -101,6 +101,10 @@ class AdminController {
     return await entityRepository.saveBoss(bossData);
   }
 
+  async deleteBoss(id) {
+    return await entityRepository.deleteBoss(id);
+  }
+
   /**
    * Player & Gem Ops
    */

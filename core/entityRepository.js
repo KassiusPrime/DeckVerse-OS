@@ -4,13 +4,15 @@
 // ════════════════════════════════════════════════════════════════════════════
 
 import { db } from "../base44Client.js";
+import { deduplicateCards, deduplicateCollections, normalizeNameKey } from "../src/utils/deduplication.js";
 
 class EntityRepository {
   /**
    * Cards
    */
   async getAllCards() {
-    return (await db.entities.Card.list()) || [];
+    const rawCards = (await db.entities.Card.list()) || [];
+    return deduplicateCards(rawCards);
   }
 
   async getCardById(id) {
@@ -24,14 +26,20 @@ class EntityRepository {
     }
     const data = cardData.data || cardData;
     const name = (data.name || data.title || "Carta Sem Nome").trim();
+    const nameKey = normalizeNameKey(name);
 
     const cards = await this.getAllCards();
-    const existing = cards.find(c => (data.id && c.id === data.id) || (data.card_id && c.card_id === data.card_id));
+    const existing = cards.find(c =>
+      (data.id && c.id === data.id) ||
+      (data.card_id && c.card_id === data.card_id) ||
+      (nameKey && normalizeNameKey(c.name) === nameKey)
+    );
 
     if (existing) {
       return await db.entities.Card.update(existing.id, {
+        ...existing,
         ...data,
-        name,
+        name: data.name || existing.name,
         updated_at: new Date().toISOString()
       });
     } else {
@@ -48,6 +56,13 @@ class EntityRepository {
   }
 
   async deleteCard(id) {
+    const card = await this.getCardById(id);
+    if (card) {
+      if (card.id) await db.entities.Card.delete(card.id);
+      if (card.card_id && card.card_id !== card.id) await db.entities.Card.delete(card.card_id);
+      if (card.name) await db.entities.Card.delete(card.name);
+      return { success: true };
+    }
     return await db.entities.Card.delete(id);
   }
 
@@ -64,12 +79,14 @@ class EntityRepository {
    * Collections
    */
   async getAllCollections() {
-    return (await db.entities.Collection.list()) || [];
+    const rawCols = (await db.entities.Collection.list()) || [];
+    return deduplicateCollections(rawCols);
   }
 
   async getCollectionById(idOrCode) {
     const collections = await this.getAllCollections();
-    return collections.find(c => c.id === idOrCode || c.code === idOrCode) || null;
+    const nameKey = normalizeNameKey(idOrCode);
+    return collections.find(c => c.id === idOrCode || c.code === idOrCode || normalizeNameKey(c.name) === nameKey) || null;
   }
 
   async saveCollection(collectionData) {
@@ -91,11 +108,17 @@ class EntityRepository {
       code
     };
 
+    const nameKey = normalizeNameKey(name);
     const collections = await this.getAllCollections();
-    const existing = collections.find(c => (payload.id && c.id === payload.id) || c.code === payload.code);
+    const existing = collections.find(c =>
+      (payload.id && c.id === payload.id) ||
+      c.code === payload.code ||
+      (nameKey && normalizeNameKey(c.name) === nameKey)
+    );
 
     if (existing) {
       return await db.entities.Collection.update(existing.id, {
+        ...existing,
         ...payload,
         updated_at: new Date().toISOString()
       });
@@ -112,9 +135,12 @@ class EntityRepository {
   async deleteCollection(idOrCode) {
     const col = await this.getCollectionById(idOrCode);
     if (col) {
-      return await db.entities.Collection.delete(col.id);
+      if (col.id) await db.entities.Collection.delete(col.id);
+      if (col.code && col.code !== col.id) await db.entities.Collection.delete(col.code);
+      if (col.name) await db.entities.Collection.delete(col.name);
+      return { success: true };
     }
-    return { success: false };
+    return await db.entities.Collection.delete(idOrCode);
   }
 
   /**
@@ -135,6 +161,10 @@ class EntityRepository {
         ...bossData
       });
     }
+  }
+
+  async deleteBoss(id) {
+    return await db.entities.Boss.delete(id);
   }
 
   /**
