@@ -10,6 +10,7 @@ import { Skeleton } from "@/skeleton";
 import { Link } from "react-router-dom";
 import Navbar from "@/Navbar";
 import { RarityBadge, RoleBadge } from "@/RarityBadge";
+import { getAllExpandedCards } from "@/src/data/megaCollectionsData";
 
 export default function Roster() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -18,7 +19,7 @@ export default function Roster() {
 
   const { data: cards = [], isLoading } = useQuery({
     queryKey: ["cards"],
-    queryFn: () => db.entities.Card.list("-created_date", 200),
+    queryFn: () => db.entities.Card.list("-created_date", 500),
   });
 
   const { data: rosterEntries = [] } = useQuery({
@@ -28,8 +29,26 @@ export default function Roster() {
 
   // Merge roster entries with card data
   const rosterCards = useMemo(() => {
+    const expanded = getAllExpandedCards();
+    const combined = [...cards];
+    expanded.forEach(ec => {
+      if (!combined.some(c => c.id === ec.id || c.card_id === ec.card_id)) {
+        combined.push(ec);
+      }
+    });
+
     return rosterEntries.map((entry) => {
-      const card = cards.find((c) => c.id === entry.card_id);
+      const card = combined.find((c) =>
+        c.id === entry.card_id ||
+        c.card_id === entry.card_id ||
+        (c.name && entry.card_name && c.name.toLowerCase() === entry.card_name.toLowerCase())
+      ) || {
+        id: entry.card_id,
+        name: entry.card_name || "Carta Desconhecida",
+        rarity: "Elite",
+        role: "DPS",
+        status: "active"
+      };
       return { ...entry, card };
     }).filter((e) => e.card && e.card.status !== "quarantine" && e.card.status !== "rejected");
   }, [rosterEntries, cards]);

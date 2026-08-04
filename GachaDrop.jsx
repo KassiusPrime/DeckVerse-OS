@@ -1,6 +1,6 @@
 import { db } from "@/base44Client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { useAuth } from "@/AuthContext";
@@ -11,6 +11,7 @@ import Navbar from "@/Navbar";
 import { RARITY_ALIAS } from "@/constants";
 import { useToast } from "@/use-toast";
 import { pushCRTLog } from "./CRTTerminalOverlay";
+import { getAllExpandedCards } from "@/src/data/megaCollectionsData";
 
 // ─── Rarity display (new names) ───────────────────────────────────────────────
 const TIER_COLORS = {
@@ -176,44 +177,35 @@ export default function GachaDrop() {
   const [pulling, setPulling] = useState(false);
   const [pity, setPity] = useState(() => Number(localStorage.getItem("deckverse_pity") || 0));
 
-  const { data: cards = [] } = useQuery({
+  const { data: dbCards = [] } = useQuery({
     queryKey: ["cards-gacha"],
-    queryFn: () => db.entities.Card.list("-created_date", 300),
+    queryFn: () => db.entities.Card.list("-created_date", 500),
   });
+
+  const cards = useMemo(() => {
+    if (dbCards && dbCards.length > 0) return dbCards;
+    return getAllExpandedCards();
+  }, [dbCards]);
 
   const { data: players = [] } = useQuery({
     queryKey: ["players-gacha"],
     queryFn: () => db.entities.Player.list(),
-    enabled: !!user,
   });
 
-  const player = players.find(p => p.created_by === user?.email) || null;
+  const { data: rosterEntries = [] } = useQuery({
+    queryKey: ["roster"],
+    queryFn: () => db.entities.Roster.list(),
+  });
+
+  const player = players.find(p => p.created_by === user?.email || p.discord_id === "player_001") || players[0] || null;
   const gems = player?.gems ?? 500;
+  const playerDiscordId = player?.discord_id || user?.email || "player_001";
 
   const luck = getLuckLevel(pity);
 
-  const updateGemsMutation = useMutation({
-    mutationFn: ({ id, gems }) => db.entities.Player.update(id, { gems }),
-    onMutate: async ({ id, gems: newGems }) => {
-      await qc.cancelQueries({ queryKey: ["players-gacha"] });
-      const prev = qc.getQueryData(["players-gacha"]);
-      qc.setQueryData(["players-gacha"], (old = []) =>
-        old.map(p => p.id === id ? { ...p, gems: newGems } : p)
-      );
-      return { prev };
-    },
-    onError: (_err, _vars, ctx) => {
-      if (ctx?.prev) qc.setQueryData(["players-gacha"], ctx.prev);
-    },
-    onSettled: () => qc.invalidateQueries({ queryKey: ["players-gacha"] }),
-  });
-
-  const addRosterMutation = useMutation({
-    mutationFn: (data) => db.entities.Roster.create(data),
-  });
-
   const handlePull = async (pack) => {
-    if (cards.length === 0 || gems < pack.cost) return;
+    const cardPool = cards.length > 0 ? cards : getAllExpandedCards();
+    if (cardPool.length === 0 || gems < pack.cost) return;
     pushCRTLog(`Opening ${pack.name} (-${pack.cost} Gems)...`, "GACHA");
     setPulling(true);
     setResults(null);
@@ -224,7 +216,7 @@ export default function GachaDrop() {
     let newPity = pity + pack.pulls;
     for (let i = 0; i < pack.pulls; i++) {
       const rarity = rollRarity(pack.rates, pity + i);
-      const card = pickCard(cards, rarity);
+      const card = pickCard(cardPool, rarity);
       if (card) pulled.push({ ...card, _tier: RARITY_ALIAS[card.rarity] || card.rarity });
     }
 
@@ -238,20 +230,54 @@ export default function GachaDrop() {
     setPity(newPity);
     localStorage.setItem("deckverse_pity", String(newPity));
 
+    // Update gems
+    if (player) {
+      await db.entities.Player.update(player.id, { gems: Math.max(0, gems - pack.cost) }).catch(() => {});
+    }
+
+    // Save pulled cards directly to Player Roster & Collection
+    const currentRoster = await db.entities.Roster.list().catch(() => rosterEntries);
+    for (const card of pulled) {
+      const cardId = card.id || card.card_id;
+      const existing = currentRoster.find(r => 
+        (r.player_discord_id === playerDiscordId || r.player_discord_id === "player_001" || r.player_discord_id === user?.email) &&
+        (r.card_id === cardId || r.card_id === card.card_id || r.card_id === card.id || (r.card_name && r.card_name.toLowerCase() === card.name?.toLowerCase()))
+      );
+
+      if (existing) {
+        existing.copies = (existing.copies || 1) + 1;
+        await db.entities.Roster.update(existing.id, { copies: existing.copies }).catch(() => {});
+      } else {
+        const newRosterItem = await db.entities.Roster.create({
+          player_discord_id: playerDiscordId,
+          card_id: cardId,
+          card_name: card.name,
+          level: 1,
+          attack_bonus: 0,
+          defense_bonus: 0,
+          copies: 1,
+          is_favorite: false
+        }).catch(() => null);
+        if (newRosterItem) currentRoster.push(newRosterItem);
+      }
+    }
+
+    // Invalidate React Query caches so Roster, Collections, and Inventory update instantly
+    await qc.invalidateQueries({ queryKey: ["roster"] });
+    await qc.invalidateQueries({ queryKey: ["roster-col"] });
+    await qc.invalidateQueries({ queryKey: ["cards"] });
+    await qc.invalidateQueries({ queryKey: ["cards-gacha"] });
+    await qc.invalidateQueries({ queryKey: ["players-gacha"] });
+    await qc.invalidateQueries({ queryKey: ["players-col"] });
+    await qc.invalidateQueries({ queryKey: ["players-inv"] });
+
     setResults(pulled);
     setPulling(false);
 
-    if (player) {
-      updateGemsMutation.mutate({ id: player.id, gems: gems - pack.cost });
-      for (const card of pulled) {
-        addRosterMutation.mutate({
-          player_discord_id: player.discord_id || user?.email || "unknown",
-          card_id: card.id,
-          card_name: card.name,
-          level: 1, attack_bonus: 0, defense_bonus: 0, copies: 1,
-        });
-      }
-    }
+    toast({
+      title: `🎉 ${pulled.length} Carta(s) Invocada(s)!`,
+      description: `Cartas salvas com sucesso em sua Coleção e Roster.`,
+    });
 
     const divine = pulled.find(c => c._tier === "Divine");
     if (divine) toast({ title: `☀️ DIVINE PULL! ${divine.name}`, description: "Um Boss foi invocado!" });

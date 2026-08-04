@@ -290,21 +290,44 @@ export default function Collections() {
   }, [dbBosses]);
 
   // Player inventory tracking
-  const { data: players = [] } = useQuery({ queryKey: ["players-col"], queryFn: () => db.entities.Player.list(), enabled: !!user });
-  const { data: rosterEntries = [] } = useQuery({ queryKey: ["roster-col"], queryFn: () => db.entities.Roster.list("-created_date", 500), enabled: !!user });
-  const { data: playerItems = [] } = useQuery({ queryKey: ["player-items-col"], queryFn: () => db.entities.PlayerItem.list(), enabled: !!user });
+  const { data: players = [] } = useQuery({ queryKey: ["players-col"], queryFn: () => db.entities.Player.list() });
+  const { data: rosterEntries = [] } = useQuery({ queryKey: ["roster-col"], queryFn: () => db.entities.Roster.list("-created_date", 500) });
+  const { data: playerItems = [] } = useQuery({ queryKey: ["player-items-col"], queryFn: () => db.entities.PlayerItem.list() });
 
-  const player = players.find(p => p.created_by === user?.email) || null;
-  const myId = player?.discord_id || user?.email || "";
+  const player = players.find(p => p.created_by === user?.email || p.discord_id === "player_001") || players[0] || null;
+  const myId = player?.discord_id || user?.email || "player_001";
 
-  const ownedCardIds = useMemo(() => new Set(rosterEntries.filter(r => r.player_discord_id === myId).map(r => r.card_id)), [rosterEntries, myId]);
+  const ownedCardIds = useMemo(() => {
+    const set = new Set();
+    rosterEntries.forEach(r => {
+      if (
+        !user ||
+        r.player_discord_id === myId ||
+        r.player_discord_id === "player_001" ||
+        r.player_discord_id === user?.email ||
+        (player && r.player_discord_id === player.discord_id)
+      ) {
+        if (r.card_id) set.add(r.card_id);
+        if (r.card_name) set.add(r.card_name.toLowerCase());
+      }
+    });
+    return set;
+  }, [rosterEntries, myId, user, player]);
+
   const playerItemsMap = useMemo(() => {
     const map = {};
-    playerItems.filter(pi => pi.player_discord_id === myId).forEach(pi => {
-      map[pi.item_id] = (map[pi.item_id] || 0) + (pi.quantity || 1);
+    playerItems.forEach(pi => {
+      if (
+        !user ||
+        pi.player_discord_id === myId ||
+        pi.player_discord_id === "player_001" ||
+        pi.player_discord_id === user?.email
+      ) {
+        map[pi.item_id] = (map[pi.item_id] || 0) + (pi.quantity || 1);
+      }
     });
     return map;
-  }, [playerItems, myId]);
+  }, [playerItems, myId, user]);
 
   // Per-collection metrics
   const collectionStats = useMemo(() => {
@@ -321,7 +344,8 @@ export default function Collections() {
       const key = matched ? matched.name : series;
       if (!stats[key]) stats[key] = { totalCards: 0, ownedCards: 0, totalItems: 0, ownedItems: 0, totalBosses: 0 };
       stats[key].totalCards += 1;
-      if (ownedCardIds.has(card.id)) stats[key].ownedCards += 1;
+      const isOwned = ownedCardIds.has(card.id) || ownedCardIds.has(card.card_id) || ownedCardIds.has(card.name?.toLowerCase());
+      if (isOwned) stats[key].ownedCards += 1;
     });
 
     items.forEach(item => {
@@ -847,9 +871,12 @@ export default function Collections() {
                         </h3>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        {groupCards.map(card => (
-                          <CardListItem key={card.id} card={card} isOwned={ownedCardIds.has(card.id)} />
-                        ))}
+                        {groupCards.map(card => {
+                          const isCardOwned = ownedCardIds.has(card.id) || ownedCardIds.has(card.card_id) || ownedCardIds.has(card.name?.toLowerCase());
+                          return (
+                            <CardListItem key={card.id} card={card} isOwned={isCardOwned} />
+                          );
+                        })}
                       </div>
                     </div>
                   );

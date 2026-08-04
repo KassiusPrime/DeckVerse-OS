@@ -2,9 +2,9 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { RarityBadge } from "./RarityBadge";
 import CardModalDrawer from "./components/CardModalDrawer";
-import { Globe, Layers } from "lucide-react";
+import { Globe, Layers, Check, Lock } from "lucide-react";
 
-export default function CardListItem({ card, index = 0 }) {
+export default function CardListItem({ card, isOwned = false, index = 0 }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   if (!card) return null;
@@ -20,10 +20,27 @@ export default function CardListItem({ card, index = 0 }) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: Math.min(index * 0.04, 0.4), duration: 0.3 }}
         onClick={() => setIsModalOpen(true)}
-        className="group relative block rounded-xl border border-primary/20 bg-card/60 hover:bg-card/90 hover:border-primary/80 transition-all duration-300 ease-in-out hover:-translate-y-1 hover:shadow-[0_0_20px_rgba(234,88,12,0.15)] overflow-hidden cursor-pointer"
+        className={`group relative block rounded-xl border ${
+          isOwned
+            ? "border-emerald-500/50 bg-emerald-950/20 hover:border-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.2)]"
+            : "border-border/50 bg-card/60 hover:bg-card/90 hover:border-primary/60 hover:shadow-[0_0_15px_rgba(234,88,12,0.1)]"
+        } transition-all duration-300 ease-in-out hover:-translate-y-1 overflow-hidden cursor-pointer`}
       >
+        {/* Ownership Badge Top Right */}
+        <div className="absolute top-2 right-2 z-10 pointer-events-none">
+          {isOwned ? (
+            <span className="font-mono text-[9px] font-bold text-emerald-300 bg-emerald-950/90 border border-emerald-500/60 px-2 py-0.5 rounded-full shadow-md flex items-center gap-1">
+              <Check className="w-2.5 h-2.5 text-emerald-400" /> OBTIDA
+            </span>
+          ) : (
+            <span className="font-mono text-[9px] text-muted-foreground/80 bg-black/70 border border-border/50 px-1.5 py-0.5 rounded-full backdrop-blur-sm flex items-center gap-1">
+              <Lock className="w-2.5 h-2.5 text-muted-foreground/60" /> NÃO ADQUIRIDA
+            </span>
+          )}
+        </div>
+
         {/* Clean Front Visual: Image */}
-        <div className="aspect-[3/4] bg-muted/20 overflow-hidden relative">
+        <div className={`aspect-[3/4] bg-muted/20 overflow-hidden relative ${!isOwned ? "brightness-[0.85] contrast-[0.95]" : ""}`}>
           {displayImage ? (
             <img
               src={displayImage}
@@ -36,14 +53,10 @@ export default function CardListItem({ card, index = 0 }) {
             </div>
           )}
 
-          {/* Top Overlays: Collection Code & Universe */}
-          <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between gap-1 pointer-events-none">
+          {/* Top Overlay: Collection Code */}
+          <div className="absolute top-2.5 left-2.5 flex items-center gap-1 pointer-events-none z-10">
             <span className="font-mono text-[10px] font-bold text-primary px-2 py-0.5 bg-background/90 border border-primary/40 rounded-sm shadow-sm flex items-center gap-1">
               <Layers className="w-2.5 h-2.5" /> {collectionCode}
-            </span>
-
-            <span className="font-mono text-[9px] text-muted-foreground px-2 py-0.5 bg-background/80 backdrop-blur-sm border border-border/40 rounded-sm flex items-center gap-1">
-              <Globe className="w-2.5 h-2.5 text-primary" /> {universeName}
             </span>
           </div>
 
@@ -57,7 +70,7 @@ export default function CardListItem({ card, index = 0 }) {
               {card.name}
             </h3>
             <p className="text-[10px] font-mono text-muted-foreground tracking-wider truncate">
-              {card.card_id}
+              {card.card_id || card.id}
             </p>
           </div>
           <RarityBadge rarity={card.rarity} />
