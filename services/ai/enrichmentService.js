@@ -5,6 +5,7 @@
 import { GoogleGenAI } from "@google/genai";
 import { fandomClient } from "../fandom/fandomClient.js";
 import { validateCard } from "../../lib/importSchemas.js";
+import { inferCollectionCode, CANONICAL_SERIES_NAMES } from "../../lib/collectionCodes.js";
 
 export const SEED_ARCHETYPES = [
   { id: "arch_determinado", name: "Determinado", traits: ["Resiliente", "Foco Inabalável", "Supera Limites"] },
@@ -335,7 +336,8 @@ Retorne EXATAMENTE no formato JSON:
 /**
  * Pipeline canônico por personagem: Fandom + Gemini IA + Validação de Schema
  */
-export async function enrichCardFromWikiAndAI(characterName, collectionCode = "MULTIVERSE", opts = {}) {
+export async function enrichCardFromWikiAndAI(characterName, collectionCodeInput = "MULTIVERSE", opts = {}) {
+  const collectionCode = inferCollectionCode({ name: characterName, collection_id: collectionCodeInput, series: opts.series || opts.franchise });
   const wikiSlug = opts.wikiSlug || fandomClient.resolveWikiSlug(collectionCode);
   
   // 1. Busca na Wiki
@@ -371,11 +373,13 @@ export async function enrichCardFromWikiAndAI(characterName, collectionCode = "M
   const rarity = opts.rarity || (opts.isBoss ? "BOSS" : "SSR");
   const role = opts.role || "DPS";
   const mainImg = fandomData.mainImageUrl || opts.fallbackImage || "";
+  const seriesName = opts.series || CANONICAL_SERIES_NAMES[collectionCode] || "DeckVerse";
 
   const rawCardPayload = {
     name: enriched.canonical_name || characterName,
     card_id: `${collectionCode.toUpperCase()}-${(characterName).toUpperCase().replace(/[^A-Z0-9]/g, "_").slice(0, 10)}-${Math.floor(100 + Math.random() * 899)}`,
     collection_id: collectionCode,
+    series: seriesName,
     rarity,
     role,
     attack: enriched.stats?.strength || 80,

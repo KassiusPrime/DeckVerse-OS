@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
-import { Terminal as TerminalIcon, Minimize2, Maximize2, Trash2, Cpu, Activity } from "lucide-react";
+import { Terminal as TerminalIcon, Minimize2, Maximize2, Trash2, Cpu, Activity, Power } from "lucide-react";
 
 // Global listener helper to push logs to the CRT overlay from anywhere
 export function pushCRTLog(message, category = "SYS") {
@@ -19,14 +19,32 @@ export function pushCRTLog(message, category = "SYS") {
 }
 
 export default function CRTTerminalOverlay() {
+  const [isDisabled, setIsDisabled] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("deckverse_crt_disabled") === "true";
+    }
+    return false;
+  });
+
   const [logs, setLogs] = useState([
     { id: 1, message: "DECKVERSE OS v2.5 SYSTEM INITIALIZED", category: "BOOT", time: new Date().toLocaleTimeString() },
     { id: 2, message: "CRITICAL CORE READY — WIKI+IA ENRICHMENT ONLINE", category: "OK", time: new Date().toLocaleTimeString() }
   ]);
   const [isMinimized, setIsMinimized] = useState(true);
-  const [isMuted, setIsMuted] = useState(false);
   const location = useLocation();
   const logsEndRef = useRef(null);
+
+  const togglePower = (state) => {
+    const nextState = typeof state === "boolean" ? state : !isDisabled;
+    setIsDisabled(nextState);
+    if (typeof window !== "undefined") {
+      if (nextState) {
+        localStorage.setItem("deckverse_crt_disabled", "true");
+      } else {
+        localStorage.removeItem("deckverse_crt_disabled");
+      }
+    }
+  };
 
   // Escuta rota atual para emitir logs automáticos imersivos
   useEffect(() => {
@@ -75,21 +93,45 @@ export default function CRTTerminalOverlay() {
     }
   }, [logs, isMinimized]);
 
+  if (isDisabled) {
+    return (
+      <div className="fixed bottom-16 left-3 sm:bottom-3 sm:left-3 z-[9999] font-mono pointer-events-auto">
+        <button
+          onClick={() => togglePower(false)}
+          title="Ligar Terminal CRT"
+          className="p-1.5 bg-black/80 text-emerald-600 hover:text-emerald-400 border border-emerald-900/60 rounded shadow-md hover:border-emerald-500 transition-all backdrop-blur-md flex items-center gap-1.5 text-[10px]"
+        >
+          <Power className="w-3.5 h-3.5 text-emerald-600" />
+          <span className="hidden sm:inline font-bold">Ligar CRT</span>
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div className="fixed bottom-3 left-3 z-[9999] font-mono pointer-events-auto">
+    <div className="fixed bottom-16 left-3 sm:bottom-3 sm:left-3 z-[9999] font-mono pointer-events-auto">
       {/* Botão Minimizado CRT */}
       {isMinimized ? (
-        <button
-          onClick={() => setIsMinimized(false)}
-          className="group relative flex items-center gap-2 px-3 py-1.5 bg-black/90 text-emerald-400 border border-emerald-500/50 rounded shadow-lg hover:border-emerald-400 transition-all backdrop-blur-md"
-        >
-          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          <TerminalIcon className="w-3.5 h-3.5" />
-          <span className="text-[10px] font-bold tracking-widest uppercase">
-            CRT TERMINAL [{logs.length}]
-          </span>
-          <Maximize2 className="w-3 h-3 text-emerald-500 group-hover:text-emerald-300" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setIsMinimized(false)}
+            className="group relative flex items-center gap-2 px-3 py-1.5 bg-black/90 text-emerald-400 border border-emerald-500/50 rounded shadow-lg hover:border-emerald-400 transition-all backdrop-blur-md"
+          >
+            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <TerminalIcon className="w-3.5 h-3.5" />
+            <span className="text-[10px] font-bold tracking-widest uppercase">
+              CRT TERMINAL [{logs.length}]
+            </span>
+            <Maximize2 className="w-3 h-3 text-emerald-500 group-hover:text-emerald-300" />
+          </button>
+          <button
+            onClick={() => togglePower(true)}
+            title="Desligar Terminal CRT"
+            className="p-1.5 bg-black/90 text-red-400 border border-red-800/40 hover:border-red-500 rounded shadow-lg transition-all backdrop-blur-md"
+          >
+            <Power className="w-3.5 h-3.5" />
+          </button>
+        </div>
       ) : (
         /* Janela Expandida CRT Overlay com efeito Scanlines */
         <div className="w-[320px] sm:w-[420px] bg-black/95 border-2 border-emerald-500/60 rounded-md shadow-[0_0_20px_rgba(16,185,129,0.2)] overflow-hidden flex flex-col backdrop-blur-xl transition-all">
@@ -113,6 +155,13 @@ export default function CRTTerminalOverlay() {
                 className="p-1 hover:bg-emerald-900/50 rounded text-emerald-400 transition-colors"
               >
                 <Minimize2 className="w-3 h-3" />
+              </button>
+              <button
+                onClick={() => togglePower(true)}
+                title="Desligar Terminal CRT"
+                className="p-1 hover:bg-red-950/80 rounded text-red-400 hover:text-red-300 transition-colors border border-red-800/30 ml-1"
+              >
+                <Power className="w-3 h-3" />
               </button>
             </div>
           </div>

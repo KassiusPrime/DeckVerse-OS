@@ -4,44 +4,24 @@
 // ════════════════════════════════════════════════════════════════════════════
 
 import { db } from "@/base44Client";
-import { validateCollection, validateCard, normalizeCode } from "@/lib/importSchemas";
+import { validateCollection, validateCard, normalizeCode, isNonCharacterName } from "@/lib/importSchemas";
+import { inferCollectionCode, resolveCollectionCode } from "@/lib/collectionCodes";
 import { normalizeNameKey, deduplicateCollections } from "@/src/utils/deduplication";
 import { fandomClient } from "../fandom/fandomClient";
 import { enrichmentService } from "./enrichmentService";
 
 // Fallback images per collection if primary image fails
 const FALLBACK_IMAGES = {
-  NAR: "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&auto=format&fit=crop&q=80",
-  DBZ: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&auto=format&fit=crop&q=80",
-  MVC: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&auto=format&fit=crop&q=80",
-  AOT: "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=800&auto=format&fit=crop&q=80",
-  JJK: "https://images.unsplash.com/photo-1563089145-599997674d42?w=800&auto=format&fit=crop&q=80",
-  CYB: "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&auto=format&fit=crop&q=80",
+  "COL-01-NRT": "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&auto=format&fit=crop&q=80",
+  "COL-01-DBZ": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&auto=format&fit=crop&q=80",
+  "COL-03-MARVEL": "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&auto=format&fit=crop&q=80",
+  "COL-01-AOT": "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=800&auto=format&fit=crop&q=80",
+  "COL-01-JJK": "https://images.unsplash.com/photo-1563089145-599997674d42?w=800&auto=format&fit=crop&q=80",
+  "COL-02-CP77": "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&auto=format&fit=crop&q=80",
   DEFAULT: "https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=800&auto=format&fit=crop&q=80"
 };
 
-/**
- * Infere o código da coleção correta a partir do universo/série/propriedades da carta
- */
-export function inferCollectionCode(card = {}) {
-  if (card.collection_id && card.collection_id !== "MULTIVERSE" && card.collection_id !== "GENERIC") {
-    return normalizeCode(card.collection_id);
-  }
-  const univ = (card.universe || card.series || card.franchise || card.collection || "").toLowerCase();
-  if (univ.includes("naruto") || univ.includes("boruto")) return "NAR";
-  if (univ.includes("dragon") || univ.includes("ball") || univ.includes("dbz")) return "DBZ";
-  if (univ.includes("attack") || univ.includes("titan") || univ.includes("aot") || univ.includes("shingeki")) return "AOT";
-  if (univ.includes("jujutsu") || univ.includes("jjk") || univ.includes("kaisen")) return "JJK";
-  if (univ.includes("cyberpunk") || univ.includes("cyb") || univ.includes("edgerunners")) return "CYB";
-  if (univ.includes("marvel") || univ.includes("capcom") || univ.includes("mvc")) return "MVC";
-  if (univ.includes("one piece") || univ.includes("opc") || univ.includes("luffy")) return "OPC";
-  if (univ.includes("bleach") || univ.includes("blc") || univ.includes("ichigo")) return "BLC";
-  if (univ.includes("hunter") || univ.includes("hxh") || univ.includes("gon")) return "HXH";
-  if (univ.includes("solo leveling") || univ.includes("slv") || univ.includes("sung")) return "SLV";
-  if (univ.includes("jojo") || univ.includes("jjba") || univ.includes("bizarre")) return "JJBA";
-  if (univ.includes("berserk") || univ.includes("bsk") || univ.includes("guts")) return "BSK";
-  return card.collection_id || "MULTIVERSE";
-}
+export { inferCollectionCode };
 
 /**
  * Valida se uma URL de imagem pode ser carregada sem erro HTTP / CORS / link quebrado
@@ -129,6 +109,10 @@ export function calculateCardQualityScore(card = {}) {
 export function determineCardStatus(card = {}, qualityScore = 0) {
   if (!card.name || !card.name.trim()) {
     return { status: "rejected", reason: "Nome do personagem ausente." };
+  }
+
+  if (isNonCharacterName(card.name)) {
+    return { status: "rejected", reason: `Termo de Coleção/Episódio/Categoria não-personagem ("${card.name}").` };
   }
 
   const hasAnyImg = Boolean(card.img_custom || card.img_oficial || card.image_url);

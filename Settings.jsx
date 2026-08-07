@@ -2,7 +2,7 @@ import { db } from "@/base44Client";
 
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Settings as SettingsIcon, Palette, Globe, HelpCircle, Save, X, ChevronRight, Check, Sliders, ExternalLink, Type, Download, Upload, Trash2, AlertTriangle, Image, PackageOpen, Loader2, UserX } from "lucide-react";
+import { Settings as SettingsIcon, Palette, Globe, HelpCircle, Save, X, ChevronRight, Check, Sliders, ExternalLink, Type, Download, Upload, Trash2, AlertTriangle, Image, PackageOpen, Loader2, UserX, ShieldCheck, Lock, Unlock, Terminal } from "lucide-react";
 import Navbar from "@/Navbar";
 import { LANGUAGES, useI18n } from "@/i18n";
 import { useToast } from "@/use-toast";
@@ -101,6 +101,21 @@ export default function Settings() {
   });
 
   const [exporting, setExporting] = useState(false);
+  const [adminPassword, setAdminPassword] = useState("");
+  const [isAdminUnlocked, setIsAdminUnlocked] = useState(() => localStorage.getItem("deckverse_admin_unlocked") === "true");
+  const [adminError, setAdminError] = useState("");
+
+  const handleAdminUnlock = (e) => {
+    e.preventDefault();
+    if (adminPassword === "OS_OVERRIDE_99" || adminPassword === "admin") {
+      setIsAdminUnlocked(true);
+      localStorage.setItem("deckverse_admin_unlocked", "true");
+      setAdminError("");
+      toast({ title: "🔓 Acesso ADM Concedido!" });
+    } else {
+      setAdminError("Senha incorreta. Tente 'OS_OVERRIDE_99'");
+    }
+  };
 
   // Fetch player + roster for backup
   const { data: players = [] } = useQuery({
@@ -633,6 +648,67 @@ export default function Settings() {
                   </button>
                 </div>
               </motion.div>
+            )}
+          </section>
+
+          {/* Admin Access Panel (Password Protected) */}
+          <section className="border border-primary/40 bg-card/40 p-5 space-y-4">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-primary" />
+              <h2 className="font-heading text-xs font-bold tracking-widest text-primary">PAINEL DE ADMINISTRAÇÃO DO SISTEMA (ADM)</h2>
+            </div>
+            <p className="text-[11px] font-body text-muted-foreground">
+              Acesse o terminal de controle mestre do DeckVerse para gerenciar cartas, coleções, bosses, usuários e realizar manutenções no sistema.
+            </p>
+
+            {!isAdminUnlocked ? (
+              <form onSubmit={handleAdminUnlock} className="space-y-3 pt-2">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                  <div className="relative flex-1">
+                    <Lock className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="password"
+                      placeholder="Senha do Administrador (ex: OS_OVERRIDE_99)..."
+                      value={adminPassword}
+                      onChange={(e) => setAdminPassword(e.target.value)}
+                      className="w-full pl-9 pr-3 py-2 bg-muted/20 border border-border/60 text-xs font-mono text-foreground focus:border-primary outline-none"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 bg-primary text-primary-foreground font-heading text-xs font-bold tracking-widest hover:bg-primary/90 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Unlock className="w-3.5 h-3.5" /> ACESSAR ADM
+                  </button>
+                </div>
+                {adminError && <p className="text-[11px] font-mono text-destructive">{adminError}</p>}
+              </form>
+            ) : (
+              <div className="space-y-3 pt-2">
+                <div className="p-3 border border-emerald-500/30 bg-emerald-950/20 text-emerald-400 font-mono text-xs flex items-center justify-between rounded">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                    <span>ACESSO ADM LIBERADO!</span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setIsAdminUnlocked(false);
+                      localStorage.removeItem("deckverse_admin_unlocked");
+                    }}
+                    className="text-[10px] text-muted-foreground hover:text-foreground underline"
+                  >
+                    BLOQUEAR
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <a
+                    href="/admin"
+                    className="px-4 py-2.5 bg-primary text-primary-foreground font-heading text-xs font-bold tracking-widest hover:bg-primary/90 transition-all inline-flex items-center gap-2 rounded"
+                  >
+                    <Terminal className="w-4 h-4" /> ABRIR PAINEL DE CONTROLE ADM
+                  </a>
+                </div>
+              </div>
             )}
           </section>
 

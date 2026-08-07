@@ -5,6 +5,8 @@
 
 import { entityRepository } from "./entityRepository.js";
 import { validateCard, validateCollection, normalizeCode } from "../lib/importSchemas.js";
+import { validateCardSchema } from "./schemaValidationApi.js";
+import { inferCollectionCode, CANONICAL_SERIES_NAMES } from "../lib/collectionCodes.js";
 
 class ImportService {
   /**
@@ -12,7 +14,7 @@ class ImportService {
    */
   async importSingleCard(cardData, options = { overwrite: true }) {
     const existingCards = await entityRepository.getAllCards();
-    const normalizedCollection = normalizeCode(cardData.collection_id || cardData.series || "MULTIVERSE");
+    const normalizedCollection = inferCollectionCode(cardData);
 
     // Formats & Fallbacks
     const name = (cardData.name || "Carta Sem Nome").trim();
@@ -31,12 +33,14 @@ class ImportService {
       };
     }
 
+    const seriesName = cardData.series || CANONICAL_SERIES_NAMES[normalizedCollection] || cardData.collection_id || "DeckVerse";
+
     const payload = {
       id: duplicate ? duplicate.id : `card_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       name,
       card_id,
       collection_id: normalizedCollection,
-      series: cardData.series || cardData.collection_id || "Multiverse",
+      series: seriesName,
       rarity: cardData.rarity || "SR",
       role: cardData.role || "DPS",
       element: cardData.element || "Void",
@@ -49,17 +53,49 @@ class ImportService {
       image_url: cardData.image_url || cardData.img_oficial || "",
       img_oficial: cardData.img_oficial || cardData.image_url || "",
       img_custom: cardData.img_custom || "",
-      lore: cardData.lore || cardData.bio || "Entidade importada no Multiverso.",
+      lore: cardData.lore || cardData.bio || `Personagem lendário da coleção ${seriesName}.`,
       skills: Array.isArray(cardData.skills) ? cardData.skills : [],
       tags: Array.isArray(cardData.tags) ? cardData.tags : [normalizedCollection],
       version: cardData.version || "Classic",
       evolution_stage: Number(cardData.evolution_stage) || 1,
-      is_boss: Boolean(cardData.is_boss || cardData.rarity === "BOSS" || cardData.rarity === "ANOMALIA")
+      is_boss: Boolean(cardData.is_boss || cardData.rarity === "BOSS" || cardData.rarity === "ANOMALIA"),
+      ...cardData,
+      collection_id: normalizedCollection,
+      series: seriesName
     };
 
-    const validated = validateCard(payload);
-    const cardToSave = validated.ok ? validated.data : payload;
+    const schemaCheck = validateCardSchema(payload, { mode: "soft" });
+    const validated = validateCard({ ...payload, ...schemaCheck.data });
+    const cardToSave = validated.ok ? { ...validated.data, warnings: schemaCheck.warnings } : { ...payload, franchise_fields: schemaCheck.data?.franchise_fields, schema_code: schemaCheck.schema_code };
     const savedCard = await entityRepository.saveCard(cardToSave);
+
+    // Auto-add to Roster so card appears in player collection
+    try {
+      const players = await entityRepository.getAllPlayers().catch(() => []);
+      const pId = players[0]?.discord_id || "player_001";
+      const roster = (await db.entities.Roster.list().catch(() => [])) || [];
+      const cId = String(savedCard.id || savedCard.card_id);
+      const cName = String(savedCard.name || "").toLowerCase().trim();
+      const existsInRoster = roster.some(r =>
+        String(r.card_id) === cId || (r.card_name && String(r.card_name).toLowerCase().trim() === cName)
+      );
+
+      if (!existsInRoster) {
+        await db.entities.Roster.create({
+          player_discord_id: pId,
+          card_id: savedCard.card_id || savedCard.id,
+          card_name: savedCard.name,
+          level: 1,
+          attack_bonus: 0,
+          defense_bonus: 0,
+          copies: 1,
+          is_favorite: false,
+          created_date: new Date().toISOString()
+        }).catch(() => null);
+      }
+    } catch (e) {
+      console.warn("Roster sync warning on importSingleCard:", e);
+    }
 
     return {
       status: duplicate ? "updated" : "created",
@@ -292,6 +328,53 @@ class ImportService {
     }
 
     return { success: true, reclassifiedCount, totalCards: cards.length };
+  }
+
+  /**
+   * Sync all imported and system cards directly into the active Player's Roster (Collection)
+   */
+  async syncCardsToRoster(targetPlayerId) {
+    const players = await entityRepository.getAllPlayers().catch(() => []);
+    const player = players[0] || null;
+    const pId = targetPlayerId || player?.discord_id || "player_001";
+
+    const allCards = await entityRepository.getAllCards().catch(() => []);
+    const allRoster = (await db.entities.Roster.list().catch(() => [])) || [];
+
+    const rosterCardIds = new Set();
+    const rosterCardNames = new Set();
+
+    allRoster.forEach(r => {
+      if (r.card_id) rosterCardIds.add(String(r.card_id));
+      if (r.card_name) rosterCardNames.add(String(r.card_name).toLowerCase().trim());
+    });
+
+    let addedToRoster = 0;
+
+    for (const card of allCards) {
+      const cId = String(card.id || card.card_id);
+      const cName = String(card.name || "").toLowerCase().trim();
+
+      if (!rosterCardIds.has(cId) && !rosterCardNames.has(cName)) {
+        await db.entities.Roster.create({
+          player_discord_id: pId,
+          card_id: card.card_id || card.id,
+          card_name: card.name,
+          level: card.level || 1,
+          attack_bonus: 0,
+          defense_bonus: 0,
+          copies: 1,
+          is_favorite: false,
+          created_date: new Date().toISOString()
+        }).catch(() => null);
+
+        rosterCardIds.add(cId);
+        if (cName) rosterCardNames.add(cName);
+        addedToRoster++;
+      }
+    }
+
+    return { success: true, addedToRoster, totalRoster: allRoster.length + addedToRoster };
   }
 }
 

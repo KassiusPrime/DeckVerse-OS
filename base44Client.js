@@ -285,54 +285,72 @@ function getStorageTable(tableName, defaultData) {
     const raw = localStorage.getItem(`deckverse_${tableName}`);
     if (raw) {
       let parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && Array.isArray(defaultData)) {
-        // Run table-level deduplication on load
-        if (tableName === "Collection" || tableName === "Franchise") {
-          parsed = deduplicateCollections(parsed);
-        } else if (tableName === "Card") {
-          parsed = deduplicateCards(parsed);
-        }
-
-        const existingKeys = new Set();
-        parsed.forEach(i => {
-          if (i.id) existingKeys.add(String(i.id));
-          if (i.card_id) existingKeys.add(String(i.card_id));
-          if (i.code) existingKeys.add(String(i.code));
-          if (i.name) {
-            existingKeys.add(String(i.name));
-            const normKey = normalizeNameKey(i.name);
-            if (normKey) existingKeys.add(String(normKey));
-          }
-        });
-
-        let added = false;
-        for (const item of defaultData) {
+      if (Array.isArray(parsed)) {
+        // Always filter stored items against deletedKeys set
+        parsed = parsed.filter(item => {
           const keyId = item.id;
           const keyCardId = item.card_id;
           const keyCode = item.code;
           const keyName = item.name;
           const normKey = normalizeNameKey(keyName);
+          return !(
+            (keyId && deletedKeys.has(String(keyId))) ||
+            (keyCardId && deletedKeys.has(String(keyCardId))) ||
+            (keyCode && deletedKeys.has(String(keyCode))) ||
+            (keyName && deletedKeys.has(String(keyName))) ||
+            (normKey && deletedKeys.has(String(normKey)))
+          );
+        });
 
-          const isDeleted = (keyId && deletedKeys.has(String(keyId))) ||
-                            (keyCardId && deletedKeys.has(String(keyCardId))) ||
-                            (keyCode && deletedKeys.has(String(keyCode))) ||
-                            (keyName && deletedKeys.has(String(keyName))) ||
-                            (normKey && deletedKeys.has(String(normKey)));
+        if (Array.isArray(defaultData)) {
+          // Run table-level deduplication on load
+          if (tableName === "Collection" || tableName === "Franchise") {
+            parsed = deduplicateCollections(parsed);
+          } else if (tableName === "Card") {
+            parsed = deduplicateCards(parsed);
+          }
 
-          const exists = (keyId && existingKeys.has(String(keyId))) ||
-                         (keyCardId && existingKeys.has(String(keyCardId))) ||
-                         (keyCode && existingKeys.has(String(keyCode))) ||
-                         (keyName && existingKeys.has(String(keyName))) ||
-                         (normKey && existingKeys.has(String(normKey)));
+          const existingKeys = new Set();
+          parsed.forEach(i => {
+            if (i.id) existingKeys.add(String(i.id));
+            if (i.card_id) existingKeys.add(String(i.card_id));
+            if (i.code) existingKeys.add(String(i.code));
+            if (i.name) {
+              existingKeys.add(String(i.name));
+              const normKey = normalizeNameKey(i.name);
+              if (normKey) existingKeys.add(String(normKey));
+            }
+          });
 
-          if (!exists && !isDeleted) {
-            parsed.push(item);
-            if (keyId) existingKeys.add(String(keyId));
-            if (keyCardId) existingKeys.add(String(keyCardId));
-            if (keyCode) existingKeys.add(String(keyCode));
-            if (keyName) existingKeys.add(String(keyName));
-            if (normKey) existingKeys.add(String(normKey));
-            added = true;
+          let added = false;
+          for (const item of defaultData) {
+            const keyId = item.id;
+            const keyCardId = item.card_id;
+            const keyCode = item.code;
+            const keyName = item.name;
+            const normKey = normalizeNameKey(keyName);
+
+            const isDeleted = (keyId && deletedKeys.has(String(keyId))) ||
+                              (keyCardId && deletedKeys.has(String(keyCardId))) ||
+                              (keyCode && deletedKeys.has(String(keyCode))) ||
+                              (keyName && deletedKeys.has(String(keyName))) ||
+                              (normKey && deletedKeys.has(String(normKey)));
+
+            const exists = (keyId && existingKeys.has(String(keyId))) ||
+                           (keyCardId && existingKeys.has(String(keyCardId))) ||
+                           (keyCode && existingKeys.has(String(keyCode))) ||
+                           (keyName && existingKeys.has(String(keyName))) ||
+                           (normKey && existingKeys.has(String(normKey)));
+
+            if (!exists && !isDeleted) {
+              parsed.push(item);
+              if (keyId) existingKeys.add(String(keyId));
+              if (keyCardId) existingKeys.add(String(keyCardId));
+              if (keyCode) existingKeys.add(String(keyCode));
+              if (keyName) existingKeys.add(String(keyName));
+              if (normKey) existingKeys.add(String(normKey));
+              added = true;
+            }
           }
         }
 
@@ -345,7 +363,6 @@ function getStorageTable(tableName, defaultData) {
         saveStorageTable(tableName, parsed);
         return parsed;
       }
-      return parsed;
     }
   } catch (e) {
     console.warn(`Failed reading storage for ${tableName}:`, e);

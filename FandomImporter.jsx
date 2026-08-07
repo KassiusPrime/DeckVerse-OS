@@ -4,6 +4,7 @@ import { db } from "@/base44Client";
 import { fandomClient } from "@/services/fandom/fandomClient";
 import { enrichmentService } from "@/services/ai/enrichmentService";
 import { dataQualityEngine } from "@/services/ai/dataQualityEngine";
+import { inferCollectionCode, CANONICAL_SERIES_NAMES } from "@/lib/collectionCodes";
 import { Input } from "@/input";
 import { Textarea } from "@/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/select";
@@ -141,18 +142,24 @@ export default function FandomImporter() {
 
       // 3. Criar Card jogável
       const selectedFranchise = franchises.find(f => f.id === selectedFranchiseId);
-      const franchiseCode = selectedFranchise?.slug || "FND";
+      const franchiseCode = inferCollectionCode({
+        collection_id: selectedFranchise?.code || selectedFranchise?.slug || selectedFranchise?.id,
+        series: selectedFranchise?.name,
+        name: draft.canonical_name
+      });
+      const seriesName = selectedFranchise?.name || CANONICAL_SERIES_NAMES[franchiseCode] || "DeckVerse";
       const cardIdCode = `${franchiseCode}-CHR-${cardRarity}-${Math.floor(100 + Math.random() * 899)}`;
 
       const cardData = {
         name: draft.canonical_name,
         card_id: cardIdCode,
         collection_id: franchiseCode,
+        series: seriesName,
         character_version_id: version.id,
         rarity: cardRarity,
         role: cardRole,
         gender: draft.gender || "Unknown",
-        tags: [selectedFranchise?.name || "Fandom", ...(draft.archetype_ids || [])],
+        tags: [seriesName, ...(draft.archetype_ids || [])],
         attack: draft.stats?.strength || 80,
         defense: draft.stats?.resistance || 75,
         speed: draft.stats?.speed || 80,

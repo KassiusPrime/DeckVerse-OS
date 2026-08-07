@@ -23,20 +23,44 @@ const TUTORIAL_STEPS = [
   { id: 4, title: "Arena & Batalhas", body: "Desafie ondas de inimigos na Arena para ganhar gemas e ouro. Verifique seu histórico em Batalhas.", icon: Trophy }
 ];
 
-// ─── Server status ─────────────────────────────────────────────
-const SERVERS = [
-  { name: "BASE44 DB", status: "online", latency: 12 },
-  { name: "SA-EAST-SP", status: "online", latency: 18 },
-  { name: "BOT ENGINE", status: "online", latency: 45 }
-];
+// ─── Real System Status ─────────────────────────────────────────────
+function SystemStatusWidget() {
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
 
-const LIVE_DROPS = [
-  { user: "shadow_ninja", card: "Naruto Uzumaki", rarity: "Legendary", time: "2m ago", icon: Flame },
-  { user: "saiyan_god", card: "Son Goku", rarity: "Mythic", time: "7m ago", icon: Sparkles },
-  { user: "titan_slayer", card: "Eren Yeager", rarity: "Legendary", time: "15m ago", icon: Shield },
-  { user: "pirate_king", card: "Monkey D. Luffy", rarity: "Epic", time: "22m ago", icon: Swords },
-  { user: "one_punch_hero", card: "Saitama", rarity: "Mythic", time: "31m ago", icon: Trophy }
-];
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
+  return (
+    <div className="border border-border/40 bg-card/40 p-3 rounded space-y-2">
+      <div className="flex items-center justify-between border-b border-border/30 pb-2">
+        <div className="flex items-center gap-2">
+          <Server className="w-3.5 h-3.5 text-primary" />
+          <span className="font-heading text-[10px] font-bold tracking-widest text-muted-foreground uppercase">STATUS DO SISTEMA</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className={`w-2 h-2 rounded-full ${isOnline ? "bg-green-400 animate-pulse" : "bg-red-500"}`} />
+          <span className="font-mono text-[10px] font-bold">{isOnline ? "ONLINE" : "OFFLINE"}</span>
+        </div>
+      </div>
+      <div className="flex items-center justify-between py-1 text-[10px] font-mono">
+        <span className="text-muted-foreground">Motor de Dados:</span>
+        <span className="text-cyan-400 font-bold">Base44 / IndexedDB Local</span>
+      </div>
+      <div className="flex items-center justify-between py-1 text-[10px] font-mono">
+        <span className="text-muted-foreground">Versão do SO:</span>
+        <span className="text-primary font-bold">v9.2 Canônico</span>
+      </div>
+    </div>
+  );
+}
 
 export default function Home() {
   const [query, setQuery] = useState("");
@@ -291,70 +315,17 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Live Drops Sidebar */}
+        {/* System & Status Sidebar */}
         <div className="lg:col-span-1 space-y-4">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-            <h2 className="font-heading text-xs font-bold tracking-widest uppercase text-muted-foreground flex items-center gap-1.5">
-              <Activity className="w-3.5 h-3.5 text-primary" />
-              Live Drops
-            </h2>
-          </div>
-          
-          <div className="rounded border border-border/40 bg-card/40 divide-y divide-border/30 overflow-hidden">
-            {LIVE_DROPS.map((drop, i) => {
-              const DropIcon = drop.icon || Sparkles;
-              return (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, x: 10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 + i * 0.08 }}
-                  className="px-3 py-2.5 hover:bg-muted/20 transition-colors">
-                  
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <DropIcon className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                      <span className="text-xs font-heading font-bold text-foreground truncate">{drop.card}</span>
-                    </div>
-                    <RarityBadge rarity={drop.rarity} />
-                  </div>
-                  
-                  <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground">
-                    <span>@{drop.user}</span>
-                    <span>{drop.time}</span>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
+          <SystemStatusWidget />
 
           <div>
             <Link
               to="/gacha"
               className="block w-full text-center px-4 py-2.5 rounded border border-primary/40 bg-primary/10 text-primary font-heading text-xs font-bold tracking-wider hover:bg-primary/20 transition-colors flex items-center justify-center gap-2">
               <Sparkles className="w-3.5 h-3.5" />
-              EXPLORE ACTIVE DROPS →
+              ABRIR GACHA DROP →
             </Link>
-          </div>
-
-          {/* Server Status */}
-          <div className="border border-border/40 bg-card/40 p-3 rounded">
-            <div className="flex items-center gap-2 mb-2 border-b border-border/30 pb-2">
-              <Server className="w-3.5 h-3.5 text-primary" />
-              <span className="font-heading text-[10px] font-bold tracking-widest text-muted-foreground uppercase">STATUS DOS SERVIDORES</span>
-            </div>
-            {SERVERS.map((srv) => (
-              <div key={srv.name} className="flex items-center justify-between py-1">
-                <div className="flex items-center gap-2">
-                  <Wifi className="w-3 h-3 text-muted-foreground" />
-                  <span className="font-mono text-[10px] text-muted-foreground">{srv.name}</span>
-                </div>
-                <span className={`font-mono text-[10px] tabular-nums font-bold ${srv.latency < 30 ? "text-green-400" : srv.latency < 100 ? "text-amber-400" : "text-destructive"}`}>
-                  {srv.latency}ms
-                </span>
-              </div>
-            ))}
           </div>
 
           {/* Patch Notes */}

@@ -6,6 +6,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { soundEffects } from "@/src/utils/soundEffects";
 import { MEGA_COLLECTIONS, MEGA_ITEMS, MEGA_BOSSES, getAllExpandedCards } from "@/src/data/megaCollectionsData";
+import { deduplicateCards, deduplicateCollections, enforceCollectionMaxLimit } from "@/src/utils/deduplication";
+import { inferCollectionCode } from "@/lib/collectionCodes";
 import { importService } from "@/core/importService";
 import { entityRepository } from "@/core/entityRepository";
 import {
@@ -166,6 +168,7 @@ export default function Collections() {
   const [narrativeRoleFilter, setNarrativeRoleFilter] = useState("all");
   const [powerTypeFilter, setPowerTypeFilter] = useState("all");
   const [rarityFilter, setRarityFilter] = useState("all");
+  const [elementFilter, setElementFilter] = useState("all");
 
   const [isSeeding, setIsSeeding] = useState(false);
 
@@ -271,13 +274,14 @@ export default function Collections() {
       }
     });
 
-    return list;
+    return deduplicateCollections(list);
   }, [dbCollections]);
 
   const cards = useMemo(() => {
-    if (dbCards && dbCards.length > 0) return dbCards;
-    return getAllExpandedCards();
-  }, [dbCards]);
+    const combined = [...(dbCards || []), ...getAllExpandedCards()];
+    const deduped = deduplicateCards(combined);
+    return enforceCollectionMaxLimit(deduped, dbBosses || [], 100);
+  }, [dbCards, dbBosses]);
 
   const items = useMemo(() => {
     if (dbItems && dbItems.length > 0) return dbItems;
@@ -296,6 +300,24 @@ export default function Collections() {
 
   const player = players.find(p => p.created_by === user?.email || p.discord_id === "player_001") || players[0] || null;
   const myId = player?.discord_id || user?.email || "player_001";
+
+  // Auto-synchronize imported CRT and database cards into active player's Roster / Collection
+  useEffect(() => {
+    let isMounted = true;
+    const runAutoRosterSync = async () => {
+      try {
+        const res = await importService.syncCardsToRoster(myId);
+        if (res && res.addedToRoster > 0 && isMounted) {
+          queryClient.invalidateQueries({ queryKey: ["roster-col"] });
+          queryClient.invalidateQueries({ queryKey: ["cards"] });
+        }
+      } catch (err) {
+        console.warn("Auto roster sync error:", err);
+      }
+    };
+    runAutoRosterSync();
+    return () => { isMounted = false; };
+  }, [myId, queryClient]);
 
   const ownedCardIds = useMemo(() => {
     const set = new Set();
@@ -340,7 +362,13 @@ export default function Collections() {
     cards.forEach(card => {
       const colId = card.collection_id;
       const series = card.series || "Other";
-      const matched = collections.find(c => c.code === colId || c.name === series || (c.works && c.works.includes(series)));
+      const inferredCode = inferCollectionCode(card);
+      const matched = collections.find(c =>
+        c.code === colId ||
+        c.code === inferredCode ||
+        c.name === series ||
+        (c.works && c.works.includes(series))
+      );
       const key = matched ? matched.name : series;
       if (!stats[key]) stats[key] = { totalCards: 0, ownedCards: 0, totalItems: 0, ownedItems: 0, totalBosses: 0 };
       stats[key].totalCards += 1;
@@ -451,26 +479,100 @@ export default function Collections() {
     });
   }, [collections, collectionStats, searchQuery, selectedCategory, selectedLetter, quickFilter, selectedBank, sortBy, favorites]);
 
-  // Collection detail filtered cards
-  const collectionCards = useMemo(() => {
+  // Raw collection cards (before classification filters)
+  const rawCollectionCards = useMemo(() => {
     if (!activeCollection) return [];
     return cards.filter(c => {
-      const matchesCol = c.collection_id === activeCollection.code ||
+      const inferredCode = inferCollectionCode(c);
+      return (
+        c.collection_id === activeCollection.code ||
+        inferredCode === activeCollection.code ||
         c.series === activeCollection.name ||
-        (activeCollection.works && activeCollection.works.includes(c.series));
+        (activeCollection.works && activeCollection.works.includes(c.series))
+      );
+    });
+  }, [cards, activeCollection]);
 
-      const matchesSearch = !searchQuery || c.name.toLowerCase().includes(searchQuery.toLowerCase());
+  // Contextual options present in active collection (Requirement 7)
+  const activeCollectionElements = useMemo(() => {
+    const set = new Set();
+    rawCollectionCards.forEach(c => { if (c.element) set.add(c.element); });
+    return Array.from(set);
+  }, [rawCollectionCards]);
+
+  const activeCollectionPersonalities = useMemo(() => {
+    const set = new Set();
+    rawCollectionCards.forEach(c => { if (c.personality) set.add(c.personality); });
+    return PERSONALITY_OPTIONS.filter(p => set.has(p));
+  }, [rawCollectionCards]);
+
+  const activeCollectionIdentities = useMemo(() => {
+    const set = new Set();
+    rawCollectionCards.forEach(c => { if (c.identity) set.add(c.identity); });
+    return IDENTITY_OPTIONS.filter(i => set.has(i));
+  }, [rawCollectionCards]);
+
+  const activeCollectionOrigins = useMemo(() => {
+    const set = new Set();
+    rawCollectionCards.forEach(c => { if (c.origin) set.add(c.origin); });
+    return ORIGIN_OPTIONS.filter(o => set.has(o));
+  }, [rawCollectionCards]);
+
+  const activeCollectionClasses = useMemo(() => {
+    const set = new Set();
+    rawCollectionCards.forEach(c => {
+      if (c.character_class) set.add(c.character_class);
+      if (c.class) set.add(c.class);
+      if (c.role) set.add(c.role);
+    });
+    return CLASS_OPTIONS.filter(cl => set.has(cl));
+  }, [rawCollectionCards]);
+
+  const activeCollectionNarratives = useMemo(() => {
+    const set = new Set();
+    rawCollectionCards.forEach(c => { if (c.narrative_role) set.add(c.narrative_role); });
+    return NARRATIVE_ROLE_OPTIONS.filter(nr => set.has(nr));
+  }, [rawCollectionCards]);
+
+  const activeCollectionPowerTypes = useMemo(() => {
+    const set = new Set();
+    rawCollectionCards.forEach(c => { if (c.power_type) set.add(c.power_type); });
+    return POWER_TYPE_OPTIONS.filter(pt => set.has(pt));
+  }, [rawCollectionCards]);
+
+  // Collection detail filtered cards with normalized global search
+  const collectionCards = useMemo(() => {
+    if (!activeCollection) return [];
+    
+    // Normalized search query helper (Requirement 6)
+    const normSearch = (str) => (str || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+    const q = normSearch(searchQuery);
+
+    return rawCollectionCards.filter(c => {
+      let matchesSearch = true;
+      if (q) {
+        const searchBlob = normSearch([
+          c.name, c.original_name, c.name_jp, c.card_id, c.id, c.alias,
+          Array.isArray(c.aliases) ? c.aliases.join(" ") : c.aliases,
+          c.race, c.identity, c.organization, c.character_class, c.class, c.role,
+          c.clan, c.family, c.house, c.origin, c.title,
+          Array.isArray(c.tags) ? c.tags.join(" ") : c.tags
+        ].filter(Boolean).join(" "));
+        matchesSearch = searchBlob.includes(q);
+      }
+
       const matchesPersonality = personalityFilter === "all" || (c.personality && c.personality.includes(personalityFilter));
       const matchesIdentity = identityFilter === "all" || (c.identity && c.identity.includes(identityFilter));
       const matchesOrigin = originFilter === "all" || (c.origin && c.origin.includes(originFilter));
-      const matchesClass = classFilter === "all" || c.class === classFilter || c.role === classFilter;
+      const matchesClass = classFilter === "all" || c.class === classFilter || c.role === classFilter || c.character_class === classFilter;
       const matchesNarrative = narrativeRoleFilter === "all" || c.narrative_role === narrativeRoleFilter;
       const matchesPowerType = powerTypeFilter === "all" || c.power_type === powerTypeFilter;
       const matchesRarity = rarityFilter === "all" || c.rarity === rarityFilter;
+      const matchesElement = elementFilter === "all" || c.element === elementFilter;
 
-      return matchesCol && matchesSearch && matchesPersonality && matchesIdentity && matchesOrigin && matchesClass && matchesNarrative && matchesPowerType && matchesRarity;
+      return matchesSearch && matchesPersonality && matchesIdentity && matchesOrigin && matchesClass && matchesNarrative && matchesPowerType && matchesRarity && matchesElement;
     });
-  }, [cards, activeCollection, searchQuery, personalityFilter, identityFilter, originFilter, classFilter, narrativeRoleFilter, powerTypeFilter, rarityFilter]);
+  }, [rawCollectionCards, searchQuery, personalityFilter, identityFilter, originFilter, classFilter, narrativeRoleFilter, powerTypeFilter, rarityFilter, elementFilter]);
 
   // Group collection cards hierarchically
   const groupedCollectionCards = useMemo(() => {
@@ -531,12 +633,15 @@ export default function Collections() {
       for (const item of MEGA_ITEMS) await db.entities.Item.create(item).catch(() => {});
       for (const boss of MEGA_BOSSES) await entityRepository.saveBoss(boss).catch(() => {});
 
+      const rosterRes = await importService.syncCardsToRoster(myId);
+
       await queryClient.invalidateQueries(["collections"]);
       await queryClient.invalidateQueries(["cards"]);
       await queryClient.invalidateQueries(["items"]);
       await queryClient.invalidateQueries(["bosses"]);
+      await queryClient.invalidateQueries(["roster-col"]);
 
-      toast.success("✨ Acervo perfeitamente reindexado e sincronizado!");
+      toast.success(`✨ Acervo e ${rosterRes.addedToRoster || 0} carta(s) importadas sincronizados na Coleção!`);
     } catch (err) {
       toast.error("Erro ao sincronizar: " + err.message);
     } finally {
@@ -791,71 +896,96 @@ export default function Collections() {
                     <Filter className="w-3.5 h-3.5 text-cyan-400" /> Filtros Avançados de Classificação Multidimensional
                   </span>
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-                    <div>
-                      <span className="text-[9px] font-mono text-muted-foreground block mb-1">Personalidade</span>
-                      <Select value={personalityFilter} onValueChange={setPersonalityFilter}>
-                        <SelectTrigger className="h-8 text-xs bg-background/60"><SelectValue placeholder="Todas" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Todas</SelectItem>
-                          {PERSONALITY_OPTIONS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    {activeCollectionElements.length > 0 && (
+                      <div>
+                        <span className="text-[9px] font-mono text-muted-foreground block mb-1">Elemento</span>
+                        <Select value={elementFilter} onValueChange={setElementFilter}>
+                          <SelectTrigger className="h-8 text-xs bg-background/60"><SelectValue placeholder="Todos" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Todos</SelectItem>
+                            {activeCollectionElements.map(el => <SelectItem key={el} value={el}>{el}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
 
-                    <div>
-                      <span className="text-[9px] font-mono text-muted-foreground block mb-1">Identidade</span>
-                      <Select value={identityFilter} onValueChange={setIdentityFilter}>
-                        <SelectTrigger className="h-8 text-xs bg-background/60"><SelectValue placeholder="Todas" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Todas</SelectItem>
-                          {IDENTITY_OPTIONS.map(i => <SelectItem key={i} value={i}>{i}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    {activeCollectionPersonalities.length > 0 && (
+                      <div>
+                        <span className="text-[9px] font-mono text-muted-foreground block mb-1">Personalidade</span>
+                        <Select value={personalityFilter} onValueChange={setPersonalityFilter}>
+                          <SelectTrigger className="h-8 text-xs bg-background/60"><SelectValue placeholder="Todas" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Todas</SelectItem>
+                            {activeCollectionPersonalities.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
 
-                    <div>
-                      <span className="text-[9px] font-mono text-muted-foreground block mb-1">Origem</span>
-                      <Select value={originFilter} onValueChange={setOriginFilter}>
-                        <SelectTrigger className="h-8 text-xs bg-background/60"><SelectValue placeholder="Todas" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Todas</SelectItem>
-                          {ORIGIN_OPTIONS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    {activeCollectionIdentities.length > 0 && (
+                      <div>
+                        <span className="text-[9px] font-mono text-muted-foreground block mb-1">Identidade</span>
+                        <Select value={identityFilter} onValueChange={setIdentityFilter}>
+                          <SelectTrigger className="h-8 text-xs bg-background/60"><SelectValue placeholder="Todas" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Todas</SelectItem>
+                            {activeCollectionIdentities.map(i => <SelectItem key={i} value={i}>{i}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
 
-                    <div>
-                      <span className="text-[9px] font-mono text-muted-foreground block mb-1">Classe</span>
-                      <Select value={classFilter} onValueChange={setClassFilter}>
-                        <SelectTrigger className="h-8 text-xs bg-background/60"><SelectValue placeholder="Todas" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Todas</SelectItem>
-                          {CLASS_OPTIONS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    {activeCollectionOrigins.length > 0 && (
+                      <div>
+                        <span className="text-[9px] font-mono text-muted-foreground block mb-1">Origem</span>
+                        <Select value={originFilter} onValueChange={setOriginFilter}>
+                          <SelectTrigger className="h-8 text-xs bg-background/60"><SelectValue placeholder="Todas" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Todas</SelectItem>
+                            {activeCollectionOrigins.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
 
-                    <div>
-                      <span className="text-[9px] font-mono text-muted-foreground block mb-1">Função Narrativa</span>
-                      <Select value={narrativeRoleFilter} onValueChange={setNarrativeRoleFilter}>
-                        <SelectTrigger className="h-8 text-xs bg-background/60"><SelectValue placeholder="Todas" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Todas</SelectItem>
-                          {NARRATIVE_ROLE_OPTIONS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    {activeCollectionClasses.length > 0 && (
+                      <div>
+                        <span className="text-[9px] font-mono text-muted-foreground block mb-1">Classe</span>
+                        <Select value={classFilter} onValueChange={setClassFilter}>
+                          <SelectTrigger className="h-8 text-xs bg-background/60"><SelectValue placeholder="Todas" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Todas</SelectItem>
+                            {activeCollectionClasses.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
 
-                    <div>
-                      <span className="text-[9px] font-mono text-muted-foreground block mb-1">Tipo de Poder</span>
-                      <Select value={powerTypeFilter} onValueChange={setPowerTypeFilter}>
-                        <SelectTrigger className="h-8 text-xs bg-background/60"><SelectValue placeholder="Todos" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Todos</SelectItem>
-                          {POWER_TYPE_OPTIONS.map(pt => <SelectItem key={pt} value={pt}>{pt}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    {activeCollectionNarratives.length > 0 && (
+                      <div>
+                        <span className="text-[9px] font-mono text-muted-foreground block mb-1">Função Narrativa</span>
+                        <Select value={narrativeRoleFilter} onValueChange={setNarrativeRoleFilter}>
+                          <SelectTrigger className="h-8 text-xs bg-background/60"><SelectValue placeholder="Todas" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Todas</SelectItem>
+                            {activeCollectionNarratives.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    {activeCollectionPowerTypes.length > 0 && (
+                      <div>
+                        <span className="text-[9px] font-mono text-muted-foreground block mb-1">Tipo de Poder</span>
+                        <Select value={powerTypeFilter} onValueChange={setPowerTypeFilter}>
+                          <SelectTrigger className="h-8 text-xs bg-background/60"><SelectValue placeholder="Todos" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Todos</SelectItem>
+                            {activeCollectionPowerTypes.map(pt => <SelectItem key={pt} value={pt}>{pt}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                   </div>
                 </div>
 

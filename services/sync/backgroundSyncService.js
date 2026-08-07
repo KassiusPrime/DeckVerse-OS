@@ -8,6 +8,7 @@ import { dataQualityEngine } from "../ai/dataQualityEngine";
 import { enrichmentService } from "../ai/enrichmentService";
 import { fandomClient } from "../fandom/fandomClient";
 import { pushCRTLog } from "@/CRTTerminalOverlay";
+import { importService } from "@/core/importService";
 
 // ─── 1. Cache Service ───
 export const CacheService = {
@@ -296,9 +297,18 @@ class BackgroundSyncEngine {
         await CollectionSyncService.syncCollection(col);
       }
 
-      // 3. Auditoria de Qualidade Pós-Sincronização
+      // 3. Sincroniza cartas importadas e banco direto para a coleção do jogador
+      this.currentTask = "Sincronizando acervo importado para a coleção...";
+      this.progress = 85;
+      this.notify();
+      const rosterRes = await importService.syncCardsToRoster().catch(() => ({ addedToRoster: 0 }));
+      if (rosterRes.addedToRoster > 0) {
+        pushCRTLog(`📦 [BACKGROUND SYNC ENGINE] ${rosterRes.addedToRoster} nova(s) carta(s) importada(s) adicionada(s) à Coleção!`, "SUCCESS");
+      }
+
+      // 4. Auditoria de Qualidade Pós-Sincronização
       this.currentTask = "Finalizando sanitização dos registros...";
-      this.progress = 90;
+      this.progress = 95;
       this.notify();
       await QualityValidationService.validateAndAudit();
 

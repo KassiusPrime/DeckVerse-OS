@@ -1,41 +1,45 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
+# ⚡ DeckVerse OS — v9.2 REVISADO (Multiverse Trading Card & Lore System)
 
-**Welcome to your Base44 project** 
+> **DeckVerse OS** é o sistema operacional canônico do ecossistema DeckVerse, integrando gerenciamento de coleções multiversais, lore interativa, gacha, batalhas de cartas, raids contra chefes e painel administrativo centralizado.
 
-**About**
+---
 
-View and Edit  your app on [db.com](http://db.com) 
+## 🚀 Principais Destaques da Versão 9.2
 
-This project contains everything you need to run your app locally.
+- **Estatuto Canônico de Coleções (95 Códigos Canônicos)**: Padronização total com suporte a 134 aliases legados sem quebrar registros salvos.
+- **Engine de Desduplicação Multidimensional**:
+  - Unificação de cartas e coleções com preservação de imagens, mídias e loras completas.
+  - Preservação estrita de formas e transformações de personagens (ex: Goku Base vs Super Saiyan 4).
+- **Elemento Opcional**: Exibição e filtragem flexível de "Elemento" apenas quando pertinente à franquia (sem invenções artificiais).
+- **Acessibilidade & Responsividade**: Layout responsivo sem scroll horizontal, otimizado para telas de 320px a 1920px+.
+- **Auditoria Automática**: Novo comando `npm run audit:catalog` para validação de integridade do catálogo e mapeamento de aliases em CI/CD.
 
-**Edit the code in your local development environment**
+---
 
-Any change pushed to the repo will also be reflected in the Base44 Builder.
+## 🛠️ Comandos e Scripts do Sistema
 
-**Prerequisites:** 
+```bash
+# Executar servidor de desenvolvimento
+npm run dev
 
-1. Clone the repository using the project's Git URL 
-2. Navigate to the project directory
-3. Install dependencies: `npm install`
-4. Create an `.env.local` file and set the right environment variables
+# Compilar projeto para produção
+npm run build
 
+# Executar auditoria completa do catálogo e códigos canônicos
+npm run audit:catalog
+
+# Validar códigos e aliases legados
+npm run validate:codes
+
+# Verificar lint de código
+npm run lint
 ```
-VITE_BASE44_APP_ID=your_app_id
-VITE_BASE44_APP_BASE_URL=your_backend_url
 
-e.g.
-VITE_BASE44_APP_ID=cbef744a8545c389ef439ea6
-VITE_BASE44_APP_BASE_URL=https://my-to-do-list-81bfaad7.db.app
-```
+---
 
-Run the app: `npm run dev`
+## 🏗️ Arquitetura do Sistema
 
-**Publish your changes**
-
-Open [db.com](http://db.com) and click on Publish.
-
-**Docs & Support**
-
-Documentation: [https://docs.db.com/Integrations/Using-GitHub](https://docs.db.com/Integrations/Using-GitHub)
-
-Support: [https://app.db.com/support](https://app.db.com/support)
+- **Frontend**: React 18 + Vite + Tailwind CSS + Framer Motion.
+- **Armazenamento**: Cliente `base44` unificado com suporte a cache local resiliente e fallback instantâneo.
+- **Classificação**: Modelo Hierárquico: `Universo` -> `Franchise` -> `Character` -> `CharacterVersion` -> `Card`.
+- **Painel Admin**: Console administrativo com controle de tarefas, fusão de duplicatas e auditoria de qualidade.

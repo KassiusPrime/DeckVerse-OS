@@ -60,11 +60,15 @@ export default function FandomImporter() {
     if (!previewCard) return;
 
     try {
+      const colId = (previewCard.verse || 'MULTIVERSE').toUpperCase().replace(/[^A-Z0-9]/g, '_');
+      const cardId = `FANDOM-${previewCard.uniqueId}`;
+
       // Save card directly to Base44 persistent database
-      await base44.entities.Card.create({
+      const createdCard = await base44.entities.Card.create({
         name: previewCard.socialName,
-        card_id: `FANDOM-${previewCard.uniqueId}`,
-        series: previewCard.verse,
+        card_id: cardId,
+        collection_id: colId,
+        series: previewCard.verse || 'Multiverse',
         rarity: previewCard.rarity === 'Lendário' ? 'UR' : 'SSR',
         role: 'DPS',
         gender: 'Unknown',
@@ -73,15 +77,26 @@ export default function FandomImporter() {
         attack: previewCard.atk,
         defense: previewCard.def,
         image_url: previewCard.img,
+        img_oficial: previewCard.img,
         lore: `Importado via Nexus Fandom Scraper do universo ${previewCard.verse}.`,
         created_date: new Date().toISOString()
       });
+
+      // Also save to Roster so card appears owned in player collection
+      await base44.entities.Roster.create({
+        player_discord_id: 'player_001',
+        card_id: createdCard.card_id || createdCard.id || cardId,
+        card_name: previewCard.socialName,
+        level: 1,
+        copies: 1,
+        created_date: new Date().toISOString()
+      }).catch(() => null);
 
       setImportedSuccess(true);
       if (toast) {
         toast({
           title: "⚡ ANOMALIA INJETADA COM SUCESSO!",
-          description: `Carta ${previewCard.socialName} adicionada ao seu acervo multiversal.`,
+          description: `Carta ${previewCard.socialName} adicionada ao seu acervo e coleção multiversal.`,
         });
       }
     } catch (err) {

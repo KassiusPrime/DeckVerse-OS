@@ -197,85 +197,6 @@ export default function CommandPalette() {
           {/* Results Container */}
           <div className="max-h-[70vh] overflow-y-auto py-3 space-y-4">
 
-            {/* CHARACTER MATCHES (BANCO DE CONHECIMENTO) */}
-            {characterMatches.length > 0 && (
-              <div>
-                <p className="px-5 py-1 text-[10px] font-heading font-bold tracking-widest text-emerald-400 uppercase flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5" /> Personagens Canônicos ({characterMatches.length})
-                </p>
-                {characterMatches.map(ch => (
-                  <button
-                    key={ch.id}
-                    onClick={() => go("/collections")}
-                    className="w-full flex items-center gap-3.5 px-5 py-2 hover:bg-emerald-500/10 text-left transition-colors group"
-                  >
-                    <div className="w-7 h-7 rounded bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center shrink-0">
-                      <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-heading font-bold text-foreground group-hover:text-emerald-300 transition-colors truncate">{ch.canonical_name}</p>
-                      <p className="text-[10px] font-mono text-muted-foreground">{ch.species || "Humano"} · {ch.gender || "Desconhecido"}</p>
-                    </div>
-                    <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all" />
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* FRANCHISE MATCHES */}
-            {franchiseMatches.length > 0 && (
-              <div>
-                <p className="px-5 py-1 text-[10px] font-heading font-bold tracking-widest text-sky-400 uppercase flex items-center gap-1.5">
-                  <Layers className="w-3.5 h-3.5" /> Franquias ({franchiseMatches.length})
-                </p>
-                {franchiseMatches.map(fr => (
-                  <button
-                    key={fr.id}
-                    onClick={() => go("/collections")}
-                    className="w-full flex items-center gap-3.5 px-5 py-2 hover:bg-sky-500/10 text-left transition-colors group"
-                  >
-                    <div className="w-7 h-7 rounded bg-sky-500/10 border border-sky-500/30 flex items-center justify-center shrink-0 font-mono text-xs font-bold text-sky-400">
-                      {fr.slug}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-heading font-bold text-foreground group-hover:text-sky-300 transition-colors truncate">{fr.name}</p>
-                      <p className="text-[10px] font-mono text-muted-foreground">Franquia Multiversal #{fr.slug}</p>
-                    </div>
-                    <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-sky-400 group-hover:translate-x-0.5 transition-all" />
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* CARDS RESULTS */}
-            {cardMatches.length > 0 && (
-              <div>
-                <p className="px-5 py-1 text-[10px] font-heading font-bold tracking-widest text-primary uppercase flex items-center gap-1.5">
-                  <Zap className="w-3.5 h-3.5" /> Personagens & Cartas ({cardMatches.length})
-                </p>
-                {cardMatches.map(card => (
-                  <button
-                    key={card.id}
-                    onClick={() => go(`/card/${card.id}`)}
-                    className="w-full flex items-center gap-3.5 px-5 py-2 hover:bg-primary/10 text-left transition-colors group"
-                  >
-                    {(card.img_custom || card.img_oficial || card.image_url) ? (
-                      <img src={card.img_custom || card.img_oficial || card.image_url} alt="" className="w-7 h-9 object-cover shrink-0 rounded border border-border/40 shadow-sm" />
-                    ) : (
-                      <div className="w-7 h-9 bg-muted/40 rounded flex items-center justify-center shrink-0">
-                        <Sparkles className="w-3.5 h-3.5 text-muted-foreground" />
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-heading font-bold text-foreground group-hover:text-primary transition-colors truncate">{card.name}</p>
-                      <p className="text-[10px] font-mono text-muted-foreground">{card.series || "Outros"} · {card.role} · {card.rarity}</p>
-                    </div>
-                    <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
-                  </button>
-                ))}
-              </div>
-            )}
-
             {/* COLLECTIONS RESULTS */}
             {collectionMatches.length > 0 && (
               <div>
@@ -301,26 +222,55 @@ export default function CommandPalette() {
               </div>
             )}
 
-            {/* ITEMS RESULTS */}
-            {itemMatches.length > 0 && (
+            {/* PERSONAGENS RESULTS */}
+            {(cardMatches.length > 0 || characterMatches.length > 0) && (
               <div>
                 <p className="px-5 py-1 text-[10px] font-heading font-bold tracking-widest text-emerald-400 uppercase flex items-center gap-1.5">
-                  <Package className="w-3.5 h-3.5" /> Objetos & Equipamentos ({itemMatches.length})
+                  <Sparkles className="w-3.5 h-3.5" /> Personagens ({cardMatches.length + characterMatches.length})
+                </p>
+                {cardMatches.map(card => (
+                  <button
+                    key={card.id}
+                    onClick={() => go(`/card/${card.id}`)}
+                    className="w-full flex items-center gap-3.5 px-5 py-2 hover:bg-emerald-500/10 text-left transition-colors group"
+                  >
+                    {(card.img_custom || card.img_oficial || card.image_url) ? (
+                      <img src={card.img_custom || card.img_oficial || card.image_url} alt="" className="w-7 h-9 object-cover shrink-0 rounded border border-border/40 shadow-sm" />
+                    ) : (
+                      <div className="w-7 h-9 bg-muted/40 rounded flex items-center justify-center shrink-0">
+                        <Sparkles className="w-3.5 h-3.5 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-heading font-bold text-foreground group-hover:text-emerald-300 transition-colors truncate">{card.name}</p>
+                      <p className="text-[10px] font-mono text-muted-foreground">{card.series || "Personagem"} · {card.role} · {card.rarity}</p>
+                    </div>
+                    <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all" />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* ITENS RESULTS */}
+            {itemMatches.length > 0 && (
+              <div>
+                <p className="px-5 py-1 text-[10px] font-heading font-bold tracking-widest text-cyan-400 uppercase flex items-center gap-1.5">
+                  <Package className="w-3.5 h-3.5" /> Itens ({itemMatches.length})
                 </p>
                 {itemMatches.map(item => (
                   <button
                     key={item.id}
                     onClick={() => go("/inventory")}
-                    className="w-full flex items-center gap-3.5 px-5 py-2 hover:bg-emerald-500/10 text-left transition-colors group"
+                    className="w-full flex items-center gap-3.5 px-5 py-2 hover:bg-cyan-500/10 text-left transition-colors group"
                   >
-                    <div className="w-7 h-7 rounded bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center shrink-0">
-                      <Package className="w-3.5 h-3.5 text-emerald-400" />
+                    <div className="w-7 h-7 rounded bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center shrink-0">
+                      <Package className="w-3.5 h-3.5 text-cyan-400" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-heading font-bold text-foreground group-hover:text-emerald-300 transition-colors truncate">{item.name}</p>
+                      <p className="text-xs font-heading font-bold text-foreground group-hover:text-cyan-300 transition-colors truncate">{item.name}</p>
                       <p className="text-[10px] font-mono text-muted-foreground">{item.series || item.collection_name || "Geral"} · {item.type || "Item"}</p>
                     </div>
-                    <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all" />
+                    <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-cyan-400 group-hover:translate-x-0.5 transition-all" />
                   </button>
                 ))}
               </div>
@@ -330,7 +280,7 @@ export default function CommandPalette() {
             {bossMatches.length > 0 && (
               <div>
                 <p className="px-5 py-1 text-[10px] font-heading font-bold tracking-widest text-red-400 uppercase flex items-center gap-1.5">
-                  <Skull className="w-3.5 h-3.5" /> Chefes de Raid ({bossMatches.length})
+                  <Skull className="w-3.5 h-3.5" /> Bosses ({bossMatches.length})
                 </p>
                 {bossMatches.map(boss => (
                   <button

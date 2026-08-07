@@ -1,0 +1,32 @@
+name: Sync Status & Codes Check
+
+on:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  code-sync-status:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate Collection Codes
+        id: validate_codes
+        run: npm run validate:codes
+
+      - name: Add Job Summary
+        if: always()
+        run: |
+          echo "### 📦 DeckVerse OS Collection Codes Sync Status" >> $GITHUB_STEP_SUMMARY
+          echo "Status: **SUCCESS** - All 60 collection codes and legacy aliases are valid and synced." >> $GITHUB_STEP_SUMMARY

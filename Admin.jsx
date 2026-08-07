@@ -6,13 +6,14 @@ import {
   Shield, Upload, Database, Scroll, Swords, ChevronRight, ChevronLeft,
   Plus, Save, Trash2, Eye, EyeOff, Pencil, X, Check, Sparkles, ShieldCheck,
   Search, Lock, Unlock, Cpu, Activity, RefreshCw, AlertTriangle, Layers,
-  Terminal, UserCheck, HardDrive, Zap, CheckCircle2, XCircle, Filter, SlidersHorizontal, FileText, Crown
+  Terminal, UserCheck, HardDrive, Zap, CheckCircle2, XCircle, Filter, SlidersHorizontal, FileText, Crown, FileCheck
 } from "lucide-react";
 
 import { adminController } from "./core/adminController.js";
 import FandomImporter from "@/FandomImporter";
 import CollectionImporter from "@/CollectionImporter";
 import DataQualityCenter from "@/DataQualityCenter";
+import SchemaRegistryPanel from "./components/SchemaRegistryPanel";
 import { Input } from "@/input";
 import { Textarea } from "@/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/select";
@@ -37,6 +38,7 @@ const NAV_ITEMS = [
   { key: "db",          label: "EXPLORADOR DE BANCO", icon: HardDrive, group: "SYSTEM" },
   { key: "fandom",      label: "FANDOM IA IMPORT", icon: Sparkles, group: "TOOLS" },
   { key: "collection_import", label: "COLLECTION IMPORT", icon: Layers, group: "TOOLS" },
+  { key: "schemas",     label: "SCHEMAS & VALIDAÇÃO", icon: FileCheck, group: "TOOLS" },
 ];
 
 const EMPTY_CARD = {
@@ -843,6 +845,7 @@ function BossManagerTab() {
 /* ─── ABA DE GERENCIADOR DE CARTAS COM FILTROS AVANÇADOS ─── */
 function CardsManagerTab({ cards = [], collections = [], onRefresh }) {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [rarityFilter, setRarityFilter] = useState("ALL");
   const [elementFilter, setElementFilter] = useState("ALL");
@@ -901,10 +904,15 @@ function CardsManagerTab({ cards = [], collections = [], onRefresh }) {
   };
 
   const handleDeleteCard = async (cardId, cardName) => {
-    if (confirm(`Tem certeza que deseja excluir a carta ${cardName}?`)) {
-      await adminController.deleteCard(cardId);
-      toast({ title: `Carta ${cardName} excluída com sucesso!` });
-      onRefresh();
+    if (confirm(`Tem certeza que deseja EXCLUIR permanentemente a carta ${cardName}?`)) {
+      try {
+        await adminController.deleteCard(cardId);
+        toast({ title: `🗑️ Carta ${cardName} excluída do sistema!` });
+        queryClient.invalidateQueries();
+        onRefresh();
+      } catch (err) {
+        toast({ title: "Erro ao excluir carta", description: err.message, variant: "destructive" });
+      }
     }
   };
 
@@ -1571,6 +1579,9 @@ export default function Admin() {
 
         {/* Collection Import Tab */}
         {activeTab === "collection_import" && <CollectionImporter />}
+
+        {/* Schemas & Validação Tab */}
+        {activeTab === "schemas" && <SchemaRegistryPanel />}
 
         {/* Data Quality Center Tab */}
         {activeTab === "quality" && <DataQualityCenter />}

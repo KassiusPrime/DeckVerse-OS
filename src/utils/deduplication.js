@@ -281,8 +281,146 @@ export const NAME_EQUIVALENTS = {
   "sung jin-woo": "sung_jinwoo",
 
   "ken kaneki": "ken_kaneki",
-  "kaneki ken": "ken_kaneki"
+  "kaneki ken": "ken_kaneki",
+
+  // Franchise & Collection canonical name keys
+  "avatar aang": "avatar_last_airbender",
+  "avatar a lenda de aang": "avatar_last_airbender",
+  "avatar last airbender": "avatar_last_airbender",
+  "avatar the last airbender": "avatar_last_airbender"
 };
+
+/**
+ * Clean raw Wikitext / MediaWiki lore text into clean readable narrative text.
+ * Strips raw wikitext templates like {{...}}, |altbackcolor=#000, '''Chapter 317''', etc.
+ */
+export function cleanLoreText(rawLore = "", cardName = "", universeName = "") {
+  if (!rawLore || typeof rawLore !== "string") {
+    return cardName ? `${cardName} é uma figura lendária do universo de ${universeName || "Multiverso"}, destacando-se por seu poder e habilidade incomparáveis.` : "";
+  }
+
+  let cleaned = rawLore;
+
+  // 1. Remove curly bracket blocks {{...}} and leftover brackets
+  cleaned = cleaned.replace(/\{\{[\s\S]*?\}\}/g, "");
+  cleaned = cleaned.replace(/\}\}/g, "");
+  cleaned = cleaned.replace(/\{\{/g, "");
+
+  // 2. Extract structured key-values if it's an infobox (like gender, affiliation, occupation)
+  const keyValues = [];
+  const lines = cleaned.split("\n");
+  const filteredLines = [];
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    // Check if line is an infobox parameter like "| affiliation = Aizen's Arrancar Army"
+    const match = trimmed.match(/^\|?\s*([a-zA-Z0-9_\s]+)\s*=\s*(.*)$/);
+    if (match) {
+      const key = match[1].trim().toLowerCase();
+      let val = match[2].trim().replace(/''+/g, "").replace(/\[\[(?:[^|\]]*\|)?([^\]]+)\]\]/g, "$1");
+      
+      // Ignore formatting/style keys
+      if (["altbackcolor", "textcolor", "alttextcolor", "maxwidth", "height", "tab1", "tab2", "tab3", "tab4", "width", "align", "style"].includes(key)) {
+        continue;
+      }
+      if (val && val !== "}}" && val !== "null") {
+        keyValues.push(`${key.charAt(0).toUpperCase() + key.slice(1)}: ${val}`);
+      }
+    } else {
+      // Keep non-infobox lines that aren't empty bracket remnants
+      if (trimmed && !trimmed.startsWith("}}") && !trimmed.startsWith("{{")) {
+        filteredLines.push(trimmed);
+      }
+    }
+  }
+
+  cleaned = filteredLines.join("\n");
+
+  // 3. Strip bold/italics/wiki links
+  cleaned = cleaned
+    .replace(/'''(.*?)'''/g, "$1")
+    .replace(/''(.*?)''/g, "$1")
+    .replace(/\[\[(?:[^|\]]*\|)?([^\]]+)\]\]/g, "$1")
+    .replace(/^==+\s*(.*?)\s*==+/gm, "$1:")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\n\s*\n+/g, "\n\n")
+    .trim();
+
+  // If we extracted infobox key-values, append them formatted
+  if (keyValues.length > 0) {
+    const formattedKV = keyValues.map(kv => `• ${kv}`).join("\n");
+    if (cleaned.length > 20) {
+      cleaned = `${cleaned}\n\n${formattedKV}`;
+    } else {
+      cleaned = formattedKV;
+    }
+  }
+
+  // Fallback if cleaned text is too short or empty
+  if (cleaned.length < 15) {
+    cleaned = `${cardName || "Este personagem"} é uma figura emblemática do universo de ${universeName || "Multiverso"}, possuindo técnicas especiais e presença marcante na história de DeckVerse.`;
+  }
+
+  return cleaned;
+}
+
+/**
+ * Map of canonical franchise information for merging collections
+ */
+const CANONICAL_COLLECTION_NAMES = [
+  { keywords: ["avatar", "aang", "airbender", "dobradores"], name: "Avatar: The Last Airbender", code: "COL-02-ATLA" },
+  { keywords: ["marvel"], name: "Marvel Comics Universe", code: "COL-03-MARVEL" },
+  { keywords: ["dc universe", "dc comics", "justiça jovem", "super-choque"], name: "DC Universe", code: "COL-03-DC" },
+  { keywords: ["naruto", "shippuden"], name: "Naruto Shippuden", code: "COL-01-NAR" },
+  { keywords: ["dragon ball", "dragonball", "dbz", "dbs"], name: "Dragon Ball Super", code: "COL-01-DBZ" },
+  { keywords: ["bleach"], name: "Bleach Universe", code: "COL-01-BLC" },
+  { keywords: ["jujutsu", "kaisen", "jjk"], name: "Jujutsu Kaisen", code: "COL-01-JJK" },
+  { keywords: ["attack on titan", "shingeki", "aot"], name: "Attack on Titan", code: "COL-01-AOT" },
+  { keywords: ["demon slayer", "kimetsu"], name: "Demon Slayer", code: "COL-01-KNY" },
+  { keywords: ["solo leveling"], name: "Solo Leveling", code: "COL-01-SLV" },
+  { keywords: ["my hero academia", "boku no hero"], name: "My Hero Academia", code: "COL-01-MHA" },
+  { keywords: ["one piece"], name: "One Piece Universe", code: "COL-01-OP" }
+];
+
+export function getCanonicalCollectionInfo(rawName = "") {
+  if (!rawName || typeof rawName !== "string") return null;
+  const lower = rawName.toLowerCase();
+
+  for (const canon of CANONICAL_COLLECTION_NAMES) {
+    if (canon.keywords.some(kw => lower.includes(kw))) {
+      return canon;
+    }
+  }
+  return null;
+}
+
+/**
+ * Strips episode titles, season markers, and inner collection/series prefixes from card names.
+ * Example: "Naruto Shippuden Ep. 120 - Naruto Uzumaki" -> "Naruto Uzumaki"
+ * Example: "Eren Yeager (Season 4 Episode 5)" -> "Eren Yeager"
+ * Example: "Marvel Comics - Iron Man" -> "Iron Man"
+ */
+export function cleanCardName(rawName = "") {
+  if (!rawName || typeof rawName !== "string") return "";
+
+  let cleaned = rawName.trim();
+
+  // Remove common episode/season patterns
+  cleaned = cleaned
+    .replace(/\b(ep|episode|episódio|episodio|season|temporada|s\d+e\d+|\d+x\d+)\s*[-.:]?\s*\d+\b/gi, "")
+    .replace(/\[(ep|episode|episódio|season|temporada)\s*\d+\]/gi, "")
+    .replace(/\((ep|episode|episódio|season|temporada)\s*\d+\)/gi, "");
+
+  // Remove prefixes like "Marvel Comics - ", "DC Universe - ", "Naruto Shippuden: "
+  cleaned = cleaned
+    .replace(/^(marvel comics universe|marvel comics|marvel cinematic|dc universe|dc comics|naruto shippuden|dragon ball z|dragon ball super|attack on titan|demon slayer|my hero academia)\s*[-:]\s*/gi, "")
+    .replace(/^col-\d+-[a-z0-9]+\s*[-:]\s*/gi, "");
+
+  // Remove trailing empty parentheses or brackets left behind
+  cleaned = cleaned.replace(/\(\s*\)/g, "").replace(/\[\s*\]/g, "").trim();
+
+  return cleaned || rawName;
+}
 
 /**
  * Normalizes a raw string into a canonical identifier key.
@@ -291,7 +429,7 @@ export const NAME_EQUIVALENTS = {
 export function normalizeNameKey(rawName = "") {
   if (!rawName || typeof rawName !== "string") return "";
 
-  const cleaned = rawName
+  const cleaned = cleanCardName(rawName)
     .trim()
     .toLowerCase()
     .normalize("NFD")
@@ -316,31 +454,51 @@ export function normalizeNameKey(rawName = "") {
 }
 
 /**
- * Deduplicates a list of collections based on canonical name keys or collection code.
+ * Merges collections with similar names (e.g. "Marvel Comics" & "Marvel Cinematic" -> shorter "Marvel").
+ * Longer collection names get merged into shorter ones if they share the same root.
  */
 export function deduplicateCollections(collectionsList = []) {
   if (!Array.isArray(collectionsList)) return [];
 
-  const seenMap = new Map();
+  const map = new Map();
 
   for (const col of collectionsList) {
     if (!col) continue;
 
-    const nameKey = normalizeNameKey(col.name || col.title || "");
-    const codeKey = (col.code || col.id || "").toString().toUpperCase().trim();
-    const primaryKey = nameKey ? `col_${nameKey}` : `code_${codeKey}`;
+    const rawName = col.name || col.title || "";
+    const canonInfo = getCanonicalCollectionInfo(rawName);
 
-    if (!seenMap.has(primaryKey)) {
-      seenMap.set(primaryKey, { ...col });
+    const canonicalName = canonInfo ? canonInfo.name : rawName;
+    const nameKey = normalizeNameKey(canonicalName);
+    const codeKey = ((canonInfo && canonInfo.code) || col.code || col.id || "").toString().toUpperCase().trim();
+
+    let primaryKey = nameKey ? `col_${nameKey}` : `code_${codeKey}`;
+
+    // Look for similar/prefix collections to merge (e.g. Avatar (Aang) -> Avatar: The Last Airbender)
+    for (const [existingKey, existingCol] of map.entries()) {
+      const existingNameKey = normalizeNameKey(existingCol.name || "");
+      if (existingNameKey && nameKey) {
+        if (nameKey === existingNameKey || nameKey.startsWith(existingNameKey) || existingNameKey.startsWith(nameKey)) {
+          primaryKey = existingKey;
+          break;
+        }
+      }
+    }
+
+    if (!map.has(primaryKey)) {
+      map.set(primaryKey, {
+        ...col,
+        name: canonicalName,
+        code: (canonInfo && canonInfo.code) || col.code || codeKey
+      });
     } else {
-      const existing = seenMap.get(primaryKey);
-      // Merge properties: keep better image, description, or higher character_count
-      seenMap.set(primaryKey, {
+      const existing = map.get(primaryKey);
+      map.set(primaryKey, {
         ...existing,
         ...col,
         id: existing.id || col.id,
-        code: existing.code || col.code,
-        name: existing.name || col.name, // keep original display name
+        code: existing.code || col.code || (canonInfo && canonInfo.code),
+        name: canonicalName,
         description: (existing.description && existing.description.length > (col.description || "").length)
           ? existing.description
           : (col.description || existing.description),
@@ -350,7 +508,7 @@ export function deduplicateCollections(collectionsList = []) {
     }
   }
 
-  return Array.from(seenMap.values());
+  return Array.from(map.values());
 }
 
 /**
@@ -371,37 +529,64 @@ const RARITY_RANK = {
 
 /**
  * Deduplicates a list of cards based on canonical character name keys.
- * Merges duplicate entries across languages and preserves the richest attributes.
+ * Merges duplicate entries: if one card lacks an image, transfers its missing data into the card WITH an image.
  */
 export function deduplicateCards(cardsList = []) {
   if (!Array.isArray(cardsList)) return [];
 
   const canonicalMap = new Map();
 
-  for (const card of cardsList) {
-    if (!card || (!card.name && !card.title)) continue;
+  for (const rawCard of cardsList) {
+    if (!rawCard || (!rawCard.name && !rawCard.title)) continue;
 
-    const nameKey = normalizeNameKey(card.name || card.title || "");
+    // Clean name (strip episode & collection markers)
+    const card = {
+      ...rawCard,
+      name: cleanCardName(rawCard.name || rawCard.title || "")
+    };
+
+    const nameKey = normalizeNameKey(card.name);
+    const versionKey = (card.version || card.form || "").toLowerCase().trim().replace(/[^a-z0-9]/g, "");
+    const colKey = (card.collection_id || card.collection_code || "").toUpperCase().trim();
     const cardIdKey = (card.id || card.card_id || "").toString();
 
-    // Secondary fallback key if name key is empty
-    const key = nameKey ? `card_${nameKey}` : `id_${cardIdKey}`;
+    // Key includes collection and version/form to avoid deleting distinct character transformations/versions
+    const key = nameKey
+      ? `card_${colKey ? colKey + "_" : ""}${nameKey}${versionKey ? "_" + versionKey : ""}`
+      : `id_${cardIdKey}`;
 
     if (!canonicalMap.has(key)) {
       canonicalMap.set(key, { ...card });
     } else {
       const existing = canonicalMap.get(key);
 
-      // Compare rarity rank
-      const existingRank = RARITY_RANK[existing.rarity] || 1;
-      const currentRank = RARITY_RANK[card.rarity] || 1;
-      const keepCurrentAsBase = currentRank > existingRank || (card.quality_score || 0) > (existing.quality_score || 0);
+      const hasImgExisting = Boolean(existing.image_url || existing.img_oficial || existing.img_custom);
+      const hasImgCurrent = Boolean(card.image_url || card.img_oficial || card.img_custom);
 
-      const base = keepCurrentAsBase ? card : existing;
-      const fallback = keepCurrentAsBase ? existing : card;
+      let base, fallback;
+
+      // Transfer rule: If existing has NO image and current HAS image -> base = current (with image), fallback = existing (transfer data)
+      if (!hasImgExisting && hasImgCurrent) {
+        base = card;
+        fallback = existing;
+      } else if (hasImgExisting && !hasImgCurrent) {
+        base = existing;
+        fallback = card;
+      } else {
+        // Compare rarity rank or quality
+        const existingRank = RARITY_RANK[existing.rarity] || 1;
+        const currentRank = RARITY_RANK[card.rarity] || 1;
+        const keepCurrentAsBase = currentRank > existingRank || (card.quality_score || 0) > (existing.quality_score || 0);
+
+        base = keepCurrentAsBase ? card : existing;
+        fallback = keepCurrentAsBase ? existing : card;
+      }
 
       // Merge tags
-      const mergedTags = Array.from(new Set([...(base.tags || []), ...(fallback.tags || [])]));
+      const mergedTags = Array.from(new Set([
+        ...(base.tags || []),
+        ...(fallback.tags || [])
+      ])).filter(t => typeof t === "string" && t.trim().length > 0);
 
       // Merge skills
       const mergedSkills = (base.skills && base.skills.length >= 2)
@@ -411,25 +596,57 @@ export function deduplicateCards(cardsList = []) {
       canonicalMap.set(key, {
         ...fallback,
         ...base,
-        id: existing.id || card.id,
-        card_id: existing.card_id || card.card_id,
+        id: base.id || fallback.id,
+        card_id: base.card_id || fallback.card_id,
+        name: base.name || fallback.name,
+        collection_id: base.collection_id || fallback.collection_id,
+        // Ensure image is preserved from the one that has it
         img_custom: base.img_custom || fallback.img_custom || "",
         img_oficial: base.img_oficial || fallback.img_oficial || base.image_url || fallback.image_url || "",
         image_url: base.image_url || fallback.image_url || base.img_oficial || fallback.img_oficial || "",
         lore: (base.lore && base.lore.length > 20) ? base.lore : (fallback.lore || base.lore || ""),
         tags: mergedTags,
         skills: mergedSkills,
-        hp: Math.max(base.hp || 0, fallback.hp || 0),
-        attack: Math.max(base.attack || 0, fallback.attack || 0),
-        defense: Math.max(base.defense || 0, fallback.defense || 0),
-        speed: Math.max(base.speed || 0, fallback.speed || 0),
-        mag: Math.max(base.mag || 0, fallback.mag || 0),
+        // Transfer missing master prompt classifications
+        personality: base.personality || fallback.personality || "",
+        identity: base.identity || fallback.identity || "",
+        origin: base.origin || fallback.origin || "",
+        narrative_function: base.narrative_function || fallback.narrative_function || "",
+        character_class: base.character_class || fallback.character_class || "",
+        power_type: base.power_type || fallback.power_type || "",
+        // Sanitize and take max stats
+        hp: Math.min(30000, Math.max(base.hp || 0, fallback.hp || 0, 400)),
+        attack: Math.min(5000, Math.max(base.attack || 0, fallback.attack || 0, 50)),
+        defense: Math.min(5000, Math.max(base.defense || 0, fallback.defense || 0, 50)),
+        speed: Math.min(3000, Math.max(base.speed || 0, fallback.speed || 0, 50)),
+        mag: Math.min(5000, Math.max(base.mag || 0, fallback.mag || 0, 0)),
         quality_score: Math.max(base.quality_score || 0, fallback.quality_score || 0)
       });
     }
   }
 
   return Array.from(canonicalMap.values());
+}
+
+/**
+ * Enforces a strict limit of max N cards (including bosses) per collection.
+ */
+export function enforceCollectionMaxLimit(cardsList = [], bossesList = [], maxPerCollection = 100) {
+  const collectionCounts = new Map();
+  const allowedCards = [];
+
+  for (const card of cardsList) {
+    if (!card) continue;
+    const colId = (card.collection_id || "MULTIVERSE").toUpperCase().trim();
+    const currentCount = collectionCounts.get(colId) || 0;
+
+    if (currentCount < maxPerCollection) {
+      allowedCards.push(card);
+      collectionCounts.set(colId, currentCount + 1);
+    }
+  }
+
+  return allowedCards;
 }
 
 /**

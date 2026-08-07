@@ -1,5 +1,9 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useQueryClient } from "@tanstack/react-query";
+import { adminController } from "@/core/adminController";
+import { useToast } from "@/use-toast";
+import { cleanLoreText } from "@/src/utils/deduplication";
 import {
   X,
   BookOpen,
@@ -18,14 +22,37 @@ import {
   Activity,
   UserCheck,
   HeartHandshake,
-  Swords
+  Swords,
+  Trash2
 } from "lucide-react";
 import { RarityBadge, RoleBadge } from "../RarityBadge";
 
 export default function CardModalDrawer({ card, isOpen, onClose }) {
   const [activeTab, setActiveTab] = useState("lore");
+  const [isDeleting, setIsDeleting] = useState(false);
+  const qc = useQueryClient();
+  const { toast } = useToast();
 
   if (!isOpen || !card) return null;
+
+  const handleDeleteCard = async () => {
+    if (confirm(`Tem certeza que deseja EXCLUIR permanentemente a carta "${card.name}" do sistema?`)) {
+      setIsDeleting(true);
+      try {
+        await adminController.deleteCard(card.id || card.card_id);
+        toast({
+          title: "🗑️ CARTA EXCLUÍDA COM SUCESSO",
+          description: `A carta "${card.name}" foi removida do banco de dados.`
+        });
+        qc.invalidateQueries();
+        onClose();
+      } catch (err) {
+        toast({ title: "❌ Erro ao excluir carta", description: err.message, variant: "destructive" });
+      } finally {
+        setIsDeleting(false);
+      }
+    }
+  };
 
   // Derive display image: priority to img_custom if set by admin, otherwise img_oficial / image_url
   const displayImage = card.img_custom || card.img_oficial || card.image_url || "";
@@ -56,7 +83,7 @@ export default function CardModalDrawer({ card, isOpen, onClose }) {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md">
+      <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md">
         {/* Backdrop click to close */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -91,12 +118,24 @@ export default function CardModalDrawer({ card, isOpen, onClose }) {
               </div>
             </div>
 
-            <button
-              onClick={onClose}
-              className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleDeleteCard}
+                disabled={isDeleting}
+                title="Excluir Carta do Sistema"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-red-400 bg-red-950/40 border border-red-800/50 hover:bg-red-900/60 transition-all shadow-sm disabled:opacity-50"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                <span>Excluir Carta</span>
+              </button>
+
+              <button
+                onClick={onClose}
+                className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           {/* Main Content Area */}
@@ -188,7 +227,7 @@ export default function CardModalDrawer({ card, isOpen, onClose }) {
                       <BookOpen className="w-4 h-4" /> Biografia Canônica
                     </h4>
                     <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-line">
-                      {card.lore || `${card.name} é uma figura lendária e poderosa do universo de ${universeName}, conhecida por sua bravura incomparável e controle de técnicas secretas no DeckVerse OS.`}
+                      {cleanLoreText(card.lore, card.name, universeName)}
                     </p>
                   </div>
 

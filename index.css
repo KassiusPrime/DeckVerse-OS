@@ -187,6 +187,71 @@
   background-size: 48px 48px;
 }
 
+/* ─── Scanline Progress & Purge Disintegration Animations ─────────── */
+@keyframes scanline-sweep {
+  0% { transform: translateX(-100%); }
+  50% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+@keyframes purge-disintegrate {
+  0% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+    filter: drop-shadow(0 0 0px transparent);
+  }
+  20% {
+    opacity: 0.9;
+    transform: scale(1.03) skewX(-4deg) translate(-2px, 2px);
+    filter: drop-shadow(0 0 12px #ff003c) hue-rotate(90deg);
+  }
+  40% {
+    opacity: 0.7;
+    transform: scale(0.95) skewX(6deg) translate(3px, -2px);
+    filter: drop-shadow(0 0 20px #00f0ff) contrast(200%);
+  }
+  60% {
+    opacity: 0.5;
+    transform: scale(0.8) skewX(-10deg) translate(-4px, 4px);
+    filter: drop-shadow(0 0 25px #ff0055) invert(80%);
+  }
+  80% {
+    opacity: 0.2;
+    transform: scale(0.4) skewX(20deg) translate(8px, -8px);
+    filter: drop-shadow(0 0 30px #e11d48) blur(4px);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0) translate(20px, -20px);
+    filter: blur(12px);
+  }
+}
+
+.scanline-progress-bar {
+  position: relative;
+  overflow: hidden;
+}
+
+.scanline-progress-bar::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 40%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(0, 240, 255, 0.8) 50%,
+    transparent 100%
+  );
+  animation: scanline-sweep 2s infinite ease-in-out;
+}
+
+.purge-animation-active {
+  animation: purge-disintegrate 0.85s forwards ease-in-out !important;
+  pointer-events: none !important;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

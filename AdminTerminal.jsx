@@ -51,7 +51,7 @@ export default function AdminTerminal({ onAddCard }) {
     const img = newCard.imgUrl || 'https://images.unsplash.com/photo-1605629713998-167cdc70fa2f?w=600&auto=format&fit=crop&q=80';
 
     // Save locally following official schema
-    await db.entities.Card.create({
+    const createdCard = await db.entities.Card.create({
       name: newCard.name,
       card_id: `CUSTOM-${Date.now()}`,
       collection_id: (newCard.verse || 'MULTIVERSE').toUpperCase().replace(/[^A-Z0-9]/g, '_'),
@@ -76,6 +76,16 @@ export default function AdminTerminal({ onAddCard }) {
       is_boss: officialRarity === 'BOSS' || officialRarity === 'ANOMALIA',
       created_date: new Date().toISOString()
     });
+
+    // Save to Roster so card appears owned in player collection
+    await db.entities.Roster.create({
+      player_discord_id: 'player_001',
+      card_id: createdCard.card_id || createdCard.id,
+      card_name: newCard.name,
+      level: 1,
+      copies: 1,
+      created_date: new Date().toISOString()
+    }).catch(() => null);
 
     if (onAddCard) {
       onAddCard(newCard);

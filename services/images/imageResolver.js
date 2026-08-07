@@ -76,7 +76,7 @@ async function fetchWikimediaImage(characterName) {
  * Gerador de imagem AI via Pollinations.ai (Fallback gratuito sem API key)
  */
 function getPollinationsImageUrl(characterName, collectionCode) {
-  const prompt = `anime trading card portrait of ${characterName} from ${collectionCode || "fantasy multiverse"}, highly detailed, digital art, sharp focus, 8k`;
+  const prompt = `vibrant colorful official anime trading card portrait of ${characterName} from ${collectionCode || "fantasy multiverse"}, full color, vivid colors, highly detailed, digital art, sharp focus, 8k`;
   return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=600&height=800&nologo=true&seed=${Math.floor(Math.random() * 10000)}`;
 }
 

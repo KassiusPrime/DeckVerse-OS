@@ -6,6 +6,9 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 3000",
     "build": "vite build",
+    "audit:catalog": "node scripts/auditCatalog.mjs",
+    "validate:codes": "node scripts/validateCollectionCodes.mjs",
+    "ci": "npm run validate:codes && npm run build",
     "lint": "eslint . --quiet",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc -p ./jsconfig.json",

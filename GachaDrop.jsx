@@ -210,77 +210,89 @@ export default function GachaDrop() {
     setPulling(true);
     setResults(null);
 
-    await new Promise(r => setTimeout(r, 900));
+    try {
+      await new Promise(r => setTimeout(r, 900));
 
-    const pulled = [];
-    let newPity = pity + pack.pulls;
-    for (let i = 0; i < pack.pulls; i++) {
-      const rarity = rollRarity(pack.rates, pity + i);
-      const card = pickCard(cardPool, rarity);
-      if (card) pulled.push({ ...card, _tier: RARITY_ALIAS[card.rarity] || card.rarity });
-    }
-
-    if (pulled.length > 0) {
-      pushCRTLog(`Summoned ${pulled.length} card(s): ${pulled.map(c => c.name).join(", ")}`, "GACHA");
-    }
-
-    // Check if any high tier — reset pity
-    const gotHighTier = pulled.some(c => ["Sovereign","Ascendant","Divine"].includes(c._tier));
-    if (gotHighTier) newPity = 0;
-    setPity(newPity);
-    localStorage.setItem("deckverse_pity", String(newPity));
-
-    // Update gems
-    if (player) {
-      await db.entities.Player.update(player.id, { gems: Math.max(0, gems - pack.cost) }).catch(() => {});
-    }
-
-    // Save pulled cards directly to Player Roster & Collection
-    const currentRoster = await db.entities.Roster.list().catch(() => rosterEntries);
-    for (const card of pulled) {
-      const cardId = card.id || card.card_id;
-      const existing = currentRoster.find(r => 
-        (r.player_discord_id === playerDiscordId || r.player_discord_id === "player_001" || r.player_discord_id === user?.email) &&
-        (r.card_id === cardId || r.card_id === card.card_id || r.card_id === card.id || (r.card_name && r.card_name.toLowerCase() === card.name?.toLowerCase()))
-      );
-
-      if (existing) {
-        existing.copies = (existing.copies || 1) + 1;
-        await db.entities.Roster.update(existing.id, { copies: existing.copies }).catch(() => {});
-      } else {
-        const newRosterItem = await db.entities.Roster.create({
-          player_discord_id: playerDiscordId,
-          card_id: cardId,
-          card_name: card.name,
-          level: 1,
-          attack_bonus: 0,
-          defense_bonus: 0,
-          copies: 1,
-          is_favorite: false
-        }).catch(() => null);
-        if (newRosterItem) currentRoster.push(newRosterItem);
+      const pulled = [];
+      let newPity = pity + pack.pulls;
+      for (let i = 0; i < pack.pulls; i++) {
+        const rarity = rollRarity(pack.rates, pity + i);
+        const card = pickCard(cardPool, rarity);
+        if (card) pulled.push({ ...card, _tier: RARITY_ALIAS[card.rarity] || card.rarity });
       }
+
+      if (pulled.length === 0) {
+        throw new Error("Nenhuma carta disponível para invocar no momento.");
+      }
+
+      pushCRTLog(`Summoned ${pulled.length} card(s): ${pulled.map(c => c.name).join(", ")}`, "GACHA");
+
+      // Save pulled cards directly to Player Roster & Collection
+      const currentRoster = await db.entities.Roster.list().catch(() => rosterEntries);
+      for (const card of pulled) {
+        const cardId = card.id || card.card_id;
+        const existing = currentRoster.find(r => 
+          (r.player_discord_id === playerDiscordId || r.player_discord_id === "player_001" || r.player_discord_id === user?.email) &&
+          (r.card_id === cardId || r.card_id === card.card_id || r.card_id === card.id || (r.card_name && r.card_name.toLowerCase() === card.name?.toLowerCase()))
+        );
+
+        if (existing) {
+          existing.copies = (existing.copies || 1) + 1;
+          await db.entities.Roster.update(existing.id, { copies: existing.copies });
+        } else {
+          const newRosterItem = await db.entities.Roster.create({
+            player_discord_id: playerDiscordId,
+            card_id: cardId,
+            card_name: card.name,
+            level: 1,
+            attack_bonus: 0,
+            defense_bonus: 0,
+            copies: 1,
+            is_favorite: false
+          });
+          if (newRosterItem) currentRoster.push(newRosterItem);
+        }
+      }
+
+      // Update gems only AFTER successful roster addition
+      if (player) {
+        await db.entities.Player.update(player.id, { gems: Math.max(0, gems - pack.cost) }).catch(() => {});
+      }
+
+      // Check if any high tier — reset pity
+      const gotHighTier = pulled.some(c => ["Sovereign","Ascendant","Divine"].includes(c._tier));
+      if (gotHighTier) newPity = 0;
+      setPity(newPity);
+      localStorage.setItem("deckverse_pity", String(newPity));
+
+      // Invalidate React Query caches so Roster, Collections, and Inventory update instantly
+      await qc.invalidateQueries({ queryKey: ["roster"] });
+      await qc.invalidateQueries({ queryKey: ["roster-col"] });
+      await qc.invalidateQueries({ queryKey: ["cards"] });
+      await qc.invalidateQueries({ queryKey: ["cards-gacha"] });
+      await qc.invalidateQueries({ queryKey: ["players-gacha"] });
+      await qc.invalidateQueries({ queryKey: ["players-col"] });
+      await qc.invalidateQueries({ queryKey: ["players-inv"] });
+
+      setResults(pulled);
+
+      toast({
+        title: `🎉 ${pulled.length} Carta(s) Invocada(s)!`,
+        description: `Cartas salvas com sucesso em sua Coleção e Roster.`,
+      });
+
+      const divine = pulled.find(c => c._tier === "Divine");
+      if (divine) toast({ title: `☀️ DIVINE PULL! ${divine.name}`, description: "Um Boss foi invocado!" });
+    } catch (err) {
+      console.error("Gacha pull failed:", err);
+      toast({
+        title: "❌ Falha na invocação",
+        description: err?.message || "Ocorreu um erro na invocação. Suas gemas NÃO foram consumidas.",
+        variant: "destructive"
+      });
+    } finally {
+      setPulling(false);
     }
-
-    // Invalidate React Query caches so Roster, Collections, and Inventory update instantly
-    await qc.invalidateQueries({ queryKey: ["roster"] });
-    await qc.invalidateQueries({ queryKey: ["roster-col"] });
-    await qc.invalidateQueries({ queryKey: ["cards"] });
-    await qc.invalidateQueries({ queryKey: ["cards-gacha"] });
-    await qc.invalidateQueries({ queryKey: ["players-gacha"] });
-    await qc.invalidateQueries({ queryKey: ["players-col"] });
-    await qc.invalidateQueries({ queryKey: ["players-inv"] });
-
-    setResults(pulled);
-    setPulling(false);
-
-    toast({
-      title: `🎉 ${pulled.length} Carta(s) Invocada(s)!`,
-      description: `Cartas salvas com sucesso em sua Coleção e Roster.`,
-    });
-
-    const divine = pulled.find(c => c._tier === "Divine");
-    if (divine) toast({ title: `☀️ DIVINE PULL! ${divine.name}`, description: "Um Boss foi invocado!" });
   };
 
   return (

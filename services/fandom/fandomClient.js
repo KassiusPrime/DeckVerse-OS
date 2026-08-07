@@ -2,6 +2,8 @@
 // DECKVERSE OS — Fandom API Client (Com Cache, Retries, Erros Tipados e Wiki Map)
 // ════════════════════════════════════════════════════════════════════════════
 
+import { isNonCharacterName } from "@/lib/importSchemas";
+
 export const COLLECTION_WIKI_MAP = {
   NAR: "naruto",
   NARUTO: "naruto",
@@ -196,14 +198,17 @@ export async function searchCharacter(query, wikiSlug = "") {
       if (!result.ok) return [];
 
       const searchResults = result.data?.query?.search || [];
-      return searchResults.slice(0, 4).map((item) => ({
-        title: item.title,
-        snippet: item.snippet?.replace(/<\/?[^>]+(>|$)/g, "") || "",
-        wikiSlug: w.slug,
-        wikiName: w.name,
-        pageid: item.pageid,
-        url: `https://${w.slug}.fandom.com/wiki/${encodeURIComponent(item.title.replace(/ /g, "_"))}`
-      }));
+      return searchResults
+        .filter((item) => !isNonCharacterName(item.title))
+        .slice(0, 4)
+        .map((item) => ({
+          title: item.title,
+          snippet: item.snippet?.replace(/<\/?[^>]+(>|$)/g, "") || "",
+          wikiSlug: w.slug,
+          wikiName: w.name,
+          pageid: item.pageid,
+          url: `https://${w.slug}.fandom.com/wiki/${encodeURIComponent(item.title.replace(/ /g, "_"))}`
+        }));
     });
 
     const resultsByWiki = await Promise.all(promises);

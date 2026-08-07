@@ -58,12 +58,31 @@ class EntityRepository {
   async deleteCard(id) {
     const card = await this.getCardById(id);
     if (card) {
+      // 1. Remove from Roster
+      try {
+        const roster = await db.entities.Roster.list();
+        const userCards = roster.filter(r => r.card_id === card.id || r.card_id === card.card_id);
+        for (const uc of userCards) {
+          if (uc.id) await db.entities.Roster.delete(uc.id);
+        }
+      } catch (e) {}
+
+      // 2. Delete Card entity by id, card_id, and name
       if (card.id) await db.entities.Card.delete(card.id);
       if (card.card_id && card.card_id !== card.id) await db.entities.Card.delete(card.card_id);
       if (card.name) await db.entities.Card.delete(card.name);
+
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("deckverse-card-deleted", { detail: { card } }));
+      }
       return { success: true };
     }
-    return await db.entities.Card.delete(id);
+
+    const res = await db.entities.Card.delete(id);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("deckverse-card-deleted", { detail: { id } }));
+    }
+    return res;
   }
 
   async saveBatchCards(cardsArray) {

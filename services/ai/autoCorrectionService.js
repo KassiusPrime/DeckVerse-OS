@@ -4,6 +4,7 @@
 
 import { db } from "@/base44Client";
 import { validateCollection, validateCard, validateItem, validateBoss, normalizeCode } from "@/lib/importSchemas";
+import { inferCollectionCode, CANONICAL_SERIES_NAMES } from "@/lib/collectionCodes";
 import { fandomClient } from "../fandom/fandomClient";
 
 const DEFAULT_FALLBACK_IMAGES = {
@@ -80,7 +81,7 @@ export async function runFullAutoCorrection(onLog = () => {}) {
 
     for (const card of cards) {
       const slug = getCanonicalSlug(card.name);
-      const colCode = normalizeCode(card.collection_id || card.series || "MULTIVERSE");
+      const colCode = inferCollectionCode(card);
       const key = `${colCode}_${slug}`;
 
       if (!cardsMap.has(key)) {
@@ -132,17 +133,29 @@ export async function runFullAutoCorrection(onLog = () => {}) {
       log(`  ✓ Removida carta duplicada ID: ${dupId}`, "success");
     }
 
-    // 3. REPARAR IMAGENS QUEBRADAS E ESTATÍSTICAS CANÔNICAS
+    // 3. REPARAR IMAGENS QUEBRADAS, COLEÇÕES E ESTATÍSTICAS CANÔNICAS
     const uniqueCards = Array.from(cardsMap.values());
-    log(`🔧 Verificando integridade visual e atributos de ${uniqueCards.length} cartas...`, "info");
+    log(`🔧 Verificando integridade visual, coleções e atributos de ${uniqueCards.length} cartas...`, "info");
 
     for (const card of uniqueCards) {
       let needsUpdate = false;
       const updates = {};
 
+      // Corrigir atribuição de coleção e franquia se estiver em MULTIVERSE ou genérica
+      const inferredColCode = inferCollectionCode(card);
+      if (inferredColCode && inferredColCode !== "COL-00-MULTI") {
+        if (card.collection_id !== inferredColCode || card.collection_id === "MULTIVERSE" || card.collection_id === "COL-00-MULTI" || !card.series || card.series === "Multiverse" || card.series === "Other") {
+          const canonicalSeries = CANONICAL_SERIES_NAMES[inferredColCode] || card.series || "DeckVerse";
+          updates.collection_id = inferredColCode;
+          updates.series = canonicalSeries;
+          needsUpdate = true;
+          log(`  🏷️ Carta ${card.name} reatribuída para a coleção ${canonicalSeries} (${inferredColCode})`, "success");
+        }
+      }
+
       // Fallback de Imagem se vazia
       if (!card.image_url && !card.img_oficial && !card.img_custom) {
-        const colCode = normalizeCode(card.collection_id || card.series || "DEFAULT");
+        const colCode = updates.collection_id || card.collection_id || "DEFAULT";
         const fallback = DEFAULT_FALLBACK_IMAGES[colCode] || DEFAULT_FALLBACK_IMAGES.DEFAULT;
         updates.image_url = fallback;
         updates.img_oficial = fallback;
@@ -159,7 +172,7 @@ export async function runFullAutoCorrection(onLog = () => {}) {
 
       // Garante tags limpas
       if (!Array.isArray(card.tags)) {
-        updates.tags = [normalizeCode(card.collection_id || "MULTIVERSE")];
+        updates.tags = [updates.collection_id || card.collection_id || "COL-00-MULTI"];
         needsUpdate = true;
       }
 
@@ -173,10 +186,16 @@ export async function runFullAutoCorrection(onLog = () => {}) {
     log(`👑 Garantindo vínculo estrito de ${bosses.length} Bosses às suas coleções...`, "info");
 
     for (const boss of bosses) {
-      if (!boss.collection_id) {
-        const colCode = normalizeCode(boss.series || "MULTIVERSE");
-        await db.entities.Boss.update(boss.id, { collection_id: colCode });
-        log(`  ✓ Boss ${boss.name} vinculado à coleção ${colCode}`, "success");
+      const inferredBossCode = inferCollectionCode(boss);
+      if (inferredBossCode && inferredBossCode !== "COL-00-MULTI") {
+        if (!boss.collection_id || boss.collection_id === "MULTIVERSE" || boss.collection_id === "COL-00-MULTI") {
+          const canonicalSeries = CANONICAL_SERIES_NAMES[inferredBossCode] || boss.series || "DeckVerse";
+          await db.entities.Boss.update(boss.id, {
+            collection_id: inferredBossCode,
+            series: canonicalSeries
+          });
+          log(`  ✓ Boss ${boss.name} reatribuído à coleção ${canonicalSeries} (${inferredBossCode})`, "success");
+        }
       }
     }
 
