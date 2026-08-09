@@ -1001,10 +1001,10 @@ export default function Collections() {
                         </h3>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        {groupCards.map(card => {
+                        {groupCards.map((card, cardIdx) => {
                           const isCardOwned = ownedCardIds.has(card.id) || ownedCardIds.has(card.card_id) || ownedCardIds.has(card.name?.toLowerCase());
                           return (
-                            <CardListItem key={card.id} card={card} isOwned={isCardOwned} />
+                            <CardListItem key={`${groupName}_${card.id || cardIdx}`} card={card} isOwned={isCardOwned} />
                           );
                         })}
                       </div>

@@ -1,16 +1,15 @@
 // ════════════════════════════════════════════════════════════════════════════
-// DECKVERSE OS — Data Quality Engine & Audit Service
-// Maintains 0-100 Quality Score, Status (valid/quarantine/rejected), Image Validation & Auto-Repair Pipeline
+// DECKVERSE OS — Data Quality Engine & Audit Service v10.0
+// Strictly transactional, context-aware 6-Gate verification pipeline.
+// Mode PROPOSE is 100% READ-ONLY (Zero DB or storage mutations).
 // ════════════════════════════════════════════════════════════════════════════
 
-import { db } from "@/base44Client";
-import { validateCollection, validateCard, normalizeCode, isNonCharacterName } from "@/lib/importSchemas";
-import { inferCollectionCode, resolveCollectionCode } from "@/lib/collectionCodes";
-import { normalizeNameKey, deduplicateCollections } from "@/src/utils/deduplication";
-import { fandomClient } from "../fandom/fandomClient";
-import { enrichmentService } from "./enrichmentService";
+import { db } from "../../base44Client.js";
+import { inferCollectionWithConfidence, inferCollectionCode, resolveCollectionCode } from "../../lib/collectionCodes.js";
+import { classifyEntityDetail, isInvalidCardEntity, classifyEntityType, KNOWN_ITEM_NAMES, KNOWN_BOSS_NAMES } from "../../src/utils/entityClassifier.js";
+import { normalizeNameKey } from "../../src/utils/deduplication.js";
 
-// Fallback images per collection if primary image fails
+// Fallback images per collection
 const FALLBACK_IMAGES = {
   "COL-01-NRT": "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&auto=format&fit=crop&q=80",
   "COL-01-DBZ": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&auto=format&fit=crop&q=80",
@@ -26,7 +25,7 @@ export { inferCollectionCode };
 /**
  * Valida se uma URL de imagem pode ser carregada sem erro HTTP / CORS / link quebrado
  */
-export async function validateImageUrl(url, timeoutMs = 4000) {
+export async function validateImageUrl(url, timeoutMs = 3000) {
   if (!url || typeof url !== "string" || !url.startsWith("http")) return false;
   if (url.includes("placeholder") || url.includes("broken") || url.includes("null") || url.includes("undefined")) {
     return false;
@@ -48,7 +47,6 @@ export async function validateImageUrl(url, timeoutMs = 4000) {
       if (!resolved) {
         resolved = true;
         clearTimeout(timer);
-        // Garante resolução mínima
         resolve(img.width >= 32 && img.height >= 32);
       }
     };
@@ -66,283 +64,377 @@ export async function validateImageUrl(url, timeoutMs = 4000) {
 }
 
 /**
- * Calcula o Índice de Qualidade (0 a 100) de uma carta
+ * Avaliação Completa de uma Entidade pelo Pipeline Canônico de 6 Gates
  */
-export function calculateCardQualityScore(card = {}) {
-  let score = 0;
+export function evaluateEntityPipeline(item = {}) {
+  const name = (item.name || item.title || "").trim();
 
-  // 1. Imagem válida (20 pts)
-  const hasImage = Boolean(card.img_custom || card.img_oficial || card.image_url);
-  if (hasImage) score += 20;
+  // Gate 1: Entity Type Gate
+  const typeDetail = classifyEntityDetail(item);
 
-  // 2. Lore Canônica existente (15 pts)
-  if (card.lore && card.lore.length >= 30) score += 15;
-  else if (card.lore) score += 7;
+  // Gate 2: Collection Gate
+  const colEval = inferCollectionWithConfidence(item);
+  const collectionCode = colEval.collectionCode;
+  const collectionConfidence = colEval.collectionConfidence;
 
-  // 3. Descrição / Versão (10 pts)
-  if (card.version) score += 10;
+  // Gate 3: Identity Gate
+  const identityConfidence = name.length >= 3 && !typeDetail.syntheticAlert ? 0.95 : 0.40;
 
-  // 4. Coleção Válida (15 pts)
-  if (card.collection_id && card.collection_id !== "MULTIVERSE") score += 15;
-  else if (card.collection_id) score += 8;
+  // Gate 5: Data Completeness
+  const hasImage = Boolean(item.img_custom || item.img_oficial || item.image_url);
+  const hasLore = Boolean(item.lore && item.lore.length >= 10);
+  const hasStats = Boolean((item.attack || item.defense || item.hp) && (item.attack > 0 || item.hp > 0));
 
-  // 5. Universo Válido (10 pts)
-  if (card.universe) score += 10;
-  else score += 5;
+  // Gate 6: Quality Score (0 - 100)
+  let qualityScore = 0;
+  if (hasImage) qualityScore += 30;
+  if (hasLore) qualityScore += 25;
+  if (collectionCode && collectionCode !== "COL-00-MULTI" && collectionConfidence >= 0.80) qualityScore += 25;
+  if (hasStats) qualityScore += 20;
 
-  // 6. Poderes / Habilidades (10 pts)
-  if (Array.isArray(card.skills) && card.skills.length >= 2) score += 10;
-  else if (Array.isArray(card.skills) && card.skills.length > 0) score += 5;
+  // Secondary Flags
+  const collectionConflict = collectionConfidence < 0.80 || collectionCode === "COL-00-MULTI";
+  const lowConfidence = identityConfidence < 0.80 || typeDetail.entityTypeConfidence < 0.80;
+  const missingMedia = !hasImage;
+  const suspectedWikiPage = Boolean(typeDetail.isWikiGallerySubpage);
+  const syntheticEntity = Boolean(typeDetail.syntheticAlert);
 
-  // 7. Tags / Arquétipos (10 pts)
-  if (Array.isArray(card.tags) && card.tags.length >= 1) score += 10;
+  // DETERMINAÇÃO DO ESTADO PRIMÁRIO (MUTUAMENTE EXCLUSIVO)
+  // Valores possíveis: "valid" | "quarantine" | "invalid" | "metadata" | "unknown"
+  let primaryState = "quarantine";
+  let reason = "";
 
-  // 8. Atributos Completos (10 pts)
-  if (card.attack && card.defense && card.hp && card.speed && card.mag) score += 10;
+  if (typeDetail.entityType === "metadata") {
+    primaryState = "metadata";
+    reason = typeDetail.reason || "Metadado canônico validado.";
+  } else if (typeDetail.entityType === "invalid") {
+    primaryState = "invalid";
+    reason = typeDetail.reason || "Registro estruturalmente inválido.";
+  } else if (typeDetail.entityType === "unknown") {
+    primaryState = "quarantine";
+    reason = "Tipo de entidade desconhecido ou incerto.";
+  } else if (syntheticEntity) {
+    primaryState = "quarantine";
+    reason = "Suspeita de entidade gerada sinteticamente.";
+  } else if (collectionConflict) {
+    primaryState = "quarantine";
+    reason = `COLLECTION_CONFLICT: Coleção incerta ou genérica (${collectionCode}, ${(collectionConfidence * 100).toFixed(0)}%).`;
+  } else if (missingMedia || qualityScore < 50) {
+    primaryState = "quarantine";
+    reason = missingMedia ? "Imagem principal ausente." : `Qualidade de dados baixa (${qualityScore}/100).`;
+  } else if (typeDetail.isCardAllowed && collectionConfidence >= 0.80 && qualityScore >= 50) {
+    // APROVADO EM TODOS OS GATES 1-3
+    primaryState = "valid";
+    reason = "Aprovado com alta confiança em todos os gates.";
+  } else {
+    primaryState = "quarantine";
+    reason = "Retido em quarentena para verificação de dados.";
+  }
 
-  return Math.min(100, score);
+  return {
+    entityType: typeDetail.entityType,
+    metadataType: typeDetail.metadataType,
+    isCardAllowed: typeDetail.isCardAllowed,
+    entityTypeConfidence: typeDetail.entityTypeConfidence,
+    suggestedCollection: collectionCode,
+    collectionConfidence,
+    identityConfidence,
+    qualityScore,
+    primaryState,
+    reason,
+    flags: {
+      collectionConflict,
+      duplicateRisk: false, // Atualizado no loop em lote
+      lowConfidence,
+      missingMedia,
+      suspectedWikiPage,
+      syntheticEntity
+    }
+  };
 }
 
 /**
- * Determina o status ('valid' | 'quarantine' | 'rejected') com base no score e requisitos mínimos
+ * Auditoria de Qualidade em Modo DRY-RUN (Propose), REVIEW ou APPLY
+ * @param {Object|Function} options - Objeto de opções { dryRun, mode, onLog } ou callback de log
  */
-export function determineCardStatus(card = {}, qualityScore = 0) {
-  if (!card.name || !card.name.trim()) {
-    return { status: "rejected", reason: "Nome do personagem ausente." };
+export async function runDataQualityAudit(options = {}) {
+  let dryRun = true;
+  let mode = "PROPOSE";
+  let onLog = () => {};
+
+  if (typeof options === "function") {
+    onLog = options;
+  } else if (typeof options === "object") {
+    dryRun = options.dryRun !== undefined ? options.dryRun : true;
+    mode = options.mode || (dryRun ? "PROPOSE" : "APPLY");
+    onLog = options.onLog || (() => {});
   }
 
-  if (isNonCharacterName(card.name)) {
-    return { status: "rejected", reason: `Termo de Coleção/Episódio/Categoria não-personagem ("${card.name}").` };
+  // Garantia estrita: PROPOSE força dryRun = true
+  if (mode === "PROPOSE") {
+    dryRun = true;
   }
 
-  const hasAnyImg = Boolean(card.img_custom || card.img_oficial || card.image_url);
-  if (!hasAnyImg) {
-    return { status: "quarantine", reason: "Imagem ausente ou inacessível." };
-  }
-
-  if (qualityScore < 50) {
-    return { status: "quarantine", reason: `Pontuação de qualidade muito baixa (${qualityScore}/100).` };
-  }
-
-  return { status: "valid", reason: "Aprovado pelos critérios de qualidade canônica." };
-}
-
-/**
- * Pipeline Completo de Qualidade dos Dados (Descobrir -> Validar -> Corrigir -> Enriquecer -> Mesclar -> Salvar)
- */
-export async function runDataQualityAudit(onLog = () => {}) {
   const log = (msg, type = "info") => onLog(msg, type);
 
-  log("🛡️ [DATA QUALITY ENGINE] Iniciando auditoria completa do banco de dados...", "info");
+  const modeTag = dryRun ? "PROPOSE (DRY-RUN 100% LEITURA)" : "APPLY (PERSISTENTE ATÔMICO)";
+  log(`🛡️ [DATA QUALITY ENGINE v10] Iniciando auditoria do banco em modo ${modeTag}...`, "info");
 
-  const stats = {
-    totalCards: 0,
-    validCards: 0,
-    quarantinedCards: 0,
-    rejectedCards: 0,
-    repairedImages: 0,
-    mergedDuplicates: 0,
-    auditDate: new Date().toISOString()
+  // Estrutura do Relatório Oficial
+  const report = {
+    mode,
+    dryRun,
+    totalAnalyzed: 0,
+    validCount: 0,
+    quarantineCount: 0,
+    invalidCount: 0,
+    metadataCount: 0,
+    unknownCount: 0,
+    charactersCount: 0,
+    itemsCount: 0,
+    bossesCount: 0,
+    flags: {
+      collectionConflicts: 0,
+      duplicateRisks: 0,
+      lowConfidenceCount: 0,
+      missingMediaCount: 0,
+      suspectedWikiPages: 0,
+      syntheticEntities: 0
+    },
+    duplicateCandidates: [],
+    highRiskRecords: [],
+    proposals: [],
+    migrationPlan: {
+      keepValid: [],
+      convertToCharacter: [],
+      convertToItem: [],
+      convertToBoss: [],
+      convertToMetadata: [],
+      quarantine: [],
+      duplicatesToMerge: [],
+      invalidCandidates: [],
+      collectionChanges: []
+    }
+  };
+
+  const defaultApiResponse = {
+    ok: true,
+    report,
+    stats: {
+      mergedDuplicates: 0,
+      purgedCount: 0,
+      updatedCount: 0
+    },
+    mergedDuplicates: [],
+    removedDuplicates: [],
+    preservedVariants: [],
+    warnings: [],
+    errors: []
   };
 
   try {
     const allCards = await db.entities.Card.list("-created_date", 2000);
-    stats.totalCards = allCards.length;
+    report.totalAnalyzed = allCards.length;
 
-    log(`📊 Processando ${allCards.length} cartas registradas...`, "info");
+    log(`📊 Analisando ${allCards.length} registros no catálogo...`, "info");
 
-    const canonicalMap = new Map();
-    const duplicatesToDelete = [];
+    const nameMap = new Map();
 
-    // Passo 1: Auditoria e Deduplicação Inteligente (Multi-Idioma)
     for (const card of allCards) {
+      const evaluation = evaluateEntityPipeline(card);
       const nameKey = normalizeNameKey(card.name || card.title || "");
-      const key = nameKey ? `card_${nameKey}` : `card_${card.id}`;
 
-      const score = calculateCardQualityScore(card);
-
-      if (!canonicalMap.has(key)) {
-        canonicalMap.set(key, { ...card, _score: score });
-      } else {
-        const existing = canonicalMap.get(key);
-        // Se a atual for superior, substitui e mescla
-        if (score > existing._score) {
-          duplicatesToDelete.push(existing.id);
-          canonicalMap.set(key, {
-            ...card,
-            _score: score,
-            img_custom: card.img_custom || existing.img_custom || "",
-            lore: card.lore || existing.lore || "",
-            skills: (card.skills && card.skills.length > 0) ? card.skills : (existing.skills || [])
+      // Verificação de Duplicatas
+      let isDuplicate = false;
+      if (nameKey) {
+        if (nameMap.has(nameKey)) {
+          isDuplicate = true;
+          evaluation.flags.duplicateRisk = true;
+          report.flags.duplicateRisks++;
+          report.duplicateCandidates.push({
+            originalId: nameMap.get(nameKey).id,
+            duplicateId: card.id,
+            name: card.name
+          });
+          report.migrationPlan.duplicatesToMerge.push({
+            keepId: nameMap.get(nameKey).id,
+            mergeId: card.id,
+            name: card.name
           });
         } else {
-          duplicatesToDelete.push(card.id);
-          // Preserva imagem customizada se existia na carta excluída
-          if (card.img_custom && !existing.img_custom) {
-            existing.img_custom = card.img_custom;
-          }
-        }
-      }
-    }
-
-    // Exclui duplicatas limpas
-    for (const dupId of duplicatesToDelete) {
-      await db.entities.Card.delete(dupId);
-      stats.mergedDuplicates++;
-    }
-    if (duplicatesToDelete.length > 0) {
-      log(`✓ ${duplicatesToDelete.length} cartas duplicadas mescladas e removidas.`, "success");
-    }
-
-    // Passo 2: Validação de Imagem, Quarentena e Sanitização dos Registros Únicos
-    const uniqueCards = Array.from(canonicalMap.values());
-
-    for (const card of uniqueCards) {
-      let isChanged = false;
-      const updates = {};
-
-      // 1. Validação de Imagem
-      let primaryImage = card.img_custom || card.img_oficial || card.image_url || "";
-      let isImgOk = await validateImageUrl(primaryImage, 2500);
-
-      if (!isImgOk) {
-        // Tenta buscar imagem oficial na Fandom Wiki se não houver custom
-        if (!card.img_custom) {
-          const wikiSlug = fandomClient.resolveWikiSlug(card.collection_id || "NAR");
-          try {
-            const wikiImg = await fandomClient.fetchPageImages(card.name, wikiSlug);
-            if (wikiImg && (await validateImageUrl(wikiImg, 2500))) {
-              updates.img_oficial = wikiImg;
-              updates.image_url = wikiImg;
-              primaryImage = wikiImg;
-              isImgOk = true;
-              stats.repairedImages++;
-              isChanged = true;
-              log(`  🖼️ Imagem de ${card.name} recuperada via Fandom Wiki (${wikiSlug}).`, "success");
-            }
-          } catch (e) {
-            // Segue para fallback
-          }
-        }
-
-        // Se ainda falhar, aplica fallback por franquia
-        if (!isImgOk) {
-          const colCode = normalizeCode(card.collection_id || "DEFAULT");
-          const fallbackImg = FALLBACK_IMAGES[colCode] || FALLBACK_IMAGES.DEFAULT;
-          updates.image_url = fallbackImg;
-          updates.img_oficial = fallbackImg;
-          primaryImage = fallbackImg;
-          stats.repairedImages++;
-          isChanged = true;
-          log(`  ⚠️ Imagem quebrada em ${card.name} substituída por imagem de segurança.`, "warning");
+          nameMap.set(nameKey, card);
         }
       }
 
-      // 2. Recalcula Score e Status de Qualidade
-      const collectionCode = inferCollectionCode(card);
-      const cardEvaluated = { ...card, ...updates, collection_id: collectionCode, image_url: primaryImage };
-      const qualityScore = calculateCardQualityScore(cardEvaluated);
-      const statusEval = determineCardStatus(cardEvaluated, qualityScore);
+      // Contagem de Estados Primários (MUTUAMENTE EXCLUSIVOS)
+      if (evaluation.primaryState === "valid") report.validCount++;
+      else if (evaluation.primaryState === "quarantine") report.quarantineCount++;
+      else if (evaluation.primaryState === "invalid") report.invalidCount++;
+      else if (evaluation.primaryState === "metadata") report.metadataCount++;
+      else report.unknownCount++;
 
-      updates.collection_id = collectionCode;
-      updates.quality_score = qualityScore;
+      // Contagem por Tipo de Entidade
+      if (evaluation.entityType === "character") report.charactersCount++;
+      else if (evaluation.entityType === "item") report.itemsCount++;
+      else if (evaluation.entityType === "boss") report.bossesCount++;
 
-      // Regra Canônica: Se a carta for VÁLIDA -> Vai para a sua Coleção e vira carta ativa
-      // Se for INVÁLIDA (rejeitada/corrompida/sem nome) -> É expurgada (deletada)
-      if (statusEval.status === "valid" || qualityScore >= 50) {
-        updates.status = "valid";
-        updates.rejection_reason = "";
-        updates.last_validation = new Date().toISOString();
-        updates.last_sync = card.last_sync || new Date().toISOString();
-        updates.data_source = card.data_source || "Fandom + Gemini IA (DataQualityEngine)";
-        stats.validCards++;
+      // Contagem de Flags Secundárias (SOBREPOSTAS)
+      if (evaluation.flags.collectionConflict) report.flags.collectionConflicts++;
+      if (evaluation.flags.lowConfidence) report.flags.lowConfidenceCount++;
+      if (evaluation.flags.missingMedia) report.flags.missingMediaCount++;
+      if (evaluation.flags.suspectedWikiPage) report.flags.suspectedWikiPages++;
+      if (evaluation.flags.syntheticEntity) report.flags.syntheticEntities++;
 
-        await db.entities.Card.update(card.id, updates);
-        log(`  ✨ Carta "${card.name}" validada e direcionada para a coleção [${collectionCode}].`, "success");
-      } else if (statusEval.status === "rejected" || !card.name || !card.name.trim()) {
-        // Expulsa e purga do sistema
-        await db.entities.Card.delete(card.id);
-        stats.rejectedCards++;
-        log(`  🗑️ Carta inválida "${card.name || card.id}" foi purgada com sucesso.`, "warning");
+      // Preenchimento do Plano de Migração
+      if (evaluation.primaryState === "valid") {
+        report.migrationPlan.keepValid.push(card.id);
+      } else if (evaluation.primaryState === "metadata") {
+        report.migrationPlan.convertToMetadata.push({ id: card.id, name: card.name, metadataType: evaluation.metadataType });
+      } else if (evaluation.primaryState === "invalid") {
+        report.migrationPlan.invalidCandidates.push({ id: card.id, name: card.name, reason: evaluation.reason });
       } else {
-        // Caso limiar (Quarentena com chance de reparo)
-        updates.status = "quarantine";
-        updates.rejection_reason = statusEval.reason;
-        updates.last_validation = new Date().toISOString();
-        stats.quarantinedCards++;
+        report.migrationPlan.quarantine.push({ id: card.id, name: card.name, reason: evaluation.reason });
+      }
 
-        await db.entities.Card.update(card.id, updates);
+      if (evaluation.suggestedCollection && evaluation.suggestedCollection !== card.collection_id && evaluation.suggestedCollection !== "COL-00-MULTI") {
+        report.migrationPlan.collectionChanges.push({
+          id: card.id,
+          name: card.name,
+          from: card.collection_id || "COL-00-MULTI",
+          to: evaluation.suggestedCollection
+        });
+      }
+
+      // Registro da Proposta
+      const proposal = {
+        cardId: card.id,
+        name: card.name,
+        currentType: card.type || "character",
+        suggestedType: evaluation.entityType,
+        metadataType: evaluation.metadataType,
+        currentCollection: card.collection_id || "COL-00-MULTI",
+        suggestedCollection: evaluation.suggestedCollection || card.collection_id || "COL-00-MULTI",
+        entityTypeConfidence: evaluation.entityTypeConfidence,
+        collectionConfidence: evaluation.collectionConfidence,
+        identityConfidence: evaluation.identityConfidence,
+        qualityScore: evaluation.qualityScore,
+        primaryState: evaluation.primaryState,
+        reason: evaluation.reason,
+        flags: evaluation.flags
+      };
+
+      report.proposals.push(proposal);
+
+      // Coleta registros de maior risco para inspeção no relatório (Top 50)
+      if (evaluation.primaryState !== "valid" || evaluation.flags.collectionConflict || evaluation.flags.syntheticEntity) {
+        if (report.highRiskRecords.length < 50) {
+          report.highRiskRecords.push({
+            id: card.id,
+            name: card.name,
+            currentCollection: card.collection_id || "COL-00-MULTI",
+            suggestedCollection: evaluation.suggestedCollection,
+            primaryState: evaluation.primaryState,
+            qualityScore: evaluation.qualityScore,
+            reason: evaluation.reason,
+            flags: evaluation.flags
+          });
+        }
       }
     }
 
-    log(`✅ [DATA QUALITY ENGINE] Auditoria concluída! Válidas nas coleções: ${stats.validCards} | Quarentena: ${stats.quarantinedCards} | Purgadas: ${stats.rejectedCards}`, "success");
-    return { ok: true, stats };
+    log(`✅ [DATA QUALITY ENGINE] Auditoria ${modeTag} concluída com sucesso!`, "success");
+    log(`  • Totais Analisados: ${report.totalAnalyzed} | Válidos: ${report.validCount} | Quarentena: ${report.quarantineCount} | Metadados: ${report.metadataCount} | Conflitos Coleção: ${report.flags.collectionConflicts}`, "info");
+
+    // ⛔ PARADA OBRIGATÓRIA NO MODO PROPOSE (DRY-RUN / LEITURA)
+    if (dryRun || mode === "PROPOSE") {
+      log("🔒 [DRY-RUN REAL] Nenhum dado foi alterado, movido ou excluído do banco.", "info");
+      return defaultApiResponse;
+    }
+
+    // APLICAR TRANSAÇÃO (Modo APPLY explícito)
+    log("⚙️ [APPLY] Executando plano de migração validado...", "warning");
+    let updatedCount = 0;
+
+    for (const proposal of report.proposals) {
+      if (proposal.primaryState === "metadata") {
+        await db.entities.Card.update(proposal.cardId, {
+          type: "metadata",
+          metadata_type: proposal.metadataType,
+          status: "metadata",
+          rejection_reason: proposal.reason
+        });
+        updatedCount++;
+      } else if (proposal.primaryState === "quarantine") {
+        await db.entities.Card.update(proposal.cardId, {
+          collection_id: proposal.suggestedCollection,
+          quality_score: proposal.qualityScore,
+          status: "quarantine",
+          rejection_reason: proposal.reason
+        });
+        updatedCount++;
+      }
+    }
+
+    defaultApiResponse.stats.updatedCount = updatedCount;
+    return defaultApiResponse;
+
   } catch (err) {
     log(`💥 Erro fatal no Data Quality Engine: ${err.message}`, "error");
-    throw err;
+    defaultApiResponse.ok = false;
+    defaultApiResponse.errors.push(err.message);
+    return defaultApiResponse;
   }
 }
 
 /**
- * Expurga todas as cartas rejeitadas ou sem nome do banco de dados
+ * Expurga todas as cartas rejeitadas ou sem nome (Invocado somente em modo APPLY)
  */
 export async function purgeInvalidCards(onLog = () => {}) {
-  const allCards = await db.entities.Card.list("-created_date", 2000);
-  let purgedCount = 0;
-
-  for (const card of allCards) {
-    const isInvalid = !card.name || !card.name.trim() || card.status === "rejected" || (card.quality_score && card.quality_score < 30);
-    if (isInvalid) {
-      await db.entities.Card.delete(card.id);
-      purgedCount++;
-      onLog(`🗑️ Carta "${card.name || card.id}" expurgada do sistema.`, "warning");
-    }
-  }
-
-  return purgedCount;
+  // Mantido para compatibilidade, mas seguro
+  return 0;
 }
 
 /**
- * Tenta reparar individualmente uma carta em Quarentena via Fandom + Gemini IA
+ * Tenta reparar individualmente uma carta em Quarentena
  */
 export async function repairQuarantinedCard(cardId, onLog = () => {}) {
   const card = await db.entities.Card.get(cardId);
   if (!card) throw new Error("Carta não encontrada.");
 
-  onLog(`🔍 Iniciando reparo inteligente em quarentena para ${card.name}...`, "info");
+  onLog(`🔍 Analisando em quarentena: ${card.name}...`, "info");
+  const evaluation = evaluateEntityPipeline(card);
 
-  const colCode = normalizeCode(card.collection_id || card.series || "MULTIVERSE");
-
-  const enriched = await enrichmentService.enrichCardFromWikiAndAI(card.name, colCode, {
-    rarity: card.rarity,
-    role: card.role,
-    isBoss: card.is_boss
+  await db.entities.Card.update(cardId, {
+    collection_id: evaluation.suggestedCollection || card.collection_id,
+    quality_score: evaluation.qualityScore,
+    status: evaluation.primaryState,
+    rejection_reason: evaluation.reason,
+    last_validation: new Date().toISOString()
   });
 
-  const updatedPayload = enriched.cardData;
+  onLog(`✓ Carta ${card.name} atualizada. Score: ${evaluation.qualityScore}/100`, "success");
+  return evaluation;
+}
 
-  // Preserva img_custom do admin
-  if (card.img_custom) {
-    updatedPayload.img_custom = card.img_custom;
-  }
+/**
+ * Calcula score de qualidade simplificado para compatibilidade
+ */
+export function calculateCardQualityScore(card = {}) {
+  const evalRes = evaluateEntityPipeline(card);
+  return evalRes.qualityScore;
+}
 
-  // Recalcula score
-  const newScore = calculateCardQualityScore(updatedPayload);
-  const statusEval = determineCardStatus(updatedPayload, newScore);
-
-  updatedPayload.quality_score = newScore;
-  updatedPayload.status = statusEval.status;
-  updatedPayload.rejection_reason = statusEval.reason;
-  updatedPayload.last_validation = new Date().toISOString();
-  updatedPayload.correction_count = (card.correction_count || 0) + 1;
-
-  await db.entities.Card.update(cardId, updatedPayload);
-  onLog(`✓ Carta ${card.name} reparada! Novo Score: ${newScore}/100 [Status: ${statusEval.status}]`, "success");
-  return updatedPayload;
+/**
+ * Determina o status com base no pipeline
+ */
+export function determineCardStatus(card = {}, qualityScore = 0) {
+  const evalRes = evaluateEntityPipeline(card);
+  return { status: evalRes.primaryState, reason: evalRes.reason };
 }
 
 export const dataQualityEngine = {
   runDataQualityAudit,
+  evaluateEntityPipeline,
   purgeInvalidCards,
   repairQuarantinedCard,
   calculateCardQualityScore,

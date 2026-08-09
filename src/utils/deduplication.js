@@ -625,7 +625,22 @@ export function deduplicateCards(cardsList = []) {
     }
   }
 
-  return Array.from(canonicalMap.values());
+  const finalCards = [];
+  const seenIds = new Set();
+
+  for (const card of canonicalMap.values()) {
+    let cardId = card.id || card.card_id || `card_gen_${Math.random().toString(36).substring(2, 7)}`;
+    if (seenIds.has(cardId)) {
+      cardId = `${cardId}_${Math.random().toString(36).substring(2, 6)}`;
+    }
+    seenIds.add(cardId);
+    finalCards.push({
+      ...card,
+      id: cardId
+    });
+  }
+
+  return finalCards;
 }
 
 /**

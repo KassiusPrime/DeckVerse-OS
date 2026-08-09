@@ -2,7 +2,7 @@
 // DECKVERSE OS — Fandom API Client (Com Cache, Retries, Erros Tipados e Wiki Map)
 // ════════════════════════════════════════════════════════════════════════════
 
-import { isNonCharacterName } from "@/lib/importSchemas";
+import { isNonCharacterName } from "../../lib/importSchemas.js";
 
 export const COLLECTION_WIKI_MAP = {
   NAR: "naruto",
