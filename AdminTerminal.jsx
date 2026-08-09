@@ -1,20 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Terminal, Lock, Unlock, PlusCircle, X } from 'lucide-react';
 import { useToast } from './use-toast';
 import { db } from './base44Client';
+import { useAuth } from './AuthContext';
+import { adminController } from './core/adminController';
 
 export default function AdminTerminal({ onAddCard }) {
   const location = useLocation();
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(user?.role === "admin"));
   const [password, setPassword] = useState('');
   const { toast } = useToast();
-  
-  // Estado para a nova carta
-  const [newCard, setNewCard] = useState({
-    name: '', title: '', verse: 'Multiverse', rarity: 'Lendário', hp: 500, atk: 120, def: 100, imgUrl: ''
-  });
+
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      setIsAuthenticated(true);
+    }
+  }, [user]);
 
   const hiddenRoutes = ['/adm', '/admin', '/architect'];
   if (hiddenRoutes.includes(location.pathname)) {
@@ -23,17 +27,16 @@ export default function AdminTerminal({ onAddCard }) {
 
   const handleLogin = (e) => {
     e.preventDefault();
-    const validKey = process.env.ADMIN_PASSWORD || "OS_OVERRIDE_99";
-    if (password === validKey) {
+    if (user?.role === 'admin' || (password && adminController.verifyAdminKey(password))) {
       setIsAuthenticated(true);
       if (toast) {
         toast({
-          title: "⚡ ADMIN OVERRIDE ACCEPTED",
-          description: "Terminal de Forja Cósmica desbloqueado com sucesso.",
+          title: "⚡ ADMIN ACCESS GRANTED",
+          description: "Terminal de Forja Cósmica desbloqueado.",
         });
       }
     } else {
-      alert("ACESSO NEGADO: ANOMALIA DETECTADA.");
+      alert("ACESSO NEGADO: PERFIL SEM PERMISSÃO DE ADMIN.");
     }
   };
 
@@ -58,8 +61,8 @@ export default function AdminTerminal({ onAddCard }) {
       series: newCard.verse || 'Multiverse',
       rarity: officialRarity,
       role: 'DPS',
-      element: 'Void',
-      gender: 'Unknown',
+      element: newCard.element || undefined,
+      gender: newCard.gender || undefined,
       attack: Number(newCard.atk) || 120,
       defense: Number(newCard.def) || 100,
       speed: 100,

@@ -90,20 +90,20 @@ Responda em JSON:
    */
   generateOfflineFallback(taskType, prompt) {
     switch (taskType) {
+      case "extract":
+        return { status: "needs_enrichment", canonicalData: null };
       case "classify":
       case "batch":
-        return { archetypes: ["arch_determinado"], tags: ["Multiverse"] };
-      case "extract":
-        return { canonical_name: "Entidade Canônica", gender: "Desconhecido", species: "Humanoide" };
+        return { status: "needs_enrichment", archetypes: [], tags: [] };
       case "lore":
       case "translate":
-        return { translated_lore: "Uma lenda lendária do Multiverso DeckVerse." };
+        return { status: "needs_enrichment", translated_lore: null };
       case "describe":
-        return { description: "Guerreiro versátil e estrategista do Multiverso." };
+        return { status: "needs_enrichment", description: null };
       case "code":
-        return { code_snippet: "// Algoritmo gerado via fallback offline" };
+        return { status: "needs_enrichment", code_snippet: null };
       default:
-        return { result: "Resposta offline de fallback" };
+        return { status: "needs_enrichment", result: null };
     }
   }
 }

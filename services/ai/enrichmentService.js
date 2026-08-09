@@ -108,21 +108,17 @@ function fallbackClassification(rawText = "", canonicalName = "") {
   return {
     archetype_ids,
     personality_ids,
-    motivations: "Proteger seus companheiros e cumprir sua missão pessoal no multiverso.",
-    fears: "Falhar com aqueles que dependem de sua força e liderança.",
-    moral_alignment: "Ordeiro e Bom",
-    voice_tone: "Firme, confiante e focado em combate.",
-    bio_summary: rawText.slice(0, 300) || `${canonicalName} é um guerreiro formidável no DeckVerse.`,
+    motivations: undefined,
+    fears: undefined,
+    moral_alignment: undefined,
+    voice_tone: undefined,
+    bio_summary: rawText.slice(0, 300) || undefined,
     stats: {
       strength: 75, speed: 70, intelligence: 70, strategy: 65,
       resistance: 75, energy: 80, precision: 70, influence: 60,
       control: 65, versatility: 65, potential: 85, experience: 70
     },
-    suggested_movepool: [
-      { id: "m1", name: "Ataque Primário", power: 45, type: "Ataque", desc: "Golpe rápido e preciso." },
-      { id: "m2", name: "Tática Especial", power: 70, type: "Especial", desc: "Ataque concentrado que ignora defesas parciais." },
-      { id: "ult", name: "Técnica Suprema", power: 110, type: "Ultimate", desc: "Libera o poder total do personagem." }
-    ]
+    suggested_movepool: []
   };
 }
 
@@ -228,9 +224,7 @@ export async function enrichCharacterData(fandomData, existingCatalog = {}) {
       catchphrases: [],
       stats: fallback.stats,
       movepool: fallback.suggested_movepool,
-      powers: [
-        { name: powersRaw ? powersRaw.slice(0, 30) : "Técnica Principal", category: "Energia", description: powersRaw || "Ataque derivado das habilidades do personagem." }
-      ]
+      powers: powersRaw ? [{ name: powersRaw.slice(0, 30), category: "Power", description: powersRaw }] : []
     };
   }
 
@@ -355,10 +349,10 @@ export async function enrichCardFromWikiAndAI(characterName, collectionCodeInput
       pageTitle: characterName,
       canonicalName: characterName,
       fandomUrl: `https://${wikiSlug}.fandom.com/wiki/${encodeURIComponent(characterName.replace(/ /g, "_"))}`,
-      gender: "Desconhecido",
-      species: "Humano",
+      gender: undefined,
+      species: undefined,
       rawInfobox: {},
-      rawBioText: `${characterName} é um lutador icônico do multiverso.`,
+      rawBioText: "",
       powersRaw: "",
       affiliations: "",
       mainImageUrl: opts.fallbackImage || "",

@@ -323,8 +323,8 @@ export async function fetchCharacterInfobox(pageTitle, wikiSlug) {
     .trim();
 
   const canonicalName = parsedInfobox.name || parsedInfobox.title || pageTitle;
-  const gender = parsedInfobox.gender || parsedInfobox.sexo || "Desconhecido";
-  const species = parsedInfobox.species || parsedInfobox.espécie || parsedInfobox.race || "Humano";
+  const gender = parsedInfobox.gender || parsedInfobox.sexo || undefined;
+  const species = parsedInfobox.species || parsedInfobox.espécie || parsedInfobox.race || undefined;
   const powersRaw = parsedInfobox.powers || parsedInfobox.abilities || parsedInfobox.poderes || parsedInfobox.jutsu || "";
   const affiliations = parsedInfobox.affiliation || parsedInfobox.team || parsedInfobox.afiliação || "";
 

@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 
 import { adminController } from "./core/adminController.js";
+import { useAuth } from "./AuthContext";
 import FandomImporter from "@/FandomImporter";
 import CollectionImporter from "@/CollectionImporter";
 import DataQualityCenter from "@/DataQualityCenter";
@@ -43,7 +44,7 @@ const NAV_ITEMS = [
 
 const EMPTY_CARD = {
   name: "", card_id: "", collection_id: "MULTIVERSE", rarity: "SR", role: "DPS",
-  element: "Fire", gender: "Unknown",
+  element: "", gender: undefined,
   attack: 100, defense: 100, speed: 100, hp: 400, mag: 100,
   img_oficial: "", img_custom: "", lore: "", version: "Classic",
   evolution_stage: 1, is_boss: false, tags: [],
@@ -53,7 +54,7 @@ const EMPTY_CARD = {
 const EMPTY_BOSS = {
   name: "",
   title: "",
-  element: "Shadow",
+  element: "",
   rarity: "BOSS",
   hp: 3000,
   attack: 250,
@@ -268,7 +269,7 @@ function CardEditorModal({ card, collections = [], onClose, onSave }) {
               </div>
               <div>
                 <label className="text-[10px] font-heading text-muted-foreground">ELEMENTO</label>
-                <Select value={formData.element || "Fire"} onValueChange={v => setFormData({ ...formData, element: v })}>
+                <Select value={formData.element || ""} onValueChange={v => setFormData({ ...formData, element: v })}>
                   <SelectTrigger className="bg-muted/20 border-border/50 font-mono text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {ELEMENTS.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
@@ -610,7 +611,7 @@ function BossEditorModal({ boss, onClose, onSave }) {
           <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="text-[10px] font-heading text-muted-foreground">ELEMENTO</label>
-              <Select value={formData.element || "Shadow"} onValueChange={v => setFormData({ ...formData, element: v })}>
+              <Select value={formData.element || ""} onValueChange={v => setFormData({ ...formData, element: v })}>
                 <SelectTrigger className="bg-muted/20 border-border/50 font-mono text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {ELEMENTS.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
@@ -1267,24 +1268,31 @@ function SyncQueueTab({ summary, onRefresh }) {
 
 /* ─── COMPONENTE PRINCIPAL ADMIN ─── */
 export default function Admin() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { user } = useAuth();
+  const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(user?.role === "admin"));
   const [password, setPassword] = useState("");
   const [activeTab, setActiveTab] = useState("dashboard");
   const [globalSearch, setGlobalSearch] = useState("");
   const { toast } = useToast();
 
+  useEffect(() => {
+    if (user?.role === "admin") {
+      setIsAuthenticated(true);
+    }
+  }, [user]);
+
   const handleLogin = (e) => {
     e.preventDefault();
-    if (adminController.verifyAdminKey(password)) {
+    if (user?.role === "admin" || adminController.verifyAdminKey(password)) {
       setIsAuthenticated(true);
       toast({
         title: "⚡ ADMIN CONSOLE UNLOCKED",
-        description: "Autenticação aprovada pelo controller mestre."
+        description: "Autenticação aprovada."
       });
     } else {
       toast({
         title: "❌ ACESSO NEGADO",
-        description: "Senha de override incorreta.",
+        description: "Usuário sem perfil de administrador.",
         variant: "destructive"
       });
     }
@@ -1339,7 +1347,7 @@ export default function Admin() {
           <form onSubmit={handleLogin} className="space-y-4">
             <Input
               type="password"
-              placeholder="Senha de Acesso (padrão: OS_OVERRIDE_99)"
+              placeholder="Chave de Acesso Admin"
               value={password}
               onChange={e => setPassword(e.target.value)}
               className="font-mono text-center bg-muted/20 border-border/50 text-sm h-11"

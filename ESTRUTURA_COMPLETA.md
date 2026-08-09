@@ -27,7 +27,7 @@
 | `/ranking` / `/leaderboard` | Classificação geral de Caçadores. |
 | `/lore` | Arquivo de histórias e crônicas do Multiverso. |
 | `/fandom` | Utilitário de importação e consulta Fandom. |
-| `/adm` | Painel do Arquiteto (Senha: `OS_OVERRIDE_99`) para gerenciamento e edição direta. |
+| `/adm` | Painel do Arquiteto (Acesso restrito ao Administrador) para gerenciamento e edição direta. |
 | `/admin` | Importação em lote e ferramentas de manutenção do acervo. |
 
 ---

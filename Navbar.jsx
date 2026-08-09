@@ -13,23 +13,11 @@ import NotificationBell from "./NotificationBell";
 const SERVERS = ["SA-EAST-SP", "NA-VIRGINIA", "EU-LONDON"];
 
 function PingDisplay() {
-  const [ping, setPing] = useState(18);
-  const [server] = useState(SERVERS[0]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setPing(Math.floor(12 + Math.random() * 30));
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const color = ping < 30 ? "text-green-400" : ping < 80 ? "text-amber-400" : "text-destructive";
-
   return (
     <div className="hidden lg:flex items-center gap-1.5 border border-border/40 px-2 py-1 shrink-0">
-      <div className={`w-1.5 h-1.5 rounded-full ${ping < 30 ? "bg-green-400" : "bg-amber-400"} animate-pulse`} />
-      <span className="text-[9px] font-mono text-muted-foreground">{server}</span>
-      <span className={`text-[9px] font-mono font-bold tabular-nums ${color}`}>{ping}ms</span>
+      <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+      <span className="text-[9px] font-mono text-muted-foreground">DECKVERSE CORE</span>
+      <span className="text-[9px] font-mono font-bold tabular-nums text-emerald-400">ONLINE</span>
     </div>
   );
 }

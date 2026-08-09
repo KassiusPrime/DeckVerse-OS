@@ -83,7 +83,6 @@ const RAW_MEGA_COLLECTIONS = [
 export const MEGA_COLLECTIONS = deduplicateCollections(RAW_MEGA_COLLECTIONS);
 
 export const MEGA_ITEMS = [
-  // COL-01 Animes
   { id: "item_aot_1", item_code: "AOT-ITM-001", name: "Equipamento DMT Tridimensional", rarity: "SR", type: "Equipment", effect: "+40 VEL e Evasão elevada contra inimigos colossais.", series: "Attack on Titan", collection_id: "COL-01-AOT", image_url: "" },
   { id: "item_ber_1", item_code: "BER-ITM-001", name: "Armadura Berserker", rarity: "UR", type: "Artifact", effect: "Ignora dor e aumenta ATQ em +80% quando com HP crítico.", series: "Berserk", collection_id: "COL-01-BER", image_url: "" },
   { id: "item_bcl_1", item_code: "BCL-ITM-001", name: "Grimório de 5 Folhas", rarity: "UR", type: "Artifact", effect: "Canaliza a Anti-Magia anulando encantamentos inimigos.", series: "Black Clover", collection_id: "COL-01-BCL", image_url: "" },
@@ -124,102 +123,91 @@ export const MEGA_ITEMS = [
 ];
 
 export const MEGA_BOSSES = [
-  // Chefs principais dos Universos
-  { id: "boss_aot_1", boss_code: "AOT-BSS-001", name: "Eren Yeager (Titã Fundador)", rarity: "ANOMALIA", series: "Attack on Titan", collection_id: "COL-01-AOT", hp: 1600, attack: 240, defense: 200, element: "Earth", tags: ["Titã", "Fundador"], drop_item: "O Caminho", lore: "Centenas de Colossais marcham destruindo tudo.", img_oficial: "", img_custom: "", is_boss: true },
-  { id: "boss_ber_1", boss_code: "BER-BSS-001", name: "Griffith (Femto)", rarity: "ANOMALIA", series: "Berserk", collection_id: "COL-01-BER", hp: 1700, attack: 260, defense: 210, element: "Shadow", tags: ["Mão de Deus", "Demônio"], drop_item: "Behelit Vermelho", lore: "Membro da Mão de Deus que manipula a gravidade e o destino.", img_oficial: "", img_custom: "", is_boss: true },
-  { id: "boss_blc_1", boss_code: "BLC-BSS-001", name: "Yhwach (Rei Quincy)", rarity: "DIV", series: "Bleach", collection_id: "COL-01-BLC", hp: 1800, attack: 280, defense: 220, element: "Light", tags: ["Quincy", "O Onipotente"], drop_item: "Fragmento do Rei das Almas", lore: "Wielder do Almighty alterando futuros.", img_oficial: "", img_custom: "", is_boss: true },
-  { id: "boss_ds_1", boss_code: "DS-BSS-001", name: "Muzan Kibutsuji", rarity: "ANOMALIA", series: "Demon Slayer", collection_id: "COL-01-DS", hp: 1500, attack: 250, defense: 190, element: "Shadow", tags: ["Demônio", "Rei"], drop_item: "Sangue Celular", lore: "Rei dos Demônios com regeneração absoluta.", img_oficial: "", img_custom: "", is_boss: true },
-  { id: "boss_dbz_1", boss_code: "DBZ-BSS-001", name: "Jiren (O Cinzento)", rarity: "DIV", series: "Dragon Ball Z", collection_id: "DBZ", hp: 1800, attack: 290, defense: 230, element: "Light", tags: ["Tropa do Orgulho"], drop_item: "Aura do Universo 11", lore: "Guerreiro do Universo 11 superando Deuses.", img_oficial: "", img_custom: "", is_boss: true },
-  { id: "boss_jjk_1", boss_code: "JJK-BSS-001", name: "Ryomen Sukuna", rarity: "DIV", series: "Jujutsu Kaisen", collection_id: "COL-01-JJK", hp: 1750, attack: 280, defense: 210, element: "Shadow", tags: ["Rei das Maldições"], drop_item: "Santuário Malevolente", lore: "Rei das Maldições com corte espacial.", img_oficial: "", img_custom: "", is_boss: true },
-  { id: "boss_opm_1", boss_code: "OPM-BSS-001", name: "Lord Boros", rarity: "ANOMALIA", series: "One Punch Man", collection_id: "COL-01-OPM", hp: 1900, attack: 300, defense: 220, element: "Lightning", tags: ["Alienígena"], drop_item: "Canhão de Estrelas", lore: "Dominador do Universo.", img_oficial: "", img_custom: "", is_boss: true },
-  { id: "boss_er_1", boss_code: "ER-BSS-001", name: "Malenia (Lâmina de Miquella)", rarity: "DIV", series: "Elden Ring", collection_id: "COL-02-ER", hp: 1850, attack: 295, defense: 180, element: "Shadow", tags: ["Demideusa", "Podridão"], drop_item: "Lágrima de Podridão Escarlate", lore: "Nunca conheceu a derrota.", img_oficial: "", img_custom: "", is_boss: true },
-  { id: "boss_gow_1", boss_code: "GOW-BSS-001", name: "Odin (O Pai de Todos)", rarity: "DIV", series: "God of War", collection_id: "COL-02-GOW", hp: 1950, attack: 285, defense: 240, element: "Light", tags: ["Deus Nórdico"], drop_item: "Lança Gungnir", lore: "Soberano de Asgard e mestre das runas.", img_oficial: "", img_custom: "", is_boss: true },
-  { id: "boss_sw_1", boss_code: "SW-BSS-001", name: "Darth Sidious (Imperador Palpatine)", rarity: "DIV", series: "Star Wars", collection_id: "COL-03-SW", hp: 1700, attack: 275, defense: 200, element: "Lightning", tags: ["Lorde Sith"], drop_item: "Raio da Força Ilimitado", lore: "Mestre Supremo do Lado Sombrio.", img_oficial: "", img_custom: "", is_boss: true }
+  { id: "boss_aot_1", boss_code: "AOT-BSS-001", name: "Eren Yeager (Titã Fundador)", rarity: "ANOMALIA", series: "Attack on Titan", collection_id: "COL-01-AOT", hp: 1600, attack: 240, defense: 200, tags: ["Titã", "Fundador"], drop_item: "O Caminho", lore: "Centenas de Colossais marcham destruindo tudo.", img_oficial: "", img_custom: "", is_boss: true },
+  { id: "boss_ber_1", boss_code: "BER-BSS-001", name: "Griffith (Femto)", rarity: "ANOMALIA", series: "Berserk", collection_id: "COL-01-BER", hp: 1700, attack: 260, defense: 210, tags: ["Mão de Deus", "Demônio"], drop_item: "Behelit Vermelho", lore: "Membro da Mão de Deus que manipula a gravidade e o destino.", img_oficial: "", img_custom: "", is_boss: true },
+  { id: "boss_blc_1", boss_code: "BLC-BSS-001", name: "Yhwach (Rei Quincy)", rarity: "DIV", series: "Bleach", collection_id: "COL-01-BLC", hp: 1800, attack: 280, defense: 220, tags: ["Quincy", "O Onipotente"], drop_item: "Fragmento do Rei das Almas", lore: "Wielder do Almighty alterando futuros.", img_oficial: "", img_custom: "", is_boss: true },
+  { id: "boss_ds_1", boss_code: "DS-BSS-001", name: "Muzan Kibutsuji", rarity: "ANOMALIA", series: "Demon Slayer", collection_id: "COL-01-DS", hp: 1500, attack: 250, defense: 190, tags: ["Demônio", "Rei"], drop_item: "Sangue Celular", lore: "Rei dos Demônios com regeneração absoluta.", img_oficial: "", img_custom: "", is_boss: true },
+  { id: "boss_dbz_1", boss_code: "DBZ-BSS-001", name: "Jiren (O Cinzento)", rarity: "DIV", series: "Dragon Ball Z", collection_id: "COL-01-DBZ", hp: 1800, attack: 290, defense: 230, tags: ["Tropa do Orgulho"], drop_item: "Aura do Universo 11", lore: "Guerreiro do Universo 11 superando Deuses.", img_oficial: "", img_custom: "", is_boss: true },
+  { id: "boss_jjk_1", boss_code: "JJK-BSS-001", name: "Ryomen Sukuna", rarity: "DIV", series: "Jujutsu Kaisen", collection_id: "COL-01-JJK", hp: 1750, attack: 280, defense: 210, tags: ["Rei das Maldições"], drop_item: "Santuário Malevolente", lore: "Rei das Maldições com corte espacial.", img_oficial: "", img_custom: "", is_boss: true },
+  { id: "boss_opm_1", boss_code: "OPM-BSS-001", name: "Lord Boros", rarity: "ANOMALIA", series: "One Punch Man", collection_id: "COL-01-OPM", hp: 1900, attack: 300, defense: 220, tags: ["Alienígena"], drop_item: "Canhão de Estrelas", lore: "Dominador do Universo.", img_oficial: "", img_custom: "", is_boss: true },
+  { id: "boss_er_1", boss_code: "ER-BSS-001", name: "Malenia (Lâmina de Miquella)", rarity: "DIV", series: "Elden Ring", collection_id: "COL-02-ER", hp: 1850, attack: 295, defense: 180, tags: ["Demideusa", "Podridão"], drop_item: "Lágrima de Podridão Escarlate", lore: "Nunca conheceu a derrota.", img_oficial: "", img_custom: "", is_boss: true },
+  { id: "boss_gow_1", boss_code: "GOW-BSS-001", name: "Odin (O Pai de Todos)", rarity: "DIV", series: "God of War", collection_id: "COL-02-GOW", hp: 1950, attack: 285, defense: 240, tags: ["Deus Nórdico"], drop_item: "Lança Gungnir", lore: "Soberano de Asgard e mestre das runas.", img_oficial: "", img_custom: "", is_boss: true },
+  { id: "boss_sw_1", boss_code: "SW-BSS-001", name: "Darth Sidious (Imperador Palpatine)", rarity: "DIV", series: "Star Wars", collection_id: "COL-03-SW", hp: 1700, attack: 275, defense: 200, tags: ["Lorde Sith"], drop_item: "Raio da Força Ilimitado", lore: "Mestre Supremo do Lado Sombrio.", img_oficial: "", img_custom: "", is_boss: true }
 ];
 
 export function generateExpandedCards() {
   const cards = [];
-  
-  // Clean mapping per canonical series covering ALL 62 Collections
+
   const seriesList = [
-    // COL-01 — ANIMES, MANGÁS & WEBTOONS (22)
-    { code: "COL-01-AOT", series: "Attack on Titan", energy: "Paths & Will", characters: ["Eren Yeager", "Mikasa Ackerman", "Levi Ackerman", "Armin Arlert", "Erwin Smith", "Reiner Braun", "Zeke Yeager", "Annie Leonhart", "Hange Zoë", "Sasha Blouse"], tags: ["Tropa de Exploração", "Titã Shifter", "Ackerman"] },
-    { code: "COL-01-BER", series: "Berserk", energy: "Odor da Marca", characters: ["Guts", "Griffith", "Casca", "Skull Knight", "Zodd", "Farnese", "Serpico", "Schierke", "Isidro", "Void"], tags: ["Espadachim Negro", "Bando do Falcão", "Mão de Deus"] },
-    { code: "COL-01-BCL", series: "Black Clover", energy: "Mana & Anti-Magia", characters: ["Asta", "Yuno", "Yami Sukehiro", "Noelle Silva", "Julius Novachrono", "Licht", "Zagred", "Lucius Zogratis", "Mereoleona Silva", "William Vangeance"], tags: ["Cavaleiro Mágico", "Touros Negros", "Alvorecer Dourado"] },
-    { code: "COL-01-BLC", series: "Bleach", energy: "Reiatsu", characters: ["Ichigo Kurosaki", "Rukia Kuchiki", "Sosuke Aizen", "Kisuke Urahara", "Byakuya Kuchiki", "Kenpachi Zaraki", "Toshiro Hitsugaya", "Yhwach", "Ulquiorra Cifer", "Gin Ichimaru"], tags: ["Shinigami", "Gotei 13", "Espada", "Quincy"] },
-    { code: "COL-01-CSM", series: "Chainsaw Man", energy: "Pacto Diabólico", characters: ["Denji", "Power", "Aki Hayakawa", "Makima", "Reze", "Kishibe", "Quanxi", "Pochita", "Kobeni", "Angel Devil"], tags: ["Caçador de Demônios", "Demônio", "Segurança Pública"] },
-    { code: "COL-01-DS", series: "Demon Slayer", energy: "Técnica de Respiração", characters: ["Tanjiro Kamado", "Nezuko Kamado", "Zenitsu Agatsuma", "Inosuke Hashibira", "Giyu Tomioka", "Kyojuro Rengoku", "Shinobu Kocho", "Muzan Kibutsuji", "Kokushibo", "Akaza"], tags: ["Caçador de Demônios", "Hashira", "Doze Kizuki"] },
-    { code: "COL-01-DBZ", series: "Dragon Ball Z", energy: "Ki", characters: ["Son Goku", "Vegeta", "Gohan", "Piccolo", "Future Trunks", "Freeza", "Cell", "Majin Buu", "Beerus", "Broly"], tags: ["Saiyajin", "Guerreiros Z", "Deus da Destruição"] },
-    { code: "COL-01-FATE", series: "Fate Series", energy: "Mana & Magia", characters: ["Artoria Pendragon", "Gilgamesh", "EMIYA", "Nero Claudius", "Jeanne d'Arc", "Cu Chulainn", "Alexander the Great", "Rin Tohsaka", "Kiritsugu Emiya", "Oberon"], tags: ["Servo", "Mestre", "Espírito Heroico"] },
-    { code: "COL-01-FMA", series: "Fullmetal Alchemist", energy: "Alquimia", characters: ["Edward Elric", "Alphonse Elric", "Roy Mustang", "Riza Hawkeye", "Scar", "King Bradley", "Greed", "Ling Yao", "Envy", "Father"], tags: ["Alquimista de Estado", "Homúnculo", "Amestris"] },
-    { code: "COL-01-HXH", series: "Hunter x Hunter", energy: "Nen", characters: ["Gon Freecss", "Killua Zoldyck", "Kurapika", "Leorio", "Hisoka Morow", "Chrollo Lucilfer", "Meruem", "Isaac Netero", "Neferpitou", "Ging Freecss"], tags: ["Hunter", "Nen", "Trupe Fantasma", "Zoldyck"] },
-    { code: "COL-01-JOJO", series: "JoJo Bizarre Adventure", energy: "Stand & Hamon", characters: ["Jotaro Kujo", "DIO", "Giorno Giovanna", "Joseph Joestar", "Josuke Higashikata", "Jolyne Cujo", "Yoshikage Kira", "Diavolo", "Bruno Bucciarati", "Kars"], tags: ["Linhagem Joestar", "Usuário de Stand", "Homem do Pilar"] },
-    { code: "COL-01-JJK", series: "Jujutsu Kaisen", energy: "Energia Amaldiçoada", characters: ["Yuji Itadori", "Megumi Fushiguro", "Satoru Gojo", "Ryomen Sukuna", "Yuta Okkotsu", "Suguru Geto", "Toji Fushiguro", "Nobara Kugisaki", "Kento Nanami", "Mahito"], tags: ["Feiticeiro Jujutsu", "Espírito Amaldiçoado", "Seis Olhos"] },
-    { code: "COL-01-MHA", series: "My Hero Academia", energy: "Peculiaridade (Quirk)", characters: ["Izuku Midoriya", "Katsuki Bakugo", "Shoto Todoroki", "All Might", "Endeavor", "Tomura Shigaraki", "All For One", "Dabi", "Hawks", "Mirio Togata"], tags: ["Herói Profissional", "One For All", "Liga dos Vilões"] },
-    { code: "COL-01-NRT", series: "Naruto", energy: "Chakra", characters: ["Naruto Uzumaki", "Sasuke Uchiha", "Kakashi Hatake", "Itachi Uchiha", "Jiraiya", "Tsunade", "Orochimaru", "Minato Namikaze", "Madara Uchiha", "Pain"], tags: ["Ninja de Konoha", "Hokage", "Akatsuki", "Jinchuriki"] },
-    { code: "COL-01-OP", series: "One Piece", energy: "Haki & Akuma no Mi", characters: ["Monkey D. Luffy", "Roronoa Zoro", "Nami", "Sanji", "Trafalgar Law", "Shanks", "Gol D. Roger", "Whitebeard", "Kaido", "Portgas D. Ace"], tags: ["Chapéu de Palha", "Yonkou", "Marinha", "Pirata"] },
-    { code: "COL-01-OPM", series: "One Punch Man", energy: "Quebra de Limite", characters: ["Saitama", "Genos", "Tatsumaki", "Bang", "Garou", "Lord Boros", "King", "Atomic Samurai", "Metal Knight", "Fubuki"], tags: ["Associação de Heróis", "Classe S", "Monstro"] },
-    { code: "COL-01-SS", series: "Saint Seiya", energy: "Cosmo", characters: ["Seiya de Pégaso", "Ikki de Fênix", "Shiryu de Dragão", "Hyoga de Cisne", "Shun de Andrômeda", "Saga de Gêmeos", "Shaka de Virgem", "Atena Saori", "Hades", "Poseidon"], tags: ["Cavaleiro de Atena", "Armadura de Ouro", "Sétimo Sentido"] },
-    { code: "COL-01-SL", series: "Solo Leveling", energy: "Energia das Sombras", characters: ["Sung Jinwoo", "Cha Hae-In", "Go Gun-Hee", "Thomas Andre", "Liu Zhigang", "Igris", "Beru", "Ashborn", "Sung Il-Hwan", "Bellion"], tags: ["Caçador Rank S", "Exército das Sombras", "Monarca"] },
-    { code: "COL-01-TG", series: "Tokyo Ghoul", energy: "RC Cells & Kagune", characters: ["Ken Kaneki", "Touka Kirishima", "Kishou Arima", "Kotaro Amon", "Shuu Tsukiyama", "Juuzou Suzuya", "Eto Yoshimura", "Uta", "Rize Kamishiro", "Yamori"], tags: ["Ghoul", "CCG", "Kagune", "Anteiku"] },
-    { code: "COL-01-TOG", series: "Tower of God", energy: "Shinsu", characters: ["Twenty-Fifth Bam", "Khun Aguero Agnes", "Rak Wraithraiser", "Endorsi Jahad", "Yuri Jahad", "Urek Mazino", "Jahad", "White", "Rachel", "Jinsung Ha"], tags: ["Irregular", "Regular", "Jahad", "Torre de Deus"] },
-    { code: "COL-01-VS", series: "Vinland Saga", energy: "Fúria Viking", characters: ["Thorfinn", "Askeladd", "Thorkell", "Canute", "Thors Skenansson", "Gudrid", "Einar", "Snake", "Floki", "Bjorn"], tags: ["Viking", "Jomsviking", "Guerreiro"] },
-    { code: "COL-01-YYH", series: "Yu Yu Hakusho", energy: "Reiki & Youki", characters: ["Yusuke Urameshi", "Hiei", "Kurama", "Kazuma Kuwabara", "Genkai", "Toguro Imoto", "Sensui Shinobu", "Raizen", "Mukuro", "Yomi"], tags: ["Detetive Espiritual", "Mundo das Trevas", "Reiki"] },
+    { code: "COL-01-AOT", series: "Attack on Titan", characters: ["Eren Yeager", "Mikasa Ackerman", "Levi Ackerman", "Armin Arlert", "Erwin Smith", "Reiner Braun", "Zeke Yeager", "Annie Leonhart", "Hange Zoë", "Sasha Blouse"], tags: ["Tropa de Exploração", "Titã Shifter", "Ackerman"] },
+    { code: "COL-01-BER", series: "Berserk", characters: ["Guts", "Griffith", "Casca", "Skull Knight", "Zodd", "Farnese", "Serpico", "Schierke", "Isidro", "Void"], tags: ["Espadachim Negro", "Bando do Falcão", "Mão de Deus"] },
+    { code: "COL-01-BCL", series: "Black Clover", characters: ["Asta", "Yuno", "Yami Sukehiro", "Noelle Silva", "Julius Novachrono", "Licht", "Zagred", "Lucius Zogratis", "Mereoleona Silva", "William Vangeance"], tags: ["Cavaleiro Mágico", "Touros Negros", "Alvorecer Dourado"] },
+    { code: "COL-01-BLC", series: "Bleach", characters: ["Ichigo Kurosaki", "Rukia Kuchiki", "Sosuke Aizen", "Kisuke Urahara", "Byakuya Kuchiki", "Kenpachi Zaraki", "Toshiro Hitsugaya", "Yhwach", "Ulquiorra Cifer", "Gin Ichimaru"], tags: ["Shinigami", "Gotei 13", "Espada", "Quincy"] },
+    { code: "COL-01-CSM", series: "Chainsaw Man", characters: ["Denji", "Power", "Aki Hayakawa", "Makima", "Reze", "Kishibe", "Quanxi", "Pochita", "Kobeni", "Angel Devil"], tags: ["Caçador de Demônios", "Demônio", "Segurança Pública"] },
+    { code: "COL-01-DS", series: "Demon Slayer", characters: ["Tanjiro Kamado", "Nezuko Kamado", "Zenitsu Agatsuma", "Inosuke Hashibira", "Giyu Tomioka", "Kyojuro Rengoku", "Shinobu Kocho", "Muzan Kibutsuji", "Kokushibo", "Akaza"], tags: ["Caçador de Demônios", "Hashira", "Doze Kizuki"] },
+    { code: "COL-01-DBZ", series: "Dragon Ball Z", characters: ["Son Goku", "Vegeta", "Gohan", "Piccolo", "Future Trunks", "Freeza", "Cell", "Majin Buu", "Beerus", "Broly"], tags: ["Saiyajin", "Guerreiros Z", "Deus da Destruição"] },
+    { code: "COL-01-FATE", series: "Fate Series", characters: ["Artoria Pendragon", "Gilgamesh", "EMIYA", "Nero Claudius", "Jeanne d'Arc", "Cu Chulainn", "Alexander the Great", "Rin Tohsaka", "Kiritsugu Emiya", "Oberon"], tags: ["Servo", "Mestre", "Espírito Heroico"] },
+    { code: "COL-01-FMA", series: "Fullmetal Alchemist", characters: ["Edward Elric", "Alphonse Elric", "Roy Mustang", "Riza Hawkeye", "Scar", "King Bradley", "Greed", "Ling Yao", "Envy", "Father"], tags: ["Alquimista de Estado", "Homúnculo", "Amestris"] },
+    { code: "COL-01-HXH", series: "Hunter x Hunter", characters: ["Gon Freecss", "Killua Zoldyck", "Kurapika", "Leorio", "Hisoka Morow", "Chrollo Lucilfer", "Meruem", "Isaac Netero", "Neferpitou", "Ging Freecss"], tags: ["Hunter", "Nen", "Trupe Fantasma", "Zoldyck"] },
+    { code: "COL-01-JOJO", series: "JoJo Bizarre Adventure", characters: ["Jotaro Kujo", "DIO", "Giorno Giovanna", "Joseph Joestar", "Josuke Higashikata", "Jolyne Cujo", "Yoshikage Kira", "Diavolo", "Bruno Bucciarati", "Kars"], tags: ["Linhagem Joestar", "Usuário de Stand", "Homem do Pilar"] },
+    { code: "COL-01-JJK", series: "Jujutsu Kaisen", characters: ["Yuji Itadori", "Megumi Fushiguro", "Satoru Gojo", "Ryomen Sukuna", "Yuta Okkotsu", "Suguru Geto", "Toji Fushiguro", "Nobara Kugisaki", "Kento Nanami", "Mahito"], tags: ["Feiticeiro Jujutsu", "Espírito Amaldiçoado", "Seis Olhos"] },
+    { code: "COL-01-MHA", series: "My Hero Academia", characters: ["Izuku Midoriya", "Katsuki Bakugo", "Shoto Todoroki", "All Might", "Endeavor", "Tomura Shigaraki", "All For One", "Dabi", "Hawks", "Mirio Togata"], tags: ["Herói Profissional", "One For All", "Liga dos Vilões"] },
+    { code: "COL-01-NRT", series: "Naruto", characters: ["Naruto Uzumaki", "Sasuke Uchiha", "Kakashi Hatake", "Itachi Uchiha", "Jiraiya", "Tsunade", "Orochimaru", "Minato Namikaze", "Madara Uchiha", "Pain"], tags: ["Ninja de Konoha", "Hokage", "Akatsuki", "Jinchuriki"] },
+    { code: "COL-01-OP", series: "One Piece", characters: ["Monkey D. Luffy", "Roronoa Zoro", "Nami", "Sanji", "Trafalgar Law", "Shanks", "Gol D. Roger", "Whitebeard", "Kaido", "Portgas D. Ace"], tags: ["Chapéu de Palha", "Yonkou", "Marinha", "Pirata"] },
+    { code: "COL-01-OPM", series: "One Punch Man", characters: ["Saitama", "Genos", "Tatsumaki", "Bang", "Garou", "Lord Boros", "King", "Atomic Samurai", "Metal Knight", "Fubuki"], tags: ["Associação de Heróis", "Classe S", "Monstro"] },
+    { code: "COL-01-SS", series: "Saint Seiya", characters: ["Seiya de Pégaso", "Ikki de Fênix", "Shiryu de Dragão", "Hyoga de Cisne", "Shun de Andrômeda", "Saga de Gêmeos", "Shaka de Virgem", "Atena Saori", "Hades", "Poseidon"], tags: ["Cavaleiro de Atena", "Armadura de Ouro", "Sétimo Sentido"] },
+    { code: "COL-01-SL", series: "Solo Leveling", characters: ["Sung Jinwoo", "Cha Hae-In", "Go Gun-Hee", "Thomas Andre", "Liu Zhigang", "Igris", "Beru", "Ashborn", "Sung Il-Hwan", "Bellion"], tags: ["Caçador Rank S", "Exército das Sombras", "Monarca"] },
+    { code: "COL-01-TG", series: "Tokyo Ghoul", characters: ["Ken Kaneki", "Touka Kirishima", "Kishou Arima", "Kotaro Amon", "Shuu Tsukiyama", "Juuzou Suzuya", "Eto Yoshimura", "Uta", "Rize Kamishiro", "Yamori"], tags: ["Ghoul", "CCG", "Kagune", "Anteiku"] },
+    { code: "COL-01-TOG", series: "Tower of God", characters: ["Twenty-Fifth Bam", "Khun Aguero Agnes", "Rak Wraithraiser", "Endorsi Jahad", "Yuri Jahad", "Urek Mazino", "Jahad", "White", "Rachel", "Jinsung Ha"], tags: ["Irregular", "Regular", "Jahad", "Torre de Deus"] },
+    { code: "COL-01-VS", series: "Vinland Saga", characters: ["Thorfinn", "Askeladd", "Thorkell", "Canute", "Thors Skenansson", "Gudrid", "Einar", "Snake", "Floki", "Bjorn"], tags: ["Viking", "Jomsviking", "Guerreiro"] },
+    { code: "COL-01-YYH", series: "Yu Yu Hakusho", characters: ["Yusuke Urameshi", "Hiei", "Kurama", "Kazuma Kuwabara", "Genkai", "Toguro Imoto", "Sensui Shinobu", "Raizen", "Mukuro", "Yomi"], tags: ["Detetive Espiritual", "Mundo das Trevas", "Reiki"] },
 
-    // COL-02 — JOGOS (13)
-    { code: "COL-02-BB", series: "Bloodborne", energy: "Sangue Antigo", characters: ["The Good Hunter", "Lady Maria", "Gehrman", "Ludwig", "Eileen the Crow", "Father Gascoigne", "Laurence", "Micolash", "Orphan of Kos", "Moon Presence"], tags: ["Caçador", "Yharnam", "Grande Antigo"] },
-    { code: "COL-02-CP77", series: "Cyberpunk 2077", energy: "Implant Neural", characters: ["V", "Johnny Silverhand", "David Martinez", "Lucy", "Rebecca", "Adam Smasher", "Judy Alvarez", "Panam Palmer", "Takemura", "Rogue"], tags: ["Mercenário", "Netrunner", "Night City"] },
-    { code: "COL-02-DS", series: "Dark Souls", energy: "Almas & Fogo", characters: ["Chosen Undead", "Solaire of Astora", "Knight Artorias", "Lord Gwyn", "Ornstein", "Smough", "Siegmeyer", "Fire Keeper", "Slave Knight Gael", "Nameless King"], tags: ["Morto-Vivo", "Lorde de Cinder", "Cavaleiro"] },
-    { code: "COL-02-DMC", series: "Devil May Cry", energy: "Poder Demoniaco", characters: ["Dante", "Vergil", "Nero", "Trish", "Lady", "V", "Mundus", "Urizen", "Sparda", "Lucia"], tags: ["Caçador de Demônios", "Filho de Sparda"] },
-    { code: "COL-02-ER", series: "Elden Ring", energy: "Graça Prístina", characters: ["Tarnished", "Malenia", "Radahn", "Ranni the Witch", "Godfrey", "Morgott", "Maliketh", "Rykard", "Mohg", "Marika"], tags: ["Maculado", "Demideus", "Térvore"] },
-    { code: "COL-02-FF", series: "Final Fantasy", energy: "Mana dos Cristais", characters: ["Cloud Strife", "Sephiroth", "Noctis Lucis Caelum", "Squall Leonhart", "Tidus", "Lightning", "Clive Rosfield", "Aerith Gainsborough", "Vivi Ornitier", "Kefka Palazzo"], tags: ["Guerreiro da Luz", "SOLDIER", "Summoner"] },
-    { code: "COL-02-GOW", series: "God of War", energy: "Fúria Espartana", characters: ["Kratos", "Atreus", "Freya", "Thor", "Odin", "Zeus", "Baldur", "Valkyrie Sigrun", "Ares", "Athena"], tags: ["Deus da Guerra", "Panteão", "Espartano"] },
-    { code: "COL-02-LOL", series: "League of Legends", energy: "Magia de Runeterra", characters: ["Ahri", "Yasuo", "Zed", "Lux", "Katarina", "Viego", "Thresh", "Darius", "Garen", "Ryze"], tags: ["Campeão", "Runeterra", "Ionia", "Noxus"] },
-    { code: "COL-02-MK", series: "Mortal Kombat", energy: "Chi & Magia Sangrenta", characters: ["Scorpion", "Sub-Zero", "Raiden", "Liu Kang", "Shang Tsung", "Shao Kahn", "Johnny Cage", "Sonya Blade", "Kitana", "Mileena"], tags: ["Protetor de Earthrealm", "Outworld", "Shirai Ryu"] },
-    { code: "COL-02-SKR", series: "Skyrim", energy: "Thu'um (Voz dos Dragões)", characters: ["Dragonborn", "Alduin", "Paarthurnax", "Ulfric Stormcloak", "General Tullius", "Astrid", "Mercer Frey", "Miraak", "Serana", "Sheogorath"], tags: ["Dovahkiin", "Dragão", "Skyrim"] },
-    { code: "COL-02-TLOU", series: "The Last of Us", energy: "Instinto de Sobrevivência", characters: ["Joel Miller", "Ellie Williams", "Abby Anderson", "Tommy Miller", "Tess", "Marlene", "Bill", "David", "Lev", "Dina"], tags: ["Sobrevivente", "Vira-Lupa", "Imune"] },
-    { code: "COL-02-ZLD", series: "The Legend of Zelda", energy: "Triforce", characters: ["Link", "Princess Zelda", "Ganondorf", "Midna", "Urbosa", "Rebali", "Daruk", "Mipha", "Skull Kid", "Fi"], tags: ["Heroi do Tempo", "Triforce", "Hyrule"] },
-    { code: "COL-02-WITCHER", series: "The Witcher", energy: "Sinais Mágicos & Mutação", characters: ["Geralt of Rivia", "Yennefer of Vengerberg", "Ciri", "Triss Merigold", "Vesemir", "Dandelion", "Letho of Gulet", "Eredin", "Gaunter O'Dimm", "Regis"], tags: ["Bruxo", "Escola do Lobo", "Caçada Selvagem"] },
+    { code: "COL-02-BB", series: "Bloodborne", characters: ["The Good Hunter", "Lady Maria", "Gehrman", "Ludwig", "Eileen the Crow", "Father Gascoigne", "Laurence", "Micolash", "Orphan of Kos", "Moon Presence"], tags: ["Caçador", "Yharnam", "Grande Antigo"] },
+    { code: "COL-02-CP77", series: "Cyberpunk 2077", characters: ["V", "Johnny Silverhand", "David Martinez", "Lucy", "Rebecca", "Adam Smasher", "Judy Alvarez", "Panam Palmer", "Takemura", "Rogue"], tags: ["Mercenário", "Netrunner", "Night City"] },
+    { code: "COL-02-DS", series: "Dark Souls", characters: ["Chosen Undead", "Solaire of Astora", "Knight Artorias", "Lord Gwyn", "Ornstein", "Smough", "Siegmeyer", "Fire Keeper", "Slave Knight Gael", "Nameless King"], tags: ["Morto-Vivo", "Lorde de Cinder", "Cavaleiro"] },
+    { code: "COL-02-DMC", series: "Devil May Cry", characters: ["Dante", "Vergil", "Nero", "Trish", "Lady", "V", "Mundus", "Urizen", "Sparda", "Lucia"], tags: ["Caçador de Demônios", "Filho de Sparda"] },
+    { code: "COL-02-ER", series: "Elden Ring", characters: ["Tarnished", "Malenia", "Radahn", "Ranni the Witch", "Godfrey", "Morgott", "Maliketh", "Rykard", "Mohg", "Marika"], tags: ["Maculado", "Demideus", "Térvore"] },
+    { code: "COL-02-FF", series: "Final Fantasy", characters: ["Cloud Strife", "Sephiroth", "Noctis Lucis Caelum", "Squall Leonhart", "Tidus", "Lightning", "Clive Rosfield", "Aerith Gainsborough", "Vivi Ornitier", "Kefka Palazzo"], tags: ["Guerreiro da Luz", "SOLDIER", "Summoner"] },
+    { code: "COL-02-GOW", series: "God of War", characters: ["Kratos", "Atreus", "Freya", "Thor", "Odin", "Zeus", "Baldur", "Valkyrie Sigrun", "Ares", "Athena"], tags: ["Deus da Guerra", "Panteão", "Espartano"] },
+    { code: "COL-02-LOL", series: "League of Legends", characters: ["Ahri", "Yasuo", "Zed", "Lux", "Katarina", "Viego", "Thresh", "Darius", "Garen", "Ryze"], tags: ["Campeão", "Runeterra", "Ionia", "Noxus"] },
+    { code: "COL-02-MK", series: "Mortal Kombat", characters: ["Scorpion", "Sub-Zero", "Raiden", "Liu Kang", "Shang Tsung", "Shao Kahn", "Johnny Cage", "Sonya Blade", "Kitana", "Mileena"], tags: ["Protetor de Earthrealm", "Outworld", "Shirai Ryu"] },
+    { code: "COL-02-SKR", series: "Skyrim", characters: ["Dragonborn", "Alduin", "Paarthurnax", "Ulfric Stormcloak", "General Tullius", "Astrid", "Mercer Frey", "Miraak", "Serana", "Sheogorath"], tags: ["Dovahkiin", "Dragão", "Skyrim"] },
+    { code: "COL-02-TLOU", series: "The Last of Us", characters: ["Joel Miller", "Ellie Williams", "Abby Anderson", "Tommy Miller", "Tess", "Marlene", "Bill", "David", "Lev", "Dina"], tags: ["Sobrevivente", "Vira-Lupa", "Imune"] },
+    { code: "COL-02-ZLD", series: "The Legend of Zelda", characters: ["Link", "Princess Zelda", "Ganondorf", "Midna", "Urbosa", "Rebali", "Daruk", "Mipha", "Skull Kid", "Fi"], tags: ["Heroi do Tempo", "Triforce", "Hyrule"] },
+    { code: "COL-02-WITCHER", series: "The Witcher", characters: ["Geralt of Rivia", "Yennefer of Vengerberg", "Ciri", "Triss Merigold", "Vesemir", "Dandelion", "Letho of Gulet", "Eredin", "Gaunter O'Dimm", "Regis"], tags: ["Bruxo", "Escola do Lobo", "Caçada Selvagem"] },
 
-    // COL-03 — CINEMA & FRANQUIAS (8)
-    { code: "COL-03-DC", series: "DC Universe", energy: "Speed Force & Poder Cósmico", characters: ["Batman", "Superman", "Wonder Woman", "The Flash", "Green Lantern", "Joker", "Harley Quinn", "Nightwing", "Superboy", "Virgil Hawkins (Super-Choque)", "Gear (Richie)", "Miss Martian", "Aqualad", "Artemis Crock", "Ebon", "Darkseid"], tags: ["DC Universe", "Liga da Justiça", "Bat-família", "Justiça Jovem", "Metahumano"] },
-    { code: "COL-03-DUNE", series: "Dune", energy: "Especiaria Melange", characters: ["Paul Atreides", "Chani", "Lady Jessica", "Duke Leto", "Baron Harkonnen", "Feyd-Rautha", "Duncan Idaho", "Gurney Halleck", "Stilgar", "Princess Irulan"], tags: ["Fremen", "Atreides", "Bene Gesserit"] },
-    { code: "COL-03-GOT", series: "Game of Thrones", energy: "Fogo & Sangue", characters: ["Jon Snow", "Daenerys Targaryen", "Tyrion Lannister", "Arya Stark", "Jaime Lannister", "Cersei Lannister", "Night King", "Ned Stark", "Oberyn Martell", "Brienne of Tarth"], tags: ["Casa Stark", "Targaryen", "Lannister", "Patrulha da Noite"] },
-    { code: "COL-03-HP", series: "Harry Potter", energy: "Magia de Hogwarts", characters: ["Harry Potter", "Albus Dumbledore", "Lord Voldemort", "Severus Snape", "Hermione Granger", "Ron Weasley", "Sirius Black", "Bellatrix Lestrange", "Rubeus Hagrid", "Draco Malfoy"], tags: ["Bruxo", "Hogwarts", "Gryffindor", "Comensal da Morte"] },
-    { code: "COL-03-LOTR", series: "Lord of the Rings", energy: "Magia da Terra-Média", characters: ["Aragorn", "Gandalf", "Frodo Baggins", "Legolas", "Gimli", "Sauron", "Gollum", "Galadriel", "Samwise Gamgee", "Boromir"], tags: ["Sociedade do Anel", "Mago ISTARI", "Elfo", "Anão"] },
-    { code: "COL-03-SW", series: "Star Wars", energy: "A Força", characters: ["Luke Skywalker", "Darth Vader", "Yoda", "Obi-Wan Kenobi", "Emperor Palpatine", "Ahsoka Tano", "Han Solo", "Princess Leia", "Darth Maul", "Din Djarin"], tags: ["Ordem Jedi", "Império Sith", "Mandaloriano"] },
-    { code: "COL-03-BOYS", series: "The Boys", energy: "Composto V", characters: ["Homelander", "Billy Butcher", "Hughie Campbell", "Starlight", "Soldier Boy", "Black Noir", "A-Train", "Queen Maeve", "Victoria Neuman", "Stormfront"], tags: ["Vought", "Os Sete", "Os Boys"] },
-    { code: "COL-03-MARVEL", series: "Marvel Comics Universe", energy: "Poder Mutante & Cósmico", characters: ["Iron Man", "Captain America", "Thor", "Spider-Man", "Wolverine", "Magneto", "Thanos", "Doctor Strange", "Scarlet Witch", "Deadpool"], tags: ["Vingadores", "X-Men", "Joia do Infinito"] },
+    { code: "COL-03-DC", series: "DC Universe", characters: ["Batman", "Superman", "Wonder Woman", "The Flash", "Green Lantern", "Joker", "Harley Quinn", "Nightwing", "Superboy", "Virgil Hawkins (Super-Choque)", "Gear (Richie)", "Miss Martian", "Aqualad", "Artemis Crock", "Ebon", "Darkseid"], tags: ["DC Universe", "Liga da Justiça", "Bat-família", "Justiça Jovem", "Metahumano"] },
+    { code: "COL-03-DUNE", series: "Dune", characters: ["Paul Atreides", "Chani", "Lady Jessica", "Duke Leto", "Baron Harkonnen", "Feyd-Rautha", "Duncan Idaho", "Gurney Halleck", "Stilgar", "Princess Irulan"], tags: ["Fremen", "Atreides", "Bene Gesserit"] },
+    { code: "COL-03-GOT", series: "Game of Thrones", characters: ["Jon Snow", "Daenerys Targaryen", "Tyrion Lannister", "Arya Stark", "Jaime Lannister", "Cersei Lannister", "Night King", "Ned Stark", "Oberyn Martell", "Brienne of Tarth"], tags: ["Casa Stark", "Targaryen", "Lannister", "Patrulha da Noite"] },
+    { code: "COL-03-HP", series: "Harry Potter", characters: ["Harry Potter", "Albus Dumbledore", "Lord Voldemort", "Severus Snape", "Hermione Granger", "Ron Weasley", "Sirius Black", "Bellatrix Lestrange", "Rubeus Hagrid", "Draco Malfoy"], tags: ["Bruxo", "Hogwarts", "Gryffindor", "Comensal da Morte"] },
+    { code: "COL-03-LOTR", series: "Lord of the Rings", characters: ["Aragorn", "Gandalf", "Frodo Baggins", "Legolas", "Gimli", "Sauron", "Gollum", "Galadriel", "Samwise Gamgee", "Boromir"], tags: ["Sociedade do Anel", "Mago ISTARI", "Elfo", "Anão"] },
+    { code: "COL-03-SW", series: "Star Wars", characters: ["Luke Skywalker", "Darth Vader", "Yoda", "Obi-Wan Kenobi", "Emperor Palpatine", "Ahsoka Tano", "Han Solo", "Princess Leia", "Darth Maul", "Din Djarin"], tags: ["Ordem Jedi", "Império Sith", "Mandaloriano"] },
+    { code: "COL-03-BOYS", series: "The Boys", characters: ["Homelander", "Billy Butcher", "Hughie Campbell", "Starlight", "Soldier Boy", "Black Noir", "A-Train", "Queen Maeve", "Victoria Neuman", "Stormfront"], tags: ["Vought", "Os Sete", "Os Boys"] },
+    { code: "COL-03-MARVEL", series: "Marvel Comics Universe", characters: ["Iron Man", "Captain America", "Thor", "Spider-Man", "Wolverine", "Magneto", "Thanos", "Doctor Strange", "Scarlet Witch", "Deadpool"], tags: ["Vingadores", "X-Men", "Joia do Infinito"] },
 
-    // COL-04 — SÉRIES & ANIMAÇÃO OCIDENTAL (7)
-    { code: "COL-04-ARC", series: "Arcane", energy: "Cristal Hextech & Cintila", characters: ["Vi", "Jinx", "Jayce", "Viktor", "Silco", "Caitlyn", "Ekko", "Mel Medarda", "Vander", "Heimerdinger"], tags: ["Piltover", "Zaun", "Hextech"] },
-    { code: "COL-04-ATLA", series: "Avatar: The Last Airbender", energy: "Dobra dos 4 Elementos", characters: ["Aang", "Zuko", "Katara", "Sokka", "Toph Beifong", "Iroh", "Azula", "Fire Lord Ozai", "Appa", "Suki"], tags: ["Avatar", "Nação do Fogo", "Tribo da Água"] },
-    { code: "COL-04-BEN10", series: "Ben 10", energy: "DNA Alienígena (Omnitrix)", characters: ["Ben Tennyson", "Gwen Tennyson", "Kevin Levin", "Grandpa Max", "Vilgax", "Heatblast", "Four Arms", "XLR8", "Alien X", "Albedo"], tags: ["Omnitrix", "Encanador", "Alienígena"] },
-    { code: "COL-04-CASTLEVANIA", series: "Castlevania", energy: "Magia Alquímica & Sangue", characters: ["Trevor Belmont", "Sypha Belnades", "Alucard", "Dracula Vlad Tepes", "Carmilla", "Isaac", "Hector", "Death", "Lenore", "Saint Germain"], tags: ["Clã Belmont", "Vampiro", "Forjador de Forja"] },
-    { code: "COL-04-HAZBIN", series: "Hazbin Hotel", energy: "Fogo Infernal & Luz Celestial", characters: ["Charlie Morningstar", "Vaggie", "Alastor", "Angel Dust", "Husk", "Niffty", "Lucifer Morningstar", "Adam", "Vox", "Carmilla Carmine"], tags: ["Hazbin Hotel", "Demonio Supremo", "Anjo"] },
-    { code: "COL-04-AT", series: "Hora de Aventura", energy: "Magia de Ooo", characters: ["Finn the Human", "Jake the Dog", "Marceline", "Princess Bubblegum", "Ice King", "Lich", "Flame Princess", "BMO", "Lemongrab", "Fern"], tags: ["Terra de Ooo", "Humano", "Reino Doce"] },
-    { code: "COL-04-INV", series: "Invencível", energy: "Genética Viltrumita", characters: ["Mark Grayson", "Omni-Man", "Atom Eve", "Allen the Alien", "Battle Beast", "Thragg", "Conquest", "Robot", "Rex Splode", "Cecil Stedman"], tags: ["Viltrumita", "Guardião do Globo"] },
+    { code: "COL-04-ARC", series: "Arcane", characters: ["Vi", "Jinx", "Jayce", "Viktor", "Silco", "Caitlyn", "Ekko", "Mel Medarda", "Vander", "Heimerdinger"], tags: ["Piltover", "Zaun", "Hextech"] },
+    { code: "COL-04-ATLA", series: "Avatar: The Last Airbender", characters: ["Aang", "Zuko", "Katara", "Sokka", "Toph Beifong", "Iroh", "Azula", "Fire Lord Ozai", "Appa", "Suki"], tags: ["Avatar", "Nação do Fogo", "Tribo da Água"] },
+    { code: "COL-04-BEN10", series: "Ben 10", characters: ["Ben Tennyson", "Gwen Tennyson", "Kevin Levin", "Grandpa Max", "Vilgax", "Heatblast", "Four Arms", "XLR8", "Alien X", "Albedo"], tags: ["Omnitrix", "Encanador", "Alienígena"] },
+    { code: "COL-04-CASTLEVANIA", series: "Castlevania", characters: ["Trevor Belmont", "Sypha Belnades", "Alucard", "Dracula Vlad Tepes", "Carmilla", "Isaac", "Hector", "Death", "Lenore", "Saint Germain"], tags: ["Clã Belmont", "Vampiro", "Forjador de Forja"] },
+    { code: "COL-04-HAZBIN", series: "Hazbin Hotel", characters: ["Charlie Morningstar", "Vaggie", "Alastor", "Angel Dust", "Husk", "Niffty", "Lucifer Morningstar", "Adam", "Vox", "Carmilla Carmine"], tags: ["Hazbin Hotel", "Demonio Supremo", "Anjo"] },
+    { code: "COL-04-AT", series: "Hora de Aventura", characters: ["Finn the Human", "Jake the Dog", "Marceline", "Princess Bubblegum", "Ice King", "Lich", "Flame Princess", "BMO", "Lemongrab", "Fern"], tags: ["Terra de Ooo", "Humano", "Reino Doce"] },
+    { code: "COL-04-INV", series: "Invencível", characters: ["Mark Grayson", "Omni-Man", "Atom Eve", "Allen the Alien", "Battle Beast", "Thragg", "Conquest", "Robot", "Rex Splode", "Cecil Stedman"], tags: ["Viltrumita", "Guardião do Globo"] },
 
-    // COL-05 — MITOLOGIAS (6)
-    { code: "COL-05-EGY", series: "Mitologia Egípcia", energy: "Poder Solar do Nilo", characters: ["Rá", "Anúbis", "Osíris", "Ísis", "Seth", "Hórus", "Thoth", "Bastet", "Sobek", "Sekhmet"], tags: ["Deus Egípcio", "Faraó", "Nilo"] },
-    { code: "COL-05-GRK", series: "Mitologia Grega", energy: "Néctar & Ambrósia Olímpica", characters: ["Zeus", "Poseidon", "Hades", "Atena", "Apolo", "Áres", "Hércules", "Perseu", "Medusa", "Cronos"], tags: ["Olimpo", "Deus Grego", "Titã"] },
-    { code: "COL-05-JPN", series: "Mitologia Japonesa", energy: "Espírito Shinto & Kami", characters: ["Amaterasu", "Susanoo", "Tsukuyomi", "Izanagi", "Izanami", "Raijin", "Fujin", "Kaguya-hime", "Ryujin", "Orochi"], tags: ["Kami", "Shinto", "Yokai"] },
-    { code: "COL-05-POLYNESIAN", series: "Mitologia Maori & Polinésia", energy: "Mana dos Mares", characters: ["Maui", "Pele", "Tangaroa", "Tane", "Kamapua'a", "Hina", "Haumea", "Ku", "Lono", "Kanaloa"], tags: ["Pacífico", "Mana Ancestral", "Semi-Deus"] },
-    { code: "COL-05-MESO", series: "Mitologia Mesopotâmica", energy: "Tábua dos Destinos", characters: ["Gilgamesh", "Enkidu", "Ishtar", "Marduk", "Tiamat", "Enki", "Humbaba", "Ereshkigal", "Nergal", "Ningal"], tags: ["Mesopotâmia", "Uruk", "Deus Ancestral"] },
-    { code: "COL-05-NORSE", series: "Mitologia Nórdica", energy: "Runas de Yggdrasil", characters: ["Odin", "Thor", "Loki", "Freya", "Heimdall", "Tyr", "Fenrir", "Jormungandr", "Surtr", "Hel"], tags: ["Asgard", "Deus Nórdico", "Ragnarok"] },
+    { code: "COL-05-EGY", series: "Mitologia Egípcia", characters: ["Rá", "Anúbis", "Osíris", "Ísis", "Seth", "Hórus", "Thoth", "Bastet", "Sobek", "Sekhmet"], tags: ["Deus Egípcio", "Faraó", "Nilo"] },
+    { code: "COL-05-GRK", series: "Mitologia Grega", characters: ["Zeus", "Poseidon", "Hades", "Atena", "Apolo", "Áres", "Hércules", "Perseu", "Medusa", "Cronos"], tags: ["Olimpo", "Deus Grego", "Titã"] },
+    { code: "COL-05-JPN", series: "Mitologia Japonesa", characters: ["Amaterasu", "Susanoo", "Tsukuyomi", "Izanagi", "Izanami", "Raijin", "Fujin", "Kaguya-hime", "Ryujin", "Orochi"], tags: ["Kami", "Shinto", "Yokai"] },
+    { code: "COL-05-POLYNESIAN", series: "Mitologia Maori & Polinésia", characters: ["Maui", "Pele", "Tangaroa", "Tane", "Kamapua'a", "Hina", "Haumea", "Ku", "Lono", "Kanaloa"], tags: ["Pacífico", "Mana Ancestral", "Semi-Deus"] },
+    { code: "COL-05-MESO", series: "Mitologia Mesopotâmica", characters: ["Gilgamesh", "Enkidu", "Ishtar", "Marduk", "Tiamat", "Enki", "Humbaba", "Ereshkigal", "Nergal", "Ningal"], tags: ["Mesopotâmia", "Uruk", "Deus Ancestral"] },
+    { code: "COL-05-NORSE", series: "Mitologia Nórdica", characters: ["Odin", "Thor", "Loki", "Freya", "Heimdall", "Tyr", "Fenrir", "Jormungandr", "Surtr", "Hel"], tags: ["Asgard", "Deus Nórdico", "Ragnarok"] },
 
-    // COL-06 — HISTÓRICOS & REALIDADE (4)
-    { code: "COL-06-ANTIQUITY", series: "Antiguidade Clássica", energy: "Estratégia Imperial", characters: ["Júlio César", "Alexandre o Grande", "Leonidas I", "Cleópatra", "Sócrates", "Platão", "Aníbal Barca", "Augusto", "Cícero", "Péricles"], tags: ["Imperador", "Filósofo", "Estrategista"] },
-    { code: "COL-06-REVOLUTIONS", series: "Era das Revoluções", energy: "Ideal Revolucionário", characters: ["Napoleão Bonaparte", "George Washington", "Simón Bolívar", "Joana d'Arc", "Maximilien Robespierre", "Abraham Lincoln", "Giuseppe Garibaldi", "Sun Tzu", "Otto von Bismarck", "Che Guevara"], tags: ["Líder Revolucionário", "General"] },
-    { code: "COL-06-ART", series: "Mestres da Arte & Ciência", energy: "Genialidade Humana", characters: ["Leonardo da Vinci", "Nikola Tesla", "Albert Einstein", "Isaac Newton", "Galileo Galilei", "Marie Curie", "Michelangelo", "Vincent van Gogh", "Charles Darwin", "Alan Turing"], tags: ["Inventor", "Cientista", "Artista"] },
-    { code: "COL-06-FEUDAL", series: "Japão Feudal & Samurai", energy: "Código Bushido", characters: ["Miyamoto Musashi", "Oda Nobunaga", "Tokugawa Ieyasu", "Toyotomi Hideyoshi", "Hattori Hanzo", "Yasuke", "Sanada Yukimura", "Tomoe Gozen", "Date Masamune", "Saigo Takamori"], tags: ["Samurai", "Shogun", "Shinobi", "Ronin"] }
+    { code: "COL-06-ANTIQUITY", series: "Antiguidade Clássica", characters: ["Júlio César", "Alexandre o Grande", "Leonidas I", "Cleópatra", "Sócrates", "Platão", "Aníbal Barca", "Augusto", "Cícero", "Péricles"], tags: ["Imperador", "Filósofo", "Estrategista"] },
+    { code: "COL-06-REVOLUTIONS", series: "Era das Revoluções", characters: ["Napoleão Bonaparte", "George Washington", "Simón Bolívar", "Joana d'Arc", "Maximilien Robespierre", "Abraham Lincoln", "Giuseppe Garibaldi", "Sun Tzu", "Otto von Bismarck", "Che Guevara"], tags: ["Líder Revolucionário", "General"] },
+    { code: "COL-06-ART", series: "Mestres da Arte & Ciência", characters: ["Leonardo da Vinci", "Nikola Tesla", "Albert Einstein", "Isaac Newton", "Galileo Galilei", "Marie Curie", "Michelangelo", "Vincent van Gogh", "Charles Darwin", "Alan Turing"], tags: ["Inventor", "Cientista", "Artista"] },
+    { code: "COL-06-FEUDAL", series: "Japão Feudal & Samurai", characters: ["Miyamoto Musashi", "Oda Nobunaga", "Tokugawa Ieyasu", "Toyotomi Hideyoshi", "Hattori Hanzo", "Yasuke", "Sanada Yukimura", "Tomoe Gozen", "Date Masamune", "Saigo Takamori"], tags: ["Samurai", "Shogun", "Shinobi", "Ronin"] }
   ];
-
-  let globalCounter = 100;
 
   seriesList.forEach(group => {
     group.characters.forEach((charName, index) => {
-      globalCounter++;
       let rarity = "C";
       if (index === 0) rarity = "MR";
       else if (index === 1) rarity = "LR";
@@ -228,46 +216,6 @@ export function generateExpandedCards() {
       else if (index < 7) rarity = "SR";
       else if (index < 9) rarity = "R";
       else rarity = "UC";
-
-      const roles = ["Combatente", "Mago", "Tanque", "Assassino", "Suporte", "Atirador", "Líder", "Cientista", "Detetive", "Invocador"];
-      const personalitiesPool = [
-        ["Determinado", "Estratégico", "Inspirador"],
-        ["Caótico", "Impiedoso", "Dominador"],
-        ["Calculista", "Pragmático", "Observador"],
-        ["Idealista", "Altruísta", "Protetor"],
-        ["Visionário", "Carismático", "Adaptável"],
-        ["Reservado", "Persistente", "Intuitivo"]
-      ];
-      const identityPool = [
-        ["Herói", "Humano"],
-        ["Vilão", "Entidade"],
-        ["Anti-herói", "Mutante"],
-        ["Deus", "Entidade"],
-        ["Alienígena", "Combatente"],
-        ["Civil", "Humano"]
-      ];
-      const originPool = [
-        ["Mística", "Divina"],
-        ["Tecnológica", "Artificial"],
-        ["Cósmica", "Dimensional"],
-        ["Biológica", "Mutante"],
-        ["Temporal", "Experimental"]
-      ];
-      const powerTypePool = ["Físico", "Mental", "Mágico", "Cósmico", "Tecnológico", "Temporal", "Espacial", "Biológico", "Elemental", "Multiversal"];
-
-      let narrative_role = "Coadjuvante";
-      if (index === 0) narrative_role = "Protagonista";
-      else if (index === 1) narrative_role = "Antagonista";
-      else if (index === 2) narrative_role = "Anti-herói";
-      else if (index < 5) narrative_role = "Aliado";
-      else if (index < 8) narrative_role = "Rival";
-      else narrative_role = "NPC";
-
-      const characterClass = roles[index % roles.length];
-      const personality = personalitiesPool[index % personalitiesPool.length];
-      const identity = identityPool[index % identityPool.length];
-      const origin = originPool[index % originPool.length];
-      const power_type = powerTypePool[index % powerTypePool.length];
 
       const cardCode = `${group.code}-CHR-${rarity}-${String(index + 1).padStart(3, '0')}`;
 
@@ -278,16 +226,17 @@ export function generateExpandedCards() {
         collection_id: group.code,
         series: group.series,
         rarity: rarity,
-        role: characterClass,
-        gender: index % 2 === 0 ? "Male" : "Female",
-        narrative_role: narrative_role,
-        personality: personality,
-        identity: identity,
-        origin: origin,
-        class: characterClass,
-        power_type: power_type,
         tags: group.tags,
-        mag_source: group.energy,
+        // Gameplay stats (separated from canonical lore)
+        gameplay: {
+          hp: 350 + (index * 25),
+          attack: 110 + (index * 7),
+          defense: 80 + (index * 5),
+          speed: 95 + (index * 6),
+          rarity: rarity,
+          role: "Combatente"
+        },
+        // Backwards compatibility properties (real numerical values)
         mag: 90 + (index * 6),
         attack: 110 + (index * 7),
         defense: 80 + (index * 5),
@@ -296,12 +245,9 @@ export function generateExpandedCards() {
         image_url: "",
         img_oficial: "",
         img_custom: "",
-        lore: `${charName} é uma figura lendária de ${group.series}. Domina ${group.energy} com perfil ${personality.join(", ")} e papel de ${narrative_role}.`,
-        skills: [
-          { name: `Habilidade de ${charName}`, description: `Canaliza poder do tipo ${power_type} utilizando ${group.energy}.`, type: "Active" },
-          { name: `Despertar Supremo`, description: `Aumenta ATQ e VEL em +35% durante 3 turnos.`, type: "Ultimate" }
-        ],
-        version: "Standard Form",
+        // Canonical lore left clean, uninvented unless fetched
+        lore: "",
+        skills: [],
         created_date: new Date().toISOString()
       });
     });

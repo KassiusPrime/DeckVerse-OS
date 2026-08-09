@@ -65,6 +65,46 @@ export async function validateImageUrl(url, timeoutMs = 3000) {
 }
 
 /**
+ * Detecta se a entidade possui mídia de imagem utilizável nos campos legítimos do projeto
+ */
+export function hasUsableMedia(entity = {}) {
+  if (!entity || typeof entity !== "object") return false;
+
+  const candidate =
+    entity.img_custom ||
+    entity.img_oficial ||
+    entity.image_url ||
+    entity.image ||
+    entity.imageUrl ||
+    entity.img ||
+    entity.img_url ||
+    entity.canonical?.image ||
+    entity.canonical?.imageUrl ||
+    entity.canonical?.image_url ||
+    entity.media?.image ||
+    entity.media?.url;
+
+  if (typeof candidate === "string" && candidate.trim().length > 0) {
+    const clean = candidate.trim();
+    if (
+      clean.startsWith("http") ||
+      clean.startsWith("data:") ||
+      clean.startsWith("/")
+    ) {
+      if (
+        !clean.includes("placeholder") &&
+        !clean.includes("broken") &&
+        !clean.includes("null") &&
+        !clean.includes("undefined")
+      ) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/**
  * Avaliação Completa de uma Entidade pelo Pipeline Canônico de 6 Gates
  */
 export function evaluateEntityPipeline(item = {}) {
@@ -78,11 +118,14 @@ export function evaluateEntityPipeline(item = {}) {
   const collectionCode = colEval.collectionCode;
   const collectionConfidence = colEval.collectionConfidence;
 
+  // Short name policy: name.length < 3 does NOT force quarantine if context is clear
+  const shortName = Boolean(name && name.length > 0 && name.length < 3);
+
   // Gate 3: Identity Gate
-  const identityConfidence = name.length >= 3 && !typeDetail.syntheticAlert ? 0.95 : 0.40;
+  const identityConfidence = name.length > 0 && !typeDetail.syntheticAlert ? 0.95 : 0.40;
 
   // Gate 5: Data Completeness
-  const hasImage = Boolean(item.img_custom || item.img_oficial || item.image_url);
+  const hasImage = hasUsableMedia(item);
   const hasLore = Boolean(item.lore && item.lore.length >= 10);
   const hasStats = Boolean((item.attack || item.defense || item.hp) && (item.attack > 0 || item.hp > 0));
 
@@ -100,14 +143,38 @@ export function evaluateEntityPipeline(item = {}) {
   const suspectedWikiPage = Boolean(typeDetail.isWikiGallerySubpage);
   const syntheticEntity = Boolean(typeDetail.syntheticAlert);
 
-  // DETERMINAÇÃO DO ESTADO PRIMÁRIO (MUTUAMENTE EXCLUSIVO)
-  // Valores possíveis: "valid" | "quarantine" | "invalid" | "metadata" | "unknown"
+  // Se o registro no runtime DB tiver status explícito de quarentena, o DQE observa diretamente
+  if (item.status === "quarantine") {
+    return {
+      entityType: typeDetail.entityType,
+      metadataType: typeDetail.metadataType,
+      isCardAllowed: typeDetail.isCardAllowed,
+      entityTypeConfidence: typeDetail.entityTypeConfidence,
+      suggestedCollection: collectionCode,
+      collectionConfidence,
+      identityConfidence,
+      qualityScore,
+      primaryState: "quarantine",
+      reason: item.rejection_reason || "Retido em quarentena no banco de dados.",
+      flags: {
+        collectionConflict,
+        duplicateRisk: false,
+        lowConfidence,
+        missingMedia,
+        shortName,
+        suspectedWikiPage,
+        syntheticEntity
+      }
+    };
+  }
+
+  // DETERMINAÇÃO DO ESTADO PRIMÁRIO (MUTUAMENTE EXCLUSIVO: valid | quarantine | invalid | unknown)
   let primaryState = "quarantine";
   let reason = "";
 
-  if (typeDetail.entityType === "metadata") {
-    primaryState = "metadata";
-    reason = typeDetail.reason || "Metadado canônico validado.";
+  if (typeDetail.entityType === "metadata" || typeDetail.entityType === "collection") {
+    primaryState = collectionConflict ? "quarantine" : "valid";
+    reason = typeDetail.reason || "Entidade/Metadado canônico validado.";
   } else if (typeDetail.entityType === "invalid") {
     primaryState = "invalid";
     reason = typeDetail.reason || "Registro estruturalmente inválido.";
@@ -122,9 +189,8 @@ export function evaluateEntityPipeline(item = {}) {
     reason = `COLLECTION_CONFLICT: Coleção incerta ou genérica (${collectionCode}, ${(collectionConfidence * 100).toFixed(0)}%).`;
   } else if (typeDetail.isCardAllowed && collectionConfidence >= 0.80 && identityConfidence >= 0.80) {
     // Entidades válidas com identidade e coleção confirmadas permanecem VÁLIDAS.
-    // Imagem ausente é registrada como flag (missingMedia), mas não joga a entidade em quarentena.
     primaryState = "valid";
-    reason = missingMedia ? "Aprovado com alta confiança. (Mídia de imagem pendente)" : "Aprovado com alta confiança em todos os gates.";
+    reason = shortName ? "Aprovado com alta confiança (Nome curto validado no contexto)." : (missingMedia ? "Aprovado com alta confiança. (Mídia de imagem pendente)" : "Aprovado com alta confiança em todos os gates.");
   } else {
     primaryState = "quarantine";
     reason = "Retido em quarentena para verificação de dados.";
@@ -146,6 +212,7 @@ export function evaluateEntityPipeline(item = {}) {
       duplicateRisk: false, // Atualizado no loop em lote
       lowConfidence,
       missingMedia,
+      shortName,
       suspectedWikiPage,
       syntheticEntity
     }
@@ -187,11 +254,12 @@ export async function runDataQualityAudit(options = {}) {
     validCount: 0,
     quarantineCount: 0,
     invalidCount: 0,
-    metadataCount: 0,
     unknownCount: 0,
+    collectionsCount: 0,
     charactersCount: 0,
     itemsCount: 0,
     bossesCount: 0,
+    metadataTypeCount: 0,
     flags: {
       collectionConflicts: 0,
       duplicateRisks: 0,
@@ -315,25 +383,34 @@ export async function runDataQualityAudit(options = {}) {
         }
       }
 
-      // Contagem de Estados Primários (MUTUAMENTE EXCLUSIVOS)
+      // Contagem de Estados Primários (MUTUAMENTE EXCLUSIVOS: valid | quarantine | invalid | unknown)
       if (evaluation.primaryState === "valid") report.validCount++;
       else if (evaluation.primaryState === "quarantine") report.quarantineCount++;
       else if (evaluation.primaryState === "invalid") report.invalidCount++;
-      else if (evaluation.primaryState === "metadata") report.metadataCount++;
       else report.unknownCount++;
 
-      // Contagem por Tipo de Entidade
-      if (evaluation.entityType === "character") report.charactersCount++;
+      // Contagem por Tipo de Entidade (MUTUAMENTE EXCLUSIVOS: collection | character | item | boss | metadata)
+      if (evaluation.entityType === "collection") report.collectionsCount++;
+      else if (evaluation.entityType === "character") report.charactersCount++;
       else if (evaluation.entityType === "item") report.itemsCount++;
       else if (evaluation.entityType === "boss") report.bossesCount++;
+      else report.metadataTypeCount++;
 
       // Contagem de Flags Secundárias (SOBREPOSTAS)
+      if (evaluation.flags.shortName) report.flags.shortNameCount = (report.flags.shortNameCount || 0) + 1;
       if (evaluation.flags.collectionConflict) {
         report.flags.collectionConflicts++;
+        const rawRef = record.collection_id || record.code || "COL-00-MULTI";
+        const resolvedId = (rawRef.startsWith("LORE-") ? null : resolveCollectionCode(rawRef));
+        const validCanonicalId = (resolvedId && CANONICAL_COLLECTION_CODES.includes(resolvedId)) ? resolvedId : null;
+
         collectionConflictsList.push({
           id: record.id,
           name: record.name || record.title,
-          currentCollection: record.collection_id || record.code || "COL-00-MULTI",
+          currentCollection: rawRef,
+          rawCollectionReference: rawRef,
+          resolvedCollectionCanonicalId: validCanonicalId,
+          conflictReason: evaluation.reason,
           suggestedCollection: evaluation.suggestedCollection,
           confidence: evaluation.collectionConfidence,
           reason: evaluation.reason
@@ -347,8 +424,6 @@ export async function runDataQualityAudit(options = {}) {
       // Preenchimento do Plano de Migração
       if (evaluation.primaryState === "valid") {
         report.migrationPlan.keepValid.push(record.id);
-      } else if (evaluation.primaryState === "metadata") {
-        report.migrationPlan.convertToMetadata.push({ id: record.id, name: record.name || record.title, metadataType: evaluation.metadataType });
       } else if (evaluation.primaryState === "invalid") {
         report.migrationPlan.invalidCandidates.push({ id: record.id, name: record.name || record.title, reason: evaluation.reason });
       } else {
@@ -364,11 +439,14 @@ export async function runDataQualityAudit(options = {}) {
         });
       }
 
-      // Registro da Proposta
+      // Registro da Proposta com rawType e canonicalEntityType explícitos
+      const rawType = record.type || record.entity_type || record._sourceTable || "character";
       const proposal = {
         cardId: record.id,
         name: record.name || record.title,
         sourceTable: record._sourceTable,
+        rawType: rawType,
+        canonicalEntityType: evaluation.entityType,
         currentType: record.type || "character",
         suggestedType: evaluation.entityType,
         metadataType: evaluation.metadataType,
@@ -403,38 +481,126 @@ export async function runDataQualityAudit(options = {}) {
 
     report.collectionConflicts = collectionConflictsList;
 
-    // Auditoria Completa das 95 Coleções Canônicas
+    // Indexação prévia de registros por código canônico resolvido via resolveCollectionCode
+    const recordsByCanonicalCode = {};
+    for (const code of CANONICAL_COLLECTION_CODES) {
+      recordsByCanonicalCode[code] = [];
+    }
+    for (const r of allRecords) {
+      const raw = r.collection_id || r.code || inferCollectionCode(r);
+      if (raw) {
+        const canonical = resolveCollectionCode(raw);
+        if (recordsByCanonicalCode[canonical]) {
+          recordsByCanonicalCode[canonical].push(r);
+        }
+      }
+    }
+
+    // Auditoria Completa das 95 Coleções Canônicas (Sem usar mídias para status operacional)
     report.collectionsAudit = CANONICAL_COLLECTION_CODES.map(code => {
-      const recordsInCol = allRecords.filter(r => (r.collection_id === code || r.code === code || inferCollectionCode(r) === code));
+      const recordsInCol = recordsByCanonicalCode[code] || [];
       const hasRecords = recordsInCol.length > 0;
-      const isAlias = Boolean(LEGACY_ALIASES[code]);
       const validFormat = /^COL-\d{2}-[A-Z0-9]+$/.test(code);
 
-      let status = "ACTIVE";
-      if (!validFormat) status = "INVALID";
-      else if (isAlias) status = "LEGACY_ALIAS";
-      else if (!hasRecords) status = "EMPTY";
-      else if (recordsInCol.some(r => !r.image_url && !r.img_custom && !r.img_oficial)) status = "MISSING_DATA";
+      let operationalStatus = "ACTIVE";
+      if (code === "COL-00-MULTI") {
+        operationalStatus = "RESERVED"; // Technical system namespace
+      } else if (!validFormat) {
+        operationalStatus = "INVALID";
+      } else if (!hasRecords) {
+        operationalStatus = "EMPTY";
+      } else {
+        const missingStructural = recordsInCol.some(r => !r.name || !r.id);
+        if (missingStructural) {
+          operationalStatus = "MISSING_DATA";
+        } else {
+          operationalStatus = "ACTIVE";
+        }
+      }
+
+      // Dimensão de Mídia Separada
+      let mediaStatus = "NOT_APPLICABLE";
+      if (hasRecords) {
+        const usableCount = recordsInCol.filter(r => hasUsableMedia(r)).length;
+        if (usableCount === recordsInCol.length) mediaStatus = "AVAILABLE";
+        else if (usableCount > 0) mediaStatus = "PARTIAL";
+        else mediaStatus = "MISSING";
+      }
 
       return {
         code,
-        status,
+        operationalStatus,
+        status: operationalStatus,
+        mediaStatus,
         recordCount: recordsInCol.length
       };
     });
 
-    // Invariante de soma estrita
-    const invariantSum = report.validCount + report.quarantineCount + report.metadataCount + report.invalidCount + report.unknownCount;
-    const isInvariantValid = invariantSum === report.totalAnalyzed;
+    report.entityTypes = {
+      collections: report.collectionsCount,
+      characters: report.charactersCount,
+      items: report.itemsCount,
+      bosses: report.bossesCount,
+      metadata: report.metadataTypeCount
+    };
 
-    report.invariantVerification = {
-      isValid: isInvariantValid,
-      formula: `${report.totalAnalyzed} (Total) = ${report.validCount} (Valid) + ${report.quarantineCount} (Quarantine) + ${report.metadataCount} (Metadata) + ${report.invalidCount} (Invalid) + ${report.unknownCount} (Unknown)`
+    const entityTypeSum =
+      report.collectionsCount +
+      report.charactersCount +
+      report.itemsCount +
+      report.bossesCount +
+      report.metadataTypeCount;
+    const entityTypeInvariantValid = entityTypeSum === report.totalAnalyzed;
+
+    report.statusTotals = {
+      valid: report.validCount,
+      quarantine: report.quarantineCount,
+      invalid: report.invalidCount,
+      unknown: report.unknownCount
+    };
+
+    const statusSum =
+      report.validCount +
+      report.quarantineCount +
+      report.invalidCount +
+      report.unknownCount;
+    const statusInvariantValid = statusSum === report.totalAnalyzed;
+
+    report.invariants = {
+      entityTypeAccounting: {
+        total: report.totalAnalyzed,
+        sum: entityTypeSum,
+        isValid: entityTypeInvariantValid
+      },
+      statusAccounting: {
+        total: report.totalAnalyzed,
+        sum: statusSum,
+        isValid: statusInvariantValid
+      }
+    };
+
+    function calcSourceComp(seedCount, persistedCount) {
+      if (persistedCount === 0) {
+        return { seed: seedCount, persisted: 0, overlap: 0, seedOnly: seedCount, persistedOnly: 0 };
+      }
+      const overlap = Math.min(seedCount, persistedCount);
+      const seedOnly = Math.max(0, seedCount - persistedCount);
+      const persistedOnly = Math.max(0, persistedCount - seedCount);
+      return { seed: seedCount, persisted: persistedCount, overlap, seedOnly, persistedOnly };
+    }
+
+    report.sourceComparison = {
+      characters: calcSourceComp(getAllExpandedCards().length, dbCards.length),
+      items: calcSourceComp((MEGA_ITEMS || []).length, dbItems.length),
+      bosses: calcSourceComp((MEGA_BOSSES || []).length, dbBosses.length),
+      collections: calcSourceComp((MEGA_COLLECTIONS || []).length, dbCollections.length),
+      metadata: calcSourceComp(0, dbLore.length + dbUniverses.length)
     };
 
     log(`✅ [DATA QUALITY ENGINE] Auditoria ${modeTag} concluída com sucesso!`, "success");
-    log(`  • Totais Analisados: ${report.totalAnalyzed} | Válidos: ${report.validCount} | Quarentena: ${report.quarantineCount} | Metadados: ${report.metadataCount} | Inválidos: ${report.invalidCount} | Desconhecidos: ${report.unknownCount}`, "info");
-    log(`  • Verificação da Equação Invariante: ${isInvariantValid ? "PASS" : "FAIL"} (${report.invariantVerification.formula})`, isInvariantValid ? "success" : "error");
+    log(`  • Totais Analisados: ${report.totalAnalyzed} | Válidos: ${report.validCount} | Quarentena: ${report.quarantineCount} | Inválidos: ${report.invalidCount} | Desconhecidos: ${report.unknownCount}`, "info");
+    log(`  • Invariante de Tipos (${entityTypeSum}/${report.totalAnalyzed}): ${entityTypeInvariantValid ? "PASS" : "FAIL"}`, entityTypeInvariantValid ? "success" : "error");
+    log(`  • Invariante de Status (${statusSum}/${report.totalAnalyzed}): ${statusInvariantValid ? "PASS" : "FAIL"}`, statusInvariantValid ? "success" : "error");
 
     // ⛔ PARADA OBRIGATÓRIA NO MODO PROPOSE (DRY-RUN / LEITURA)
     if (dryRun || mode === "PROPOSE") {

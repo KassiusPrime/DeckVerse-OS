@@ -1,0 +1,283 @@
+{
+  "timestamp": "2026-08-09T20:26:50.930Z",
+  "schemaVersion": "v10.0",
+  "name": "pre-first-apply-pilot-v10",
+  "affectedIds": [
+    "card_col_05_grk_4",
+    "card_col_05_grk_5",
+    "card_col_05_grk_6",
+    "item_aot_1",
+    "item_ber_1",
+    "card_col_02_er_2",
+    "card_col_02_ff_2",
+    "lore_1",
+    "card_col_02_cp77_1",
+    "col_naruto"
+  ],
+  "records": {
+    "cards": [
+      {
+        "id": "card_col_05_grk_4",
+        "name": "Atena",
+        "card_id": "COL-05-GRK-CHR-SSR-004",
+        "collection_id": "COL-05-GRK",
+        "series": "Mitologia Grega",
+        "rarity": "SSR",
+        "tags": [
+          "Olimpo",
+          "Deus Grego",
+          "Titã"
+        ],
+        "gameplay": {
+          "hp": 425,
+          "attack": 131,
+          "defense": 95,
+          "speed": 113,
+          "rarity": "SSR",
+          "role": "Combatente"
+        },
+        "mag": 108,
+        "attack": 131,
+        "defense": 95,
+        "speed": 113,
+        "hp": 425,
+        "image_url": "",
+        "img_oficial": "",
+        "img_custom": "",
+        "lore": "",
+        "skills": [],
+        "created_date": "2026-08-09T20:26:50.749Z"
+      },
+      {
+        "id": "card_col_05_grk_5",
+        "name": "Apolo",
+        "card_id": "COL-05-GRK-CHR-SSR-005",
+        "collection_id": "COL-05-GRK",
+        "series": "Mitologia Grega",
+        "rarity": "SSR",
+        "tags": [
+          "Olimpo",
+          "Deus Grego",
+          "Titã"
+        ],
+        "gameplay": {
+          "hp": 450,
+          "attack": 138,
+          "defense": 100,
+          "speed": 119,
+          "rarity": "SSR",
+          "role": "Combatente"
+        },
+        "mag": 114,
+        "attack": 138,
+        "defense": 100,
+        "speed": 119,
+        "hp": 450,
+        "image_url": "",
+        "img_oficial": "",
+        "img_custom": "",
+        "lore": "",
+        "skills": [],
+        "created_date": "2026-08-09T20:26:50.749Z"
+      },
+      {
+        "id": "card_col_05_grk_6",
+        "name": "Áres",
+        "card_id": "COL-05-GRK-CHR-SR-006",
+        "collection_id": "COL-05-GRK",
+        "series": "Mitologia Grega",
+        "rarity": "SR",
+        "tags": [
+          "Olimpo",
+          "Deus Grego",
+          "Titã"
+        ],
+        "gameplay": {
+          "hp": 475,
+          "attack": 145,
+          "defense": 105,
+          "speed": 125,
+          "rarity": "SR",
+          "role": "Combatente"
+        },
+        "mag": 120,
+        "attack": 145,
+        "defense": 105,
+        "speed": 125,
+        "hp": 475,
+        "image_url": "",
+        "img_oficial": "",
+        "img_custom": "",
+        "lore": "",
+        "skills": [],
+        "created_date": "2026-08-09T20:26:50.749Z"
+      },
+      {
+        "id": "card_col_02_er_2",
+        "name": "Malenia",
+        "card_id": "COL-02-ER-CHR-LR-002",
+        "collection_id": "COL-02-ER",
+        "series": "Elden Ring",
+        "rarity": "LR",
+        "tags": [
+          "Maculado",
+          "Demideus",
+          "Térvore"
+        ],
+        "gameplay": {
+          "hp": 375,
+          "attack": 117,
+          "defense": 85,
+          "speed": 101,
+          "rarity": "LR",
+          "role": "Combatente"
+        },
+        "mag": 96,
+        "attack": 117,
+        "defense": 85,
+        "speed": 101,
+        "hp": 375,
+        "image_url": "",
+        "img_oficial": "",
+        "img_custom": "",
+        "lore": "",
+        "skills": [],
+        "created_date": "2026-08-09T20:26:50.749Z"
+      },
+      {
+        "id": "card_col_02_ff_2",
+        "name": "Sephiroth",
+        "card_id": "COL-02-FF-CHR-LR-002",
+        "collection_id": "COL-02-FF",
+        "series": "Final Fantasy",
+        "rarity": "LR",
+        "tags": [
+          "Guerreiro da Luz",
+          "SOLDIER",
+          "Summoner"
+        ],
+        "gameplay": {
+          "hp": 375,
+          "attack": 117,
+          "defense": 85,
+          "speed": 101,
+          "rarity": "LR",
+          "role": "Combatente"
+        },
+        "mag": 96,
+        "attack": 117,
+        "defense": 85,
+        "speed": 101,
+        "hp": 375,
+        "image_url": "",
+        "img_oficial": "",
+        "img_custom": "",
+        "lore": "",
+        "skills": [],
+        "created_date": "2026-08-09T20:26:50.749Z"
+      },
+      {
+        "id": "card_col_02_cp77_1",
+        "name": "V",
+        "card_id": "COL-02-CP77-CHR-MR-001",
+        "collection_id": "COL-02-CP77",
+        "series": "Cyberpunk 2077",
+        "rarity": "MR",
+        "tags": [
+          "Mercenário",
+          "Netrunner",
+          "Night City"
+        ],
+        "gameplay": {
+          "hp": 350,
+          "attack": 110,
+          "defense": 80,
+          "speed": 95,
+          "rarity": "MR",
+          "role": "Combatente"
+        },
+        "mag": 90,
+        "attack": 110,
+        "defense": 80,
+        "speed": 95,
+        "hp": 350,
+        "image_url": "",
+        "img_oficial": "",
+        "img_custom": "",
+        "lore": "",
+        "skills": [],
+        "created_date": "2026-08-09T20:26:50.748Z"
+      }
+    ],
+    "items": [
+      {
+        "id": "item_aot_1",
+        "item_code": "AOT-ITM-001",
+        "name": "Equipamento DMT Tridimensional",
+        "rarity": "SR",
+        "type": "Equipment",
+        "effect": "+40 VEL e Evasão elevada contra inimigos colossais.",
+        "series": "Attack on Titan",
+        "collection_id": "COL-01-AOT",
+        "image_url": ""
+      },
+      {
+        "id": "item_ber_1",
+        "item_code": "BER-ITM-001",
+        "name": "Armadura Berserker",
+        "rarity": "UR",
+        "type": "Artifact",
+        "effect": "Ignora dor e aumenta ATQ em +80% quando com HP crítico.",
+        "series": "Berserk",
+        "collection_id": "COL-01-BER",
+        "image_url": ""
+      }
+    ],
+    "lore": [
+      {
+        "id": "lore_1",
+        "title": "Genesis of the Multiverse Convergence",
+        "code": "LORE-COS-CORE-001",
+        "category": "Cosmology & Origins",
+        "era": "Genesis Epoch",
+        "clearance_level": "OMEGA-LEVEL",
+        "author": "Archivist AI Core // Node-01",
+        "summary": "Telemetry record detailing the sudden collapse of dimensional boundaries, unifying Shinobi, Sorcerers, Titans, and Netrunners into DeckVerse OS.",
+        "content": "At epoch index T-0.0042, quantum space collapsed across sub-dimensional sectors 01 through 09. Energy signatures from Chakra, Cursed Energy, God Ki, and Neural Cybernetics collided at the nexus point, giving birth to the DeckVerse matrix.\n\nAll entities transformed into digital energy cards locked inside hyper-dense crystalline matrices. Wardens now operate deep-space terminals to summon, combine, and deploy these heroes in orbital PVE arenas.",
+        "image_url": "https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=800&auto=format&fit=crop&q=80",
+        "tags": [
+          "Multiverse",
+          "Nexus",
+          "Genesis",
+          "Matrix",
+          "DeckVerse"
+        ],
+        "related_series": "DeckVerse Core",
+        "created_date": "2026-07-01T00:00:00Z"
+      }
+    ],
+    "collections": [
+      {
+        "id": "col_naruto",
+        "code": "COL-01-NAR",
+        "bank": "COL-01",
+        "name": "Naruto Shippuden",
+        "category": "Anime",
+        "publisher": "Shueisha",
+        "description": "🍥 Ninjas de Konoha, Akatsuki, Hokages e Jinchurikis",
+        "image_url": "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&auto=format&fit=crop&q=80",
+        "color_primary": "#EA580C",
+        "color_secondary": "#1E3A8A"
+      }
+    ]
+  },
+  "beforeCounts": {
+    "characters": 606,
+    "items": 38,
+    "bosses": 10,
+    "metadata": 6,
+    "quarantine": 0,
+    "collections": 60,
+    "total": 720
+  }
+}

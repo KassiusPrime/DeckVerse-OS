@@ -272,9 +272,16 @@
   }
 
   /* Global tap target minimum & user-select for interactive elements */
-  button, a, [role="button"], label[for], select, input[type="checkbox"], input[type="radio"] {
+  button, a, [role="button"], label[for], select {
     min-height: 44px;
     min-width: 44px;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  input[type="checkbox"], input[type="radio"] {
+    min-height: auto;
+    min-width: auto;
     user-select: none;
     -webkit-user-select: none;
   }

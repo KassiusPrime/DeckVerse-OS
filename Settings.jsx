@@ -107,13 +107,13 @@ export default function Settings() {
 
   const handleAdminUnlock = (e) => {
     e.preventDefault();
-    if (adminPassword === "OS_OVERRIDE_99" || adminPassword === "admin") {
+    if (user?.role === "admin" || (adminPassword && adminController.verifyAdminKey(adminPassword))) {
       setIsAdminUnlocked(true);
       localStorage.setItem("deckverse_admin_unlocked", "true");
       setAdminError("");
       toast({ title: "🔓 Acesso ADM Concedido!" });
     } else {
-      setAdminError("Senha incorreta. Tente 'OS_OVERRIDE_99'");
+      setAdminError("Acesso negado: Perfil de usuário sem privilégio de Administrador.");
     }
   };
 
@@ -668,7 +668,7 @@ export default function Settings() {
                     <Lock className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
                       type="password"
-                      placeholder="Senha do Administrador (ex: OS_OVERRIDE_99)..."
+                      placeholder="Chave de Acesso Admin..."
                       value={adminPassword}
                       onChange={(e) => setAdminPassword(e.target.value)}
                       className="w-full pl-9 pr-3 py-2 bg-muted/20 border border-border/60 text-xs font-mono text-foreground focus:border-primary outline-none"

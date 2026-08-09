@@ -6,12 +6,10 @@ import { MEGA_COLLECTIONS, MEGA_ITEMS, MEGA_BOSSES, generateExpandedCards } from
 import { runKnowledgeBaseMigration, DEFAULT_UNIVERSES } from "./scripts/migrateToKnowledgeBase.js";
 import { SEED_ARCHETYPES, SEED_PERSONALITIES } from "./services/ai/enrichmentService.js";
 import { deduplicateCollections, deduplicateCards, cleanAndDeduplicateAllStorage, normalizeNameKey } from "./src/utils/deduplication.js";
+import { createEntityKey } from "./src/utils/entityIdentity.js";
 
-// Run automatic deduplication and knowledge base migration on startup
-if (typeof window !== "undefined") {
-  cleanAndDeduplicateAllStorage();
-  runKnowledgeBaseMigration();
-}
+// Automatic deduplication and knowledge base migration on startup removed for boot safety.
+// Boot must be strictly READ-ONLY regarding stored data structure.
 
 const DEFAULT_COLLECTIONS = [...MEGA_COLLECTIONS];
 const DEFAULT_CARDS = generateExpandedCards();
@@ -252,10 +250,27 @@ const DEFAULT_LORE = [
   }
 ];
 
+// In-memory storage fallback for Node / SSR environment
+const nodeMemoryStore = new Map();
+const nodeStorageAdapter = {
+  getItem: (key) => nodeMemoryStore.get(key) || null,
+  setItem: (key, val) => nodeMemoryStore.set(key, String(val)),
+  removeItem: (key) => nodeMemoryStore.delete(key),
+  clear: () => nodeMemoryStore.clear(),
+  key: (index) => Array.from(nodeMemoryStore.keys())[index] || null,
+  get length() { return nodeMemoryStore.size; }
+};
+
+const safeLocalStorage = (typeof window !== "undefined" && window.localStorage) ? window.localStorage : nodeStorageAdapter;
+
+if (typeof globalThis.localStorage === "undefined") {
+  globalThis.localStorage = safeLocalStorage;
+}
+
 // Helper to track deleted entity keys in LocalStorage
 function getDeletedKeys(tableName) {
   try {
-    const raw = localStorage.getItem(`deckverse_deleted_${tableName}`);
+    const raw = safeLocalStorage.getItem(`deckverse_deleted_${tableName}`);
     return raw ? new Set(JSON.parse(raw)) : new Set();
   } catch (e) {
     return new Set();
@@ -264,7 +279,7 @@ function getDeletedKeys(tableName) {
 
 function saveDeletedKeys(tableName, deletedSet) {
   try {
-    localStorage.setItem(`deckverse_deleted_${tableName}`, JSON.stringify(Array.from(deletedSet)));
+    safeLocalStorage.setItem(`deckverse_deleted_${tableName}`, JSON.stringify(Array.from(deletedSet)));
   } catch (e) {
     console.warn(`Failed saving deleted keys for ${tableName}:`, e);
   }
@@ -282,23 +297,21 @@ function addDeletedKeys(tableName, itemKeysArray) {
 function getStorageTable(tableName, defaultData) {
   const deletedKeys = getDeletedKeys(tableName);
   try {
-    const raw = localStorage.getItem(`deckverse_${tableName}`);
+    const raw = safeLocalStorage.getItem(`deckverse_${tableName}`);
     if (raw) {
       let parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        // Always filter stored items against deletedKeys set
+        // Always filter stored items against deletedKeys set (EXACT ID/KEY MATCH ONLY)
         parsed = parsed.filter(item => {
           const keyId = item.id;
           const keyCardId = item.card_id;
           const keyCode = item.code;
-          const keyName = item.name;
-          const normKey = normalizeNameKey(keyName);
+          const eKey = createEntityKey(item);
           return !(
             (keyId && deletedKeys.has(String(keyId))) ||
             (keyCardId && deletedKeys.has(String(keyCardId))) ||
             (keyCode && deletedKeys.has(String(keyCode))) ||
-            (keyName && deletedKeys.has(String(keyName))) ||
-            (normKey && deletedKeys.has(String(normKey)))
+            (eKey && deletedKeys.has(String(eKey)))
           );
         });
 
@@ -360,7 +373,6 @@ function getStorageTable(tableName, defaultData) {
           parsed = deduplicateCards(parsed);
         }
 
-        saveStorageTable(tableName, parsed);
         return parsed;
       }
     }
@@ -388,7 +400,6 @@ function getStorageTable(tableName, defaultData) {
     } else if (tableName === "Card") {
       cleanDefault = deduplicateCards(cleanDefault);
     }
-    localStorage.setItem(`deckverse_${tableName}`, JSON.stringify(cleanDefault));
     return cleanDefault;
   } catch (e) {}
   return [...defaultData];
@@ -396,7 +407,7 @@ function getStorageTable(tableName, defaultData) {
 
 function saveStorageTable(tableName, data) {
   try {
-    localStorage.setItem(`deckverse_${tableName}`, JSON.stringify(data));
+    safeLocalStorage.setItem(`deckverse_${tableName}`, JSON.stringify(data));
   } catch (e) {
     console.warn(`Failed saving storage for ${tableName}:`, e);
   }
@@ -405,7 +416,7 @@ function saveStorageTable(tableName, data) {
 // Create Entity Handler for a given table name
 function createEntityStore(tableName, defaultData) {
   return {
-    list: async (order = "-created_date", limit = 100) => {
+    list: async (order = "-created_date", limit = 5000) => {
       let items = getStorageTable(tableName, defaultData);
       if (order) {
         const desc = order.startsWith("-");
@@ -461,7 +472,7 @@ function createEntityStore(tableName, defaultData) {
     delete: async (id) => {
       let items = getStorageTable(tableName, defaultData);
       const toDelete = items.filter(item =>
-        item.id === id || item.card_id === id || item.code === id || item.name === id
+        item.id === id || item.card_id === id || item.code === id || createEntityKey(item) === id
       );
 
       const keysToMark = [id];
@@ -469,15 +480,12 @@ function createEntityStore(tableName, defaultData) {
         if (item.id) keysToMark.push(item.id);
         if (item.card_id) keysToMark.push(item.card_id);
         if (item.code) keysToMark.push(item.code);
-        if (item.name) {
-          keysToMark.push(item.name);
-          const nk = normalizeNameKey(item.name);
-          if (nk) keysToMark.push(nk);
-        }
+        const ek = createEntityKey(item);
+        if (ek) keysToMark.push(ek);
       });
       addDeletedKeys(tableName, keysToMark);
 
-      items = items.filter(item => item.id !== id && item.card_id !== id && item.code !== id && item.name !== id);
+      items = items.filter(item => item.id !== id && item.card_id !== id && item.code !== id && createEntityKey(item) !== id);
       saveStorageTable(tableName, items);
       return { success: true };
     }

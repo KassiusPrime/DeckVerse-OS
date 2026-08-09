@@ -113,7 +113,7 @@ export const CharacterSyncService = {
       const result = await fandomClient.searchCharacters(collectionName, wikiSlug);
       wikiCandidates = result.map(r => r.title);
     } catch (e) {
-      wikiCandidates = [collectionName, `${collectionName} Hero`];
+      wikiCandidates = [];
     }
 
     // Pega cartas existentes para evitar duplicatas

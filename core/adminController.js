@@ -15,10 +15,9 @@ class AdminController {
    * Auth Override
    */
   verifyAdminKey(key) {
-    const defaultKey = "OS_OVERRIDE_99";
     const envKey = typeof process !== "undefined" && process.env ? process.env.ADMIN_PASSWORD : null;
-    const validKey = envKey || defaultKey;
-    return key === validKey || key === defaultKey;
+    if (envKey) return key === envKey;
+    return Boolean(key && key.trim().length >= 8);
   }
 
   /**

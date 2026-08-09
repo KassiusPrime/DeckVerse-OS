@@ -2,7 +2,7 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="https://db.com/logo_v2.svg" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#00F0FF" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -16,6 +16,13 @@
   </head>
   <body class="bg-[#030305] text-[#D1D5DB] font-sans antialiased selection:bg-[#00F0FF]/30 selection:text-[#00F0FF]">
     <div id="root"></div>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(() => {});
+        });
+      }
+    </script>
     <script type="module" src="/main.jsx"></script>
   </body>
 </html>

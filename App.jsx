@@ -41,6 +41,20 @@ import { dataQualityEngine } from './services/ai/dataQualityEngine';
 import { backgroundSyncService } from './services/sync/backgroundSyncService';
 import BackgroundSyncIndicator from './components/BackgroundSyncIndicator';
 
+const AdminRouteGuard = ({ children }) => {
+  const { isAuthenticated, user } = useAuth();
+  if (!isAuthenticated || user?.role !== 'admin') {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 text-center font-mono">
+        <h2 className="text-2xl font-bold text-red-500 mb-2">403 — ACESSO NEGADO</h2>
+        <p className="text-sm text-muted-foreground mb-4">Esta área é restrita aos administradores autorizados do DeckVerse OS.</p>
+        <a href="/" className="px-4 py-2 bg-primary text-primary-foreground rounded text-xs font-bold uppercase tracking-wider">Voltar ao Início</a>
+      </div>
+    );
+  }
+  return children;
+};
+
 const AnimatedRoutes = () => {
   const location = useLocation();
   return (
@@ -62,8 +76,8 @@ const AnimatedRoutes = () => {
           <Route path="/store" element={<Store />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/battles" element={<BattleHistory />} />
-          <Route path="/admin" element={<Admin />} />
-          <Route path="/adm" element={<Admin />} />
+          <Route path="/admin" element={<AdminRouteGuard><Admin /></AdminRouteGuard>} />
+          <Route path="/adm" element={<AdminRouteGuard><Admin /></AdminRouteGuard>} />
           <Route path="/synergy" element={<SynergyBuilder />} />
           <Route path="/gacha" element={<GachaDrop />} />
           <Route path="/upgrade" element={<CardUpgrade />} />

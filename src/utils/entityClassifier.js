@@ -155,13 +155,24 @@ export function classifyEntityDetail(item = {}) {
   }
 
   // 2. Coleção
-  if (rawType === "collection" || item.code?.startsWith("COL-") || item.bank?.startsWith("COL-")) {
+  if (rawType === "collection" || item._sourceTable === "Collection" || item.code?.startsWith("COL-") || item.bank?.startsWith("COL-")) {
     return {
       entityType: "collection",
       metadataType: null,
       entityTypeConfidence: 0.98,
       isCardAllowed: false,
       reason: "Coleção estrutural do sistema."
+    };
+  }
+
+  // Metadado / Lore / Universo
+  if (rawType === "metadata" || item._sourceTable === "Lore" || item._sourceTable === "Universe" || item.lore_id) {
+    return {
+      entityType: "metadata",
+      metadataType: "concept",
+      entityTypeConfidence: 0.99,
+      isCardAllowed: false,
+      reason: `Registro de Lore/Metadado ("${name}").`
     };
   }
 
@@ -188,8 +199,8 @@ export function classifyEntityDetail(item = {}) {
     };
   }
 
-  // 5. Bosses
-  if (rawType === "boss" || item.is_boss || item.rarity === "BOSS" || item.rarity === "ANOMALIA" || KNOWN_BOSS_NAMES.some(b => lowerName.includes(b))) {
+  // 5. Bosses (Apenas se a fonte for a tabela de Boss, se for explicitamente boss, ou se tiver o flag is_boss)
+  if (item._sourceTable === "Boss" || item.type === "boss" || item.is_boss === true) {
     return {
       entityType: "boss",
       metadataType: "boss_entity",
