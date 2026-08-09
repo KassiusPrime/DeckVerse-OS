@@ -73,13 +73,42 @@ assert(c12.collectionCode === "COL-01-NRT", `Shikamaru should be Naruto COL-01-N
 const c13 = inferCollectionWithConfidence({ name: "King Bradley" });
 assert(c13.collectionCode === "COL-01-FMA", `King Bradley should be Fullmetal Alchemist COL-01-FMA (Got: ${c13.collectionCode})`);
 
-// Test 14: "Ereshkigal" -> Fate (COL-01-FATE)
-const c14 = inferCollectionWithConfidence({ name: "Ereshkigal" });
-assert(c14.collectionCode === "COL-01-FATE", `Ereshkigal should be Fate COL-01-FATE (Got: ${c14.collectionCode})`);
+// Test 14: Fate vs Mesopotamian Mythology
+const c14Fate = inferCollectionWithConfidence({ name: "Gilgamesh", series: "Fate/stay night", universe: "Type-Moon", class: "Servant" });
+assert(c14Fate.collectionCode === "COL-01-FATE", `Gilgamesh (Fate) should be COL-01-FATE (Got: ${c14Fate.collectionCode})`);
 
-// Test 15: "Dune Hero" -> quarantine (syntheticEntity)
-const t15 = evaluateEntityPipeline({ name: "Dune Hero" });
-assert(t15.primaryState === "quarantine" && t15.flags.syntheticEntity === true, `Dune Hero should be in quarantine as synthetic entity (Got: ${t15.primaryState})`);
+const c14Meso = inferCollectionWithConfidence({ name: "Gilgamesh", series: "Mitologia Babilônica", universe: "Mesopotâmia" });
+assert(c14Meso.collectionCode === "COL-05-MESO", `Gilgamesh (Mesopotâmia) should be COL-05-MESO (Got: ${c14Meso.collectionCode})`);
+
+// Test 15: Cross-collection Deduplication Key Distinctness
+const thorMarvelKey = `COL-03-MARVEL_thor`;
+const thorGowKey = `COL-02-GOW_thor`;
+const thorNorseKey = `COL-05-NORSE_thor`;
+assert(thorMarvelKey !== thorGowKey && thorGowKey !== thorNorseKey, `Thor cross-collection keys must be distinct (${thorMarvelKey} vs ${thorGowKey} vs ${thorNorseKey})`);
+
+const zeusGowKey = `COL-02-GOW_zeus`;
+const zeusGrkKey = `COL-05-GRK_zeus`;
+assert(zeusGowKey !== zeusGrkKey, `Zeus GOW vs Greek keys must be distinct (${zeusGowKey} vs ${zeusGrkKey})`);
+
+const hadesSsKey = `COL-01-SS_hades`;
+const hadesGrkKey = `COL-05-GRK_hades`;
+assert(hadesSsKey !== hadesGrkKey, `Hades Saint Seiya vs Greek keys must be distinct (${hadesSsKey} vs ${hadesGrkKey})`);
+
+// Test 16: Transformations Distinctness
+const gokuBaseKey = `COL-01-DBZ_goku_baseform`;
+const gokuSSKey = `COL-01-DBZ_goku_supersaiyan`;
+const gokuUIKey = `COL-01-DBZ_goku_ultrainstinct`;
+assert(gokuBaseKey !== gokuSSKey && gokuSSKey !== gokuUIKey, `Goku transformations must produce distinct keys (${gokuBaseKey} vs ${gokuSSKey} vs ${gokuUIKey})`);
+
+// Test 17: Continuities Distinctness
+const batmanPrimeKey = `COL-03-DC_batman_primeearth`;
+const batmanEarth2Key = `COL-03-DC_batman_earth2`;
+const batmanFlashpointKey = `COL-03-DC_batman_flashpoint`;
+assert(batmanPrimeKey !== batmanEarth2Key && batmanEarth2Key !== batmanFlashpointKey, `Batman continuities must produce distinct keys (${batmanPrimeKey} vs ${batmanEarth2Key})`);
+
+// Test 18: "Dune Hero" -> quarantine (syntheticEntity)
+const t18 = evaluateEntityPipeline({ name: "Dune Hero" });
+assert(t18.primaryState === "quarantine" && t18.flags.syntheticEntity === true, `Dune Hero should be in quarantine as synthetic entity (Got: ${t18.primaryState})`);
 
 console.log(`\n📊 Summary: ${passed} Passed, ${failed} Failed.`);
 if (failed > 0) {

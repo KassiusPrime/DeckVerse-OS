@@ -5,9 +5,10 @@
 // ════════════════════════════════════════════════════════════════════════════
 
 import { db } from "../../base44Client.js";
-import { inferCollectionWithConfidence, inferCollectionCode, resolveCollectionCode } from "../../lib/collectionCodes.js";
+import { inferCollectionWithConfidence, inferCollectionCode, resolveCollectionCode, CANONICAL_COLLECTION_CODES, LEGACY_ALIASES } from "../../lib/collectionCodes.js";
 import { classifyEntityDetail, isInvalidCardEntity, classifyEntityType, KNOWN_ITEM_NAMES, KNOWN_BOSS_NAMES } from "../../src/utils/entityClassifier.js";
 import { normalizeNameKey } from "../../src/utils/deduplication.js";
+import { MEGA_COLLECTIONS, MEGA_ITEMS, MEGA_BOSSES, getAllExpandedCards } from "../../src/data/megaCollectionsData.js";
 
 // Fallback images per collection
 const FALLBACK_IMAGES = {
@@ -119,13 +120,11 @@ export function evaluateEntityPipeline(item = {}) {
   } else if (collectionConflict) {
     primaryState = "quarantine";
     reason = `COLLECTION_CONFLICT: Coleção incerta ou genérica (${collectionCode}, ${(collectionConfidence * 100).toFixed(0)}%).`;
-  } else if (missingMedia || qualityScore < 50) {
-    primaryState = "quarantine";
-    reason = missingMedia ? "Imagem principal ausente." : `Qualidade de dados baixa (${qualityScore}/100).`;
-  } else if (typeDetail.isCardAllowed && collectionConfidence >= 0.80 && qualityScore >= 50) {
-    // APROVADO EM TODOS OS GATES 1-3
+  } else if (typeDetail.isCardAllowed && collectionConfidence >= 0.80 && identityConfidence >= 0.80) {
+    // Entidades válidas com identidade e coleção confirmadas permanecem VÁLIDAS.
+    // Imagem ausente é registrada como flag (missingMedia), mas não joga a entidade em quarentena.
     primaryState = "valid";
-    reason = "Aprovado com alta confiança em todos os gates.";
+    reason = missingMedia ? "Aprovado com alta confiança. (Mídia de imagem pendente)" : "Aprovado com alta confiança em todos os gates.";
   } else {
     primaryState = "quarantine";
     reason = "Retido em quarentena para verificação de dados.";
@@ -233,36 +232,86 @@ export async function runDataQualityAudit(options = {}) {
   };
 
   try {
-    const allCards = await db.entities.Card.list("-created_date", 2000);
-    report.totalAnalyzed = allCards.length;
+    const dbCards = await db.entities.Card.list("-created_date", 5000);
+    const dbItems = await db.entities.Item.list("-created_date", 5000);
+    const dbBosses = await db.entities.Boss.list("-created_date", 5000);
+    const dbCollections = await db.entities.Collection.list("-created_date", 5000);
+    const dbLore = await db.entities.Lore.list("-created_date", 5000);
+    const dbUniverses = await db.entities.Universe.list("-created_date", 5000);
 
-    log(`📊 Analisando ${allCards.length} registros no catálogo...`, "info");
+    const cardsSource = dbCards.length > 0 ? dbCards : getAllExpandedCards();
+    const itemsSource = dbItems.length > 0 ? dbItems : (MEGA_ITEMS || []);
+    const bossesSource = dbBosses.length > 0 ? dbBosses : (MEGA_BOSSES || []);
+    const collectionsSource = dbCollections.length > 0 ? dbCollections : (MEGA_COLLECTIONS || []);
+    const loreSource = dbLore || [];
+    const universesSource = dbUniverses || [];
 
-    const nameMap = new Map();
+    // Consolidação de todas as entidades para auditoria abrangente
+    const allRecords = [
+      ...cardsSource.map(c => ({ ...c, _sourceTable: "Card" })),
+      ...itemsSource.map(i => ({ ...i, _sourceTable: "Item", type: "item" })),
+      ...bossesSource.map(b => ({ ...b, _sourceTable: "Boss", type: "boss" })),
+      ...collectionsSource.map(c => ({ ...c, _sourceTable: "Collection", type: "collection" })),
+      ...loreSource.map(l => ({ ...l, _sourceTable: "Lore", type: "metadata" })),
+      ...universesSource.map(u => ({ ...u, _sourceTable: "Universe", type: "metadata" }))
+    ];
 
-    for (const card of allCards) {
-      const evaluation = evaluateEntityPipeline(card);
-      const nameKey = normalizeNameKey(card.name || card.title || "");
+    report.totalAnalyzed = allRecords.length;
 
-      // Verificação de Duplicatas
+    report.scope = {
+      canonicalCollectionsDeclared: CANONICAL_COLLECTION_CODES.length,
+      auditedCollectionsMapped: collectionsSource.length,
+      totalRecordsAnalyzed: report.totalAnalyzed,
+      sourcesBreakdown: {
+        cards: cardsSource.length,
+        items: itemsSource.length,
+        bosses: bossesSource.length,
+        collections: collectionsSource.length,
+        lore: loreSource.length,
+        universes: universesSource.length
+      }
+    };
+
+    log(`📊 Analisando ${allRecords.length} registros totais no catálogo (Cartas: ${cardsSource.length}, Itens: ${itemsSource.length}, Bosses: ${bossesSource.length}, Coleções: ${collectionsSource.length}, Lore/Universos: ${loreSource.length + universesSource.length})...`, "info");
+
+    const dedupMap = new Map();
+    const collectionConflictsList = [];
+    const mappedCollectionCodesSet = new Set();
+
+    for (const record of allRecords) {
+      const evaluation = evaluateEntityPipeline(record);
+      const nameKey = normalizeNameKey(record.name || record.title || "");
+      const colCode = record.collection_id || record.collection_code || record.code || evaluation.suggestedCollection || "COL-00-MULTI";
+      const versionKey = (record.version || record.form || "").toLowerCase().trim().replace(/[^a-z0-9]/g, "");
+
+      if (colCode && colCode !== "COL-00-MULTI") {
+        mappedCollectionCodesSet.add(colCode);
+      }
+
+      // Chave estrita de deduplicação = collectionCanonicalId + normalizedNameKey + versionKey
+      const strictDedupKey = `${colCode}_${nameKey}${versionKey ? "_" + versionKey : ""}`;
+
       let isDuplicate = false;
-      if (nameKey) {
-        if (nameMap.has(nameKey)) {
+      if (nameKey && record._sourceTable === "Card") {
+        if (dedupMap.has(strictDedupKey)) {
           isDuplicate = true;
           evaluation.flags.duplicateRisk = true;
           report.flags.duplicateRisks++;
           report.duplicateCandidates.push({
-            originalId: nameMap.get(nameKey).id,
-            duplicateId: card.id,
-            name: card.name
+            originalId: dedupMap.get(strictDedupKey).id,
+            duplicateId: record.id,
+            name: record.name,
+            collection: colCode,
+            reason: `Entidade duplicada na mesma coleção (${colCode}) com chave "${strictDedupKey}".`
           });
           report.migrationPlan.duplicatesToMerge.push({
-            keepId: nameMap.get(nameKey).id,
-            mergeId: card.id,
-            name: card.name
+            keepId: dedupMap.get(strictDedupKey).id,
+            mergeId: record.id,
+            name: record.name,
+            collection: colCode
           });
         } else {
-          nameMap.set(nameKey, card);
+          dedupMap.set(strictDedupKey, record);
         }
       }
 
@@ -279,7 +328,17 @@ export async function runDataQualityAudit(options = {}) {
       else if (evaluation.entityType === "boss") report.bossesCount++;
 
       // Contagem de Flags Secundárias (SOBREPOSTAS)
-      if (evaluation.flags.collectionConflict) report.flags.collectionConflicts++;
+      if (evaluation.flags.collectionConflict) {
+        report.flags.collectionConflicts++;
+        collectionConflictsList.push({
+          id: record.id,
+          name: record.name || record.title,
+          currentCollection: record.collection_id || record.code || "COL-00-MULTI",
+          suggestedCollection: evaluation.suggestedCollection,
+          confidence: evaluation.collectionConfidence,
+          reason: evaluation.reason
+        });
+      }
       if (evaluation.flags.lowConfidence) report.flags.lowConfidenceCount++;
       if (evaluation.flags.missingMedia) report.flags.missingMediaCount++;
       if (evaluation.flags.suspectedWikiPage) report.flags.suspectedWikiPages++;
@@ -287,33 +346,34 @@ export async function runDataQualityAudit(options = {}) {
 
       // Preenchimento do Plano de Migração
       if (evaluation.primaryState === "valid") {
-        report.migrationPlan.keepValid.push(card.id);
+        report.migrationPlan.keepValid.push(record.id);
       } else if (evaluation.primaryState === "metadata") {
-        report.migrationPlan.convertToMetadata.push({ id: card.id, name: card.name, metadataType: evaluation.metadataType });
+        report.migrationPlan.convertToMetadata.push({ id: record.id, name: record.name || record.title, metadataType: evaluation.metadataType });
       } else if (evaluation.primaryState === "invalid") {
-        report.migrationPlan.invalidCandidates.push({ id: card.id, name: card.name, reason: evaluation.reason });
+        report.migrationPlan.invalidCandidates.push({ id: record.id, name: record.name || record.title, reason: evaluation.reason });
       } else {
-        report.migrationPlan.quarantine.push({ id: card.id, name: card.name, reason: evaluation.reason });
+        report.migrationPlan.quarantine.push({ id: record.id, name: record.name || record.title, reason: evaluation.reason });
       }
 
-      if (evaluation.suggestedCollection && evaluation.suggestedCollection !== card.collection_id && evaluation.suggestedCollection !== "COL-00-MULTI") {
+      if (evaluation.suggestedCollection && evaluation.suggestedCollection !== record.collection_id && evaluation.suggestedCollection !== "COL-00-MULTI") {
         report.migrationPlan.collectionChanges.push({
-          id: card.id,
-          name: card.name,
-          from: card.collection_id || "COL-00-MULTI",
+          id: record.id,
+          name: record.name || record.title,
+          from: record.collection_id || "COL-00-MULTI",
           to: evaluation.suggestedCollection
         });
       }
 
       // Registro da Proposta
       const proposal = {
-        cardId: card.id,
-        name: card.name,
-        currentType: card.type || "character",
+        cardId: record.id,
+        name: record.name || record.title,
+        sourceTable: record._sourceTable,
+        currentType: record.type || "character",
         suggestedType: evaluation.entityType,
         metadataType: evaluation.metadataType,
-        currentCollection: card.collection_id || "COL-00-MULTI",
-        suggestedCollection: evaluation.suggestedCollection || card.collection_id || "COL-00-MULTI",
+        currentCollection: record.collection_id || record.code || "COL-00-MULTI",
+        suggestedCollection: evaluation.suggestedCollection || record.collection_id || "COL-00-MULTI",
         entityTypeConfidence: evaluation.entityTypeConfidence,
         collectionConfidence: evaluation.collectionConfidence,
         identityConfidence: evaluation.identityConfidence,
@@ -325,13 +385,12 @@ export async function runDataQualityAudit(options = {}) {
 
       report.proposals.push(proposal);
 
-      // Coleta registros de maior risco para inspeção no relatório (Top 50)
       if (evaluation.primaryState !== "valid" || evaluation.flags.collectionConflict || evaluation.flags.syntheticEntity) {
         if (report.highRiskRecords.length < 50) {
           report.highRiskRecords.push({
-            id: card.id,
-            name: card.name,
-            currentCollection: card.collection_id || "COL-00-MULTI",
+            id: record.id,
+            name: record.name || record.title,
+            currentCollection: record.collection_id || "COL-00-MULTI",
             suggestedCollection: evaluation.suggestedCollection,
             primaryState: evaluation.primaryState,
             qualityScore: evaluation.qualityScore,
@@ -342,8 +401,40 @@ export async function runDataQualityAudit(options = {}) {
       }
     }
 
+    report.collectionConflicts = collectionConflictsList;
+
+    // Auditoria Completa das 95 Coleções Canônicas
+    report.collectionsAudit = CANONICAL_COLLECTION_CODES.map(code => {
+      const recordsInCol = allRecords.filter(r => (r.collection_id === code || r.code === code || inferCollectionCode(r) === code));
+      const hasRecords = recordsInCol.length > 0;
+      const isAlias = Boolean(LEGACY_ALIASES[code]);
+      const validFormat = /^COL-\d{2}-[A-Z0-9]+$/.test(code);
+
+      let status = "ACTIVE";
+      if (!validFormat) status = "INVALID";
+      else if (isAlias) status = "LEGACY_ALIAS";
+      else if (!hasRecords) status = "EMPTY";
+      else if (recordsInCol.some(r => !r.image_url && !r.img_custom && !r.img_oficial)) status = "MISSING_DATA";
+
+      return {
+        code,
+        status,
+        recordCount: recordsInCol.length
+      };
+    });
+
+    // Invariante de soma estrita
+    const invariantSum = report.validCount + report.quarantineCount + report.metadataCount + report.invalidCount + report.unknownCount;
+    const isInvariantValid = invariantSum === report.totalAnalyzed;
+
+    report.invariantVerification = {
+      isValid: isInvariantValid,
+      formula: `${report.totalAnalyzed} (Total) = ${report.validCount} (Valid) + ${report.quarantineCount} (Quarantine) + ${report.metadataCount} (Metadata) + ${report.invalidCount} (Invalid) + ${report.unknownCount} (Unknown)`
+    };
+
     log(`✅ [DATA QUALITY ENGINE] Auditoria ${modeTag} concluída com sucesso!`, "success");
-    log(`  • Totais Analisados: ${report.totalAnalyzed} | Válidos: ${report.validCount} | Quarentena: ${report.quarantineCount} | Metadados: ${report.metadataCount} | Conflitos Coleção: ${report.flags.collectionConflicts}`, "info");
+    log(`  • Totais Analisados: ${report.totalAnalyzed} | Válidos: ${report.validCount} | Quarentena: ${report.quarantineCount} | Metadados: ${report.metadataCount} | Inválidos: ${report.invalidCount} | Desconhecidos: ${report.unknownCount}`, "info");
+    log(`  • Verificação da Equação Invariante: ${isInvariantValid ? "PASS" : "FAIL"} (${report.invariantVerification.formula})`, isInvariantValid ? "success" : "error");
 
     // ⛔ PARADA OBRIGATÓRIA NO MODO PROPOSE (DRY-RUN / LEITURA)
     if (dryRun || mode === "PROPOSE") {
