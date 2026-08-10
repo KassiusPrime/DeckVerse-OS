@@ -4,7 +4,7 @@
 // Enforces canonical entityKey protection for save/delete operations.
 // ════════════════════════════════════════════════════════════════════════════
 
-import { db } from "../base44Client.js";
+import { db } from "../deckverseClient.js";
 import { deduplicateCards, deduplicateCollections } from "../src/utils/deduplication.js";
 import { createEntityKey } from "../src/utils/entityIdentity.js";
 import { resolveCollectionCode } from "../lib/collectionCodes.js";
@@ -293,7 +293,7 @@ class EntityRepository {
       totalPlayers: players.length,
       quarantineCount: quarantine.length,
       storageUsedKB: (storageBytes / 1024).toFixed(2),
-      environment: "Local First (localStorage + Base44 Client)",
+      environment: "Local First (DeckVerse Persistence)",
       timestamp: new Date().toISOString()
     };
   }

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Terminal, Lock, Unlock, PlusCircle, X } from 'lucide-react';
 import { useToast } from './use-toast';
-import { db } from './base44Client';
+import { db } from './deckverseClient';
 import { useAuth } from './AuthContext';
 import { adminController } from './core/adminController';
 

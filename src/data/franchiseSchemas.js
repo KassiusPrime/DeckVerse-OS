@@ -60,7 +60,7 @@ export const ALIAS_TO_V9 = Object.freeze({
   // JoJo's Bizarre Adventure
   JJBA: "JJO", JOJO: "JJO", "COL-01-JJBA": "JJO",
   // Solo Leveling
-  SOLO_LEVELING: "SLV", "COL-01-SLV": "SLV",
+  SOLO_LEVELING: "SLV", SL: "SLV", "COL-01-SL": "SLV", "COL-01-SLV": "SLV",
   // Cyberpunk 2077
   CYB: "CPK", CP77: "CPK", CYBERPUNK: "CPK", "COL-02-CP77": "CPK",
   // Legend of Zelda

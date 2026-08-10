@@ -1,4 +1,4 @@
-import { db } from "@/base44Client";
+import { db } from "@/deckverseClient";
 
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -52,7 +52,7 @@ function SystemStatusWidget() {
       </div>
       <div className="flex items-center justify-between py-1 text-[10px] font-mono">
         <span className="text-muted-foreground">Motor de Dados:</span>
-        <span className="text-cyan-400 font-bold">Base44 / IndexedDB Local</span>
+        <span className="text-cyan-400 font-bold">DeckVerse Local Database</span>
       </div>
       <div className="flex items-center justify-between py-1 text-[10px] font-mono">
         <span className="text-muted-foreground">Versão do SO:</span>

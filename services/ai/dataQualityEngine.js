@@ -4,7 +4,7 @@
 // Mode PROPOSE is 100% READ-ONLY (Zero DB or storage mutations).
 // ════════════════════════════════════════════════════════════════════════════
 
-import { db } from "../../base44Client.js";
+import { db } from "../../deckverseClient.js";
 import { inferCollectionWithConfidence, inferCollectionCode, resolveCollectionCode, resolveCollectionCodeStrict, CANONICAL_COLLECTION_CODES, LEGACY_ALIASES } from "../../lib/collectionCodes.js";
 import { classifyEntityDetail, isInvalidCardEntity, classifyEntityType, KNOWN_ITEM_NAMES, KNOWN_BOSS_NAMES } from "../../src/utils/entityClassifier.js";
 import { normalizeNameKey } from "../../src/utils/deduplication.js";
@@ -562,12 +562,17 @@ export async function runDataQualityAudit(options = {}) {
       unresolvedCollectionRecords: unresolvedCollectionRecordsCount
     };
 
+    const totalConflicts = collectionConflictsList.length;
+    const unresolvedLoreCount = report.flags.unresolvedLoreReferences || 0;
+    const multiNamespaceCount = collectionConflictsList.filter(c => c.currentCollection === "COL-00-MULTI" || c.currentCollection === "MULTI").length;
+    const structuralFalsePositivesCount = Math.max(0, totalConflicts - multiNamespaceCount - unresolvedLoreCount);
+
     report.collectionConflictsAccounting = {
-      collectionConflictsBefore: 61,
-      collectionConflictsAfter: collectionConflictsList.length,
-      structuralCollectionFalsePositivesRemoved: 47,
-      multiNamespaceFalsePositivesRemoved: 8,
-      unresolvedLoreReferences: report.flags.unresolvedLoreReferences || 6
+      collectionConflictsBefore: totalConflicts,
+      collectionConflictsAfter: totalConflicts,
+      structuralCollectionFalsePositivesRemoved: structuralFalsePositivesCount,
+      multiNamespaceFalsePositivesRemoved: multiNamespaceCount,
+      unresolvedLoreReferences: unresolvedLoreCount
     };
 
     // Auditoria Completa das 95 Coleções Canônicas baseada estritamente em COLLECTION RECORDS

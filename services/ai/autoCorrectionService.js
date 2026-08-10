@@ -2,7 +2,7 @@
 // DECKVERSE OS — Permanent Auto-Correction & Deduplication Service
 // ════════════════════════════════════════════════════════════════════════════
 
-import { db } from "@/base44Client";
+import { db } from "@/deckverseClient";
 import { validateCollection, validateCard, validateItem, validateBoss, normalizeCode } from "@/lib/importSchemas";
 import { inferCollectionCode, CANONICAL_SERIES_NAMES } from "@/lib/collectionCodes";
 import { fandomClient } from "../fandom/fandomClient";

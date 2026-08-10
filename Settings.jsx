@@ -1,4 +1,4 @@
-import { db } from "@/base44Client";
+import { db } from "@/deckverseClient";
 
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";

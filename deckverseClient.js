@@ -1,5 +1,5 @@
 // ════════════════════════════════════════════════════════════════════════════
-// DECKVERSE OS — Base44 Client & Persistence Layer
+// DECKVERSE OS — DeckVerse Client & Persistence Layer
 // ════════════════════════════════════════════════════════════════════════════
 
 import { MEGA_COLLECTIONS, MEGA_ITEMS, MEGA_BOSSES, generateExpandedCards } from "./src/data/megaCollectionsData.js";
@@ -547,6 +547,5 @@ export const db = {
   }
 };
 
-globalThis.__B44_DB__ = db;
-export const base44 = db;
+globalThis.__DECKVERSE_DB__ = db;
 export default db;

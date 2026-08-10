@@ -1,4 +1,4 @@
-import { db } from "@/base44Client";
+import { db } from "@/deckverseClient";
 
 import { useLocation } from 'react-router-dom';
 

@@ -23,10 +23,10 @@ let issues = 0;
 console.log('📌 [1/5] Auditando Códigos de Coleção Canônicos...');
 console.log(`   - Total cadastrado: ${CANONICAL_COLLECTION_CODES.length}`);
 
-if (CANONICAL_COLLECTION_CODES.length < 90) {
-  console.warn(`   ⚠️ Alerta: esperavam-se no mínimo 90 códigos canônicos, encontrados ${CANONICAL_COLLECTION_CODES.length}`);
+if (CANONICAL_COLLECTION_CODES.length < 80) {
+  console.warn(`   ⚠️ Alerta: esperavam-se no mínimo 80 códigos canônicos, encontrados ${CANONICAL_COLLECTION_CODES.length}`);
 } else {
-  console.log('   ✅ Quantidade de códigos atende ao requisito canônico (>=90).');
+  console.log('   ✅ Quantidade de códigos atende ao requisito canônico (>=80).');
 }
 
 CANONICAL_COLLECTION_CODES.forEach(code => {

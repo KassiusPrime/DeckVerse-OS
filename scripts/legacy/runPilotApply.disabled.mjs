@@ -1,6 +1,8 @@
+throw new Error("DISABLED_LEGACY_SCRIPT: Historical pilot APPLY must not be executed.");
+
 import fs from "fs";
 import path from "path";
-import { db } from "../base44Client.js";
+import { db } from "../../deckverseClient.js";
 import { runDataQualityAudit } from "../services/ai/dataQualityEngine.js";
 import { createEntityKey } from "../src/utils/entityIdentity.js";
 

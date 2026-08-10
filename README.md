@@ -40,6 +40,7 @@ npm run lint
 ## 🏗️ Arquitetura do Sistema
 
 - **Frontend**: React 18 + Vite + Tailwind CSS + Framer Motion.
-- **Armazenamento**: Cliente `base44` unificado com suporte a cache local resiliente e fallback instantâneo.
+- **Armazenamento**: Cliente `deckverseClient` unificado com suporte a cache local resiliente e fallback instantâneo.
+- **Histórico**: Arquitetura legada Base44 removida no DeckVerse OS v10.
 - **Classificação**: Modelo Hierárquico: `Universo` -> `Franchise` -> `Character` -> `CharacterVersion` -> `Card`.
 - **Painel Admin**: Console administrativo com controle de tarefas, fusão de duplicatas e auditoria de qualidade.

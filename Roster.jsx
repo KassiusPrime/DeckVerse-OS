@@ -1,4 +1,4 @@
-import { db } from "@/base44Client";
+import { db } from "@/deckverseClient";
 
 import React, { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";

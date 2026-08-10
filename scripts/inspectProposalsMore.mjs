@@ -1,4 +1,4 @@
-import { db } from "../base44Client.js";
+import { db } from "../deckverseClient.js";
 import { runDataQualityAudit } from "../services/ai/dataQualityEngine.js";
 
 async function main() {

@@ -2,7 +2,7 @@
 // DECKVERSE OS — Collection Management & Stats Service
 // ════════════════════════════════════════════════════════════════════════════
 
-import { db } from "@/base44Client";
+import { db } from "@/deckverseClient";
 
 /**
  * Recalcula estatísticas e contagem de cartas para todas as coleções do banco

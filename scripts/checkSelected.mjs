@@ -1,4 +1,4 @@
-import { db } from "../base44Client.js";
+import { db } from "../deckverseClient.js";
 
 async function checkSelectedRecords() {
   const ids = [

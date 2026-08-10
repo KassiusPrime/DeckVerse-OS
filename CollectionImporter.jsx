@@ -4,7 +4,7 @@
 
 import React, { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { db } from "@/base44Client";
+import { db } from "@/deckverseClient";
 import { fandomClient } from "@/services/fandom/fandomClient";
 import { enrichmentService } from "@/services/ai/enrichmentService";
 import { dataQualityEngine } from "@/services/ai/dataQualityEngine";

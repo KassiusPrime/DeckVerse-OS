@@ -5,7 +5,7 @@
 
 import React, { useState, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { db } from "@/base44Client";
+import { db } from "@/deckverseClient";
 import { adminController } from "@/core/adminController";
 import { dataQualityEngine } from "@/services/ai/dataQualityEngine";
 import { cleanAndDeduplicateAllStorage } from "@/src/utils/deduplication";

@@ -4,6 +4,8 @@
 // Japanese Romaji, and common character/franchise aliases.
 // ════════════════════════════════════════════════════════════════════════════
 
+import { resolveCollectionCode, resolveCollectionCodeStrict } from "../../lib/collectionCodes.js";
+
 // Comprehensive Dictionary of Multi-Language & Multi-Alias Equivalent Names
 export const NAME_EQUIVALENTS = {
   // ─── COLLECTIONS & FRANCHISES ───
@@ -368,16 +370,16 @@ export function cleanLoreText(rawLore = "", cardName = "", universeName = "") {
  * Map of canonical franchise information for merging collections
  */
 const CANONICAL_COLLECTION_NAMES = [
-  { keywords: ["avatar", "aang", "airbender", "dobradores"], name: "Avatar: The Last Airbender", code: "COL-02-ATLA" },
+  { keywords: ["avatar", "aang", "airbender", "dobradores"], name: "Avatar: The Last Airbender", code: "COL-04-ATLA" },
   { keywords: ["marvel"], name: "Marvel Comics Universe", code: "COL-03-MARVEL" },
   { keywords: ["dc universe", "dc comics", "justiça jovem", "super-choque"], name: "DC Universe", code: "COL-03-DC" },
-  { keywords: ["naruto", "shippuden"], name: "Naruto Shippuden", code: "COL-01-NAR" },
+  { keywords: ["naruto", "shippuden"], name: "Naruto Shippuden", code: "COL-01-NRT" },
   { keywords: ["dragon ball", "dragonball", "dbz", "dbs"], name: "Dragon Ball Super", code: "COL-01-DBZ" },
   { keywords: ["bleach"], name: "Bleach Universe", code: "COL-01-BLC" },
   { keywords: ["jujutsu", "kaisen", "jjk"], name: "Jujutsu Kaisen", code: "COL-01-JJK" },
   { keywords: ["attack on titan", "shingeki", "aot"], name: "Attack on Titan", code: "COL-01-AOT" },
-  { keywords: ["demon slayer", "kimetsu"], name: "Demon Slayer", code: "COL-01-KNY" },
-  { keywords: ["solo leveling"], name: "Solo Leveling", code: "COL-01-SLV" },
+  { keywords: ["demon slayer", "kimetsu"], name: "Demon Slayer", code: "COL-01-DS" },
+  { keywords: ["solo leveling"], name: "Solo Leveling", code: "COL-01-SL" },
   { keywords: ["my hero academia", "boku no hero"], name: "My Hero Academia", code: "COL-01-MHA" },
   { keywords: ["one piece"], name: "One Piece Universe", code: "COL-01-OP" }
 ];
@@ -466,30 +468,21 @@ export function deduplicateCollections(collectionsList = []) {
     if (!col) continue;
 
     const rawName = col.name || col.title || "";
-    const canonInfo = getCanonicalCollectionInfo(rawName);
+    const rawCode = (col.code || col.id || "").toString().trim().toUpperCase();
+    const resolvedCode = resolveCollectionCodeStrict(rawCode) || resolveCollectionCode(rawCode);
+    const codeKey = resolvedCode || rawCode || "COL-00-MULTI";
 
-    const canonicalName = canonInfo ? canonInfo.name : rawName;
-    const nameKey = normalizeNameKey(canonicalName);
-    const codeKey = ((canonInfo && canonInfo.code) || col.code || col.id || "").toString().toUpperCase().trim();
+    // Preserva o código canônico fornecido
+    const finalCode = col.code || codeKey;
 
-    let primaryKey = nameKey ? `col_${nameKey}` : `code_${codeKey}`;
-
-    // Look for similar/prefix collections to merge (e.g. Avatar (Aang) -> Avatar: The Last Airbender)
-    for (const [existingKey, existingCol] of map.entries()) {
-      const existingNameKey = normalizeNameKey(existingCol.name || "");
-      if (existingNameKey && nameKey) {
-        if (nameKey === existingNameKey || nameKey.startsWith(existingNameKey) || existingNameKey.startsWith(nameKey)) {
-          primaryKey = existingKey;
-          break;
-        }
-      }
-    }
+    // Chave primária baseada unicamente no código canônico resolvido
+    const primaryKey = `code_${codeKey}`;
 
     if (!map.has(primaryKey)) {
       map.set(primaryKey, {
         ...col,
-        name: canonicalName,
-        code: (canonInfo && canonInfo.code) || col.code || codeKey
+        name: rawName,
+        code: finalCode
       });
     } else {
       const existing = map.get(primaryKey);
@@ -497,8 +490,8 @@ export function deduplicateCollections(collectionsList = []) {
         ...existing,
         ...col,
         id: existing.id || col.id,
-        code: existing.code || col.code || (canonInfo && canonInfo.code),
-        name: canonicalName,
+        code: existing.code || finalCode,
+        name: existing.name || rawName,
         description: (existing.description && existing.description.length > (col.description || "").length)
           ? existing.description
           : (col.description || existing.description),

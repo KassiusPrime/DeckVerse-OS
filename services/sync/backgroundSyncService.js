@@ -3,7 +3,7 @@
 // Decoupled, Intelligent, Autonomous Background Sync & Discovery Architecture
 // ════════════════════════════════════════════════════════════════════════════
 
-import { db } from "@/base44Client";
+import { db } from "@/deckverseClient";
 import { dataQualityEngine } from "../ai/dataQualityEngine";
 import { enrichmentService } from "../ai/enrichmentService";
 import { fandomClient } from "../fandom/fandomClient";

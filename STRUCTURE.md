@@ -20,7 +20,7 @@ DeckVerse-OS/
 │   └── sync/
 │       └── backgroundSyncService.js # Motor de sincronização autônoma em background
 ├── App.jsx                      # Rotas e provedores globais
-├── base44Client.js              # Camada de persistência em localStorage
+├── deckverseClient.js           # Camada de persistência em localStorage
 ├── constants.js                 # Constantes de raridades, raridade power, roles e elementos
 ├── index.css                    # Estilos globais e temas Tailwind
 ├── metadata.json                # Metadados do app AI Studio

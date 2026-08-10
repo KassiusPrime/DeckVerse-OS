@@ -1,7 +1,7 @@
 # PROMPT_CORRECAO.md — Guia Canônico de Correção do DeckVerse OS
 
 ## 1. Princípios Fundamentais
-- **Local-First**: Persistência via `localStorage` com abstrações no `base44Client.js` e `core/entityRepository.js`.
+- **Local-First**: Persistência via `localStorage` com abstrações no `deckverseClient.js` e `core/entityRepository.js`.
 - **Sem CDN / Serviços Pagos Exclusivos**: Fallbacks locais determinísticos para todas as requisições de mídia e IA.
 - **Camadas Claras**: `UI -> AdminController -> Services (Import/Quality/AIRouter/Queue) -> Repositories -> Data`.
 - **Coleções Únicas**: Mapeamento unificado por código canônico (ex: `COL-01` a `COL-06`) com fusão automática de duplicatas por nome/idioma.

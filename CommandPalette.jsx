@@ -1,4 +1,4 @@
-import { db } from "@/base44Client";
+import { db } from "@/deckverseClient";
 
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
