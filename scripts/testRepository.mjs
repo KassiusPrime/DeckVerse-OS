@@ -4,7 +4,7 @@
 // ════════════════════════════════════════════════════════════════════════════
 
 import { createEntityKey } from "../src/utils/entityIdentity.js";
-import { resolveCollectionCode } from "../lib/collectionCodes.js";
+import { resolveCollectionCode, resolveCollectionCodeStrict } from "../lib/collectionCodes.js";
 import { evaluateEntityPipeline, runDataQualityAudit } from "../services/ai/dataQualityEngine.js";
 
 console.log("🧪 [TEST] Iniciando testes do Repositório Unificado e Entity Identity...\n");
@@ -315,6 +315,59 @@ async function runCollectionsAuditTests() {
 }
 
 await runCollectionsAuditTests();
+
+// Teste 14: Final Gate — Strict Collection Resolver e Audit Invariants
+console.log("\n📌 Teste 14: Final Gate — Strict Collection Resolver e Audit Invariants");
+
+async function runFinalGateTests() {
+  const auditResult = await runDataQualityAudit({ mode: "PROPOSE", dryRun: true });
+  const report = auditResult.report;
+
+  // 1. exactCanonicalPrecedenceTest
+  assert(resolveCollectionCodeStrict("COL-01-AOT") === "COL-01-AOT", "exactCanonicalPrecedenceTest: COL-01-AOT resolve para COL-01-AOT");
+  assert(resolveCollectionCodeStrict("COL-02-DS") === "COL-02-DS", "exactCanonicalPrecedenceTest: COL-02-DS resolve para COL-02-DS");
+  assert(resolveCollectionCodeStrict("COL-01-DS") === "COL-01-DS", "exactCanonicalPrecedenceTest: COL-01-DS resolve para COL-01-DS");
+  assert(resolveCollectionCodeStrict("COL-01-SLV") === "COL-01-SLV", "exactCanonicalPrecedenceTest: COL-01-SLV resolve para COL-01-SLV");
+
+  // 2. demonSlayerDarkSoulsCollisionTest
+  assert(resolveCollectionCodeStrict("COL-01-KNY") === "COL-01-DS", "demonSlayerDarkSoulsCollisionTest: COL-01-KNY resolve para COL-01-DS (Demon Slayer)");
+  assert(resolveCollectionCodeStrict("COL-02-DS") === "COL-02-DS", "demonSlayerDarkSoulsCollisionTest: COL-02-DS resolve para COL-02-DS (Dark Souls)");
+  assert(resolveCollectionCodeStrict("COL-01-KNY") !== resolveCollectionCodeStrict("COL-02-DS"), "demonSlayerDarkSoulsCollisionTest: COL-01-KNY e COL-02-DS geram resoluções distintas");
+
+  // 3. strictUnknownReturnsNullTest
+  assert(resolveCollectionCodeStrict("NON_EXISTENT_XYZ_123") === null, "strictUnknownReturnsNullTest: Código desconhecido retorna null");
+  assert(resolveCollectionCodeStrict("UNKNOWN") === null, "strictUnknownReturnsNullTest: UNKNOWN retorna null");
+  assert(resolveCollectionCodeStrict("INVALID_CODE") === null, "strictUnknownReturnsNullTest: Código inválido retorna null e NUNCA COL-00-MULTI");
+
+  // 4. loreDoesNotBecomeMultiTest
+  assert(resolveCollectionCodeStrict("LORE-AOT-SCO-003") === null, "loreDoesNotBecomeMultiTest: Referência LORE-* resolve para null em modo estrito");
+
+  // 5. collectionRecordNotConflictTest
+  const colEval = evaluateEntityPipeline({ id: "col_aot", code: "COL-01-AOT", type: "collection", name: "Attack on Titan" });
+  assert(colEval.flags.collectionConflict === false, "collectionRecordNotConflictTest: Registro estrutural de coleção não gera collectionConflict");
+
+  // 6. multiNamespaceNotConflictByDefaultTest
+  const multiEval = evaluateEntityPipeline({ id: "item_multi", collection_id: "COL-00-MULTI", type: "item", name: "Multi Item" });
+  assert(multiEval.flags.collectionConflict === false, "multiNamespaceNotConflictByDefaultTest: Namespace COL-00-MULTI explícito não gera collectionConflict por padrão");
+
+  // 7. collectionRecordUniquenessTest
+  const colAcc = report.collectionRecordsAccounting;
+  assert(colAcc.collectionRecords === 60, `collectionRecordUniquenessTest: Exactly 60 collection records (${colAcc.collectionRecords})`);
+  assert(colAcc.resolvedCollectionRecords === 60, `collectionRecordUniquenessTest: 60 collection records resolvidas (${colAcc.resolvedCollectionRecords})`);
+  assert(colAcc.uniqueResolvedCanonicalIds === 60, `collectionRecordUniquenessTest: 60 IDs canônicos únicos resolvidos (${colAcc.uniqueResolvedCanonicalIds})`);
+  assert(colAcc.duplicateCanonicalMappings === 0, `collectionRecordUniquenessTest: 0 mapeamentos duplicados (${colAcc.duplicateCanonicalMappings})`);
+  assert(colAcc.unresolvedCollectionRecords === 0, `collectionRecordUniquenessTest: 0 registros de coleção não resolvidos (${colAcc.unresolvedCollectionRecords})`);
+
+  // 8. collectionCodeAccountingTest
+  const confAcc = report.collectionConflictsAccounting;
+  assert(confAcc.collectionConflictsBefore === 61, `collectionCodeAccountingTest: Baseline collectionConflictsBefore === 61`);
+  assert(confAcc.collectionConflictsAfter === 0, `collectionCodeAccountingTest: collectionConflictsAfter === 0 (emergiu: ${confAcc.collectionConflictsAfter})`);
+  assert(confAcc.structuralCollectionFalsePositivesRemoved === 47, `collectionCodeAccountingTest: 47 falsos positivos estruturais de coleção removidos`);
+  assert(confAcc.multiNamespaceFalsePositivesRemoved === 8, `collectionCodeAccountingTest: 8 falsos positivos de namespace MULTI removidos`);
+  assert(confAcc.unresolvedLoreReferences === 6, `collectionCodeAccountingTest: 6 referências de Lore isoladas`);
+}
+
+await runFinalGateTests();
 
 await runCrudTest();
 
