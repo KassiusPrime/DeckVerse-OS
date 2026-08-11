@@ -35,16 +35,10 @@ export default function AdminMediaManager() {
     queryFn: () => adminController.getAllBosses()
   });
 
-  // Em runtime, itens podem vir das coleções ou de repositórios do sistema
-  const items = useMemo(() => {
-    const list = [];
-    collections.forEach(col => {
-      if (Array.isArray(col.items)) {
-        col.items.forEach(i => list.push({ ...i, collection_id: col.code }));
-      }
-    });
-    return list;
-  }, [collections]);
+  const { data: items = [], refetch: refetchItems } = useQuery({
+    queryKey: ["admin-items"],
+    queryFn: () => adminController.getAllItems()
+  });
 
   const catalog = useMemo(() => ({
     collections,
@@ -95,6 +89,49 @@ export default function AdminMediaManager() {
     }
   };
 
+  const handleCreateEntityFromMedia = async (fileInfo) => {
+    try {
+      const created = await adminController.createEntityFromMedia(fileInfo);
+      toast({
+        title: "✨ Entidade Criada!",
+        description: `Entidade "${created.name}" foi criada no acervo.`
+      });
+
+      queryClient.invalidateQueries();
+      refetchCards();
+      refetchCollections();
+      refetchBosses();
+      refetchItems();
+
+      if (preflightReport && preflightReport.files) {
+        const updatedFiles = preflightReport.files.map(f => {
+          if (f.originalFilename === fileInfo.originalFilename) {
+            return {
+              ...f,
+              matchStatus: "MATCHED",
+              matchedEntity: created
+            };
+          }
+          return f;
+        });
+        const matchedCount = updatedFiles.filter(f => f.matchStatus === "MATCHED").length;
+        const notFoundCount = updatedFiles.filter(f => f.matchStatus === "NOT_FOUND").length;
+        setPreflightReport({
+          ...preflightReport,
+          files: updatedFiles,
+          matched: matchedCount,
+          notFound: notFoundCount
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "❌ Erro ao criar entidade",
+        description: err.message,
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleImageFilesUpload = (event) => {
     const files = Array.from(event.target.files || []);
     if (files.length === 0) return;
@@ -111,6 +148,7 @@ export default function AdminMediaManager() {
     refetchCards();
     refetchCollections();
     refetchBosses();
+    refetchItems();
     toast({ title: "🔄 Catálogo recarregado com sucesso!" });
   };
 
@@ -392,7 +430,7 @@ export default function AdminMediaManager() {
             </button>
           </div>
 
-          {preflightReport && <PreflightReportView report={preflightReport} />}
+          {preflightReport && <PreflightReportView report={preflightReport} onRequestCreateEntity={handleCreateEntityFromMedia} />}
         </div>
       )}
 
@@ -419,7 +457,7 @@ export default function AdminMediaManager() {
             </button>
           </div>
 
-          {preflightReport && <PreflightReportView report={preflightReport} />}
+          {preflightReport && <PreflightReportView report={preflightReport} onRequestCreateEntity={handleCreateEntityFromMedia} />}
         </div>
       )}
 
@@ -522,7 +560,7 @@ export default function AdminMediaManager() {
 }
 
 /* Subcomponente para exibir o relatório visual do Preflight */
-function PreflightReportView({ report }) {
+function PreflightReportView({ report, onRequestCreateEntity }) {
   return (
     <div className="p-5 border border-primary/30 bg-card/60 rounded-xl space-y-5">
       <div className="flex items-center justify-between border-b border-border/30 pb-3">
@@ -601,7 +639,18 @@ function PreflightReportView({ report }) {
                   {f.matchedEntity?.name || <span className="text-muted-foreground italic">Não associado</span>}
                 </td>
                 <td className="p-2.5">
-                  <StatusBadge status={f.matchStatus} hasConflict={f.hasConflict} reason={f.conflictReason} />
+                  <div className="flex items-center gap-2">
+                    <StatusBadge status={f.matchStatus} hasConflict={f.hasConflict} reason={f.conflictReason} />
+                    {f.matchStatus === "NOT_FOUND" && onRequestCreateEntity && (
+                      <button
+                        type="button"
+                        onClick={() => onRequestCreateEntity(f)}
+                        className="px-2 py-0.5 bg-primary/20 hover:bg-primary/40 text-primary border border-primary/40 font-heading font-bold text-[9px] rounded transition-all shrink-0"
+                      >
+                        + CRIAR ENTIDADE
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}

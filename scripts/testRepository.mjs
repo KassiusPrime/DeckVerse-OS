@@ -59,6 +59,15 @@ console.log("\n📌 Teste 5: Operações CRUD Reais Cross-Collection no entityRe
 import { entityRepository } from "../core/entityRepository.js";
 
 async function runCrudTest() {
+  // Remover potenciais Thors e Zeus pré-existentes da semente para isolamento do teste CRUD
+  const allCards = await entityRepository.getAllCards();
+  for (const c of allCards) {
+    const nameLower = (c.name || "").toLowerCase();
+    if (nameLower === "thor" || nameLower === "zeus") {
+      await entityRepository.deleteCard(c.id);
+    }
+  }
+
   // 1. Inserir 3 Thors em franquias distintas
   const thorMarvel = await entityRepository.saveCard({
     id: "thor_marvel_001",

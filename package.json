@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 3000",
     "build": "vite build",
-    "test": "node scripts/testRepository.mjs && node scripts/testMediaManager.mjs",
+    "test": "node scripts/testRepository.mjs && node scripts/testMediaManager.mjs && node scripts/testAdminCatalog.mjs",
     "audit:catalog": "node scripts/auditCatalog.mjs",
     "test:repo": "node scripts/testRepository.mjs",
     "validate:codes": "node scripts/validateCollectionCodes.mjs",

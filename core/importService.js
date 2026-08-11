@@ -4,6 +4,7 @@
 // ════════════════════════════════════════════════════════════════════════════
 
 import { entityRepository } from "./entityRepository.js";
+import { db } from "../deckverseClient.js";
 import { validateCard, validateCollection, normalizeCode } from "../lib/importSchemas.js";
 import { validateCardSchema } from "./schemaValidationApi.js";
 import { inferCollectionCode, CANONICAL_SERIES_NAMES } from "../lib/collectionCodes.js";

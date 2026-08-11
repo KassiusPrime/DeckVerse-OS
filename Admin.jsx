@@ -6,7 +6,7 @@ import {
   Shield, Upload, Database, Scroll, Swords, ChevronRight, ChevronLeft,
   Plus, Save, Trash2, Eye, EyeOff, Pencil, X, Check, Sparkles, ShieldCheck,
   Search, Lock, Unlock, Cpu, Activity, RefreshCw, AlertTriangle, Layers,
-  Terminal, UserCheck, HardDrive, Zap, CheckCircle2, XCircle, Filter, SlidersHorizontal, FileText, Crown, FileCheck, Images
+  Terminal, UserCheck, HardDrive, Zap, CheckCircle2, XCircle, Filter, SlidersHorizontal, FileText, Crown, FileCheck, Images, Package
 } from "lucide-react";
 
 import { adminController } from "./core/adminController.js";
@@ -16,6 +16,13 @@ import CollectionImporter from "@/CollectionImporter";
 import DataQualityCenter from "@/DataQualityCenter";
 import SchemaRegistryPanel from "./components/SchemaRegistryPanel";
 import AdminMediaManager from "./AdminMediaManager";
+import { CollectionManagerTab } from "@/src/components/admin/CollectionManagerTab";
+import { ItemManagerTab } from "@/src/components/admin/ItemManagerTab";
+import { CollectionDetailModal } from "@/src/components/admin/CollectionDetailModal";
+import { CollectionEditorModal } from "@/src/components/admin/CollectionEditorModal";
+import { ItemEditorModal } from "@/src/components/admin/ItemEditorModal";
+import { DuplicateConflictModal } from "@/src/components/admin/DuplicateConflictModal";
+import { GlobalAdminSearch } from "@/src/components/admin/GlobalAdminSearch";
 import { Input } from "@/input";
 import { Textarea } from "@/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/select";
@@ -34,6 +41,7 @@ const NAV_ITEMS = [
   { key: "quality",     label: "QUALIDADE & QUARENTENA", icon: ShieldCheck, group: "DATA" },
   { key: "cards",       label: "GERENCIADOR DE CARTAS", icon: Upload, group: "DATA" },
   { key: "collections", label: "COLEÇÕES", icon: Database, group: "DATA" },
+  { key: "items",       label: "ITENS & ARTEFATOS", icon: Package, group: "DATA" },
   { key: "bosses",      label: "ENTIDADES & BOSSES", icon: Swords, group: "DATA" },
   { key: "players",     label: "PLAYERS & GEMAS", icon: Shield, group: "USERS" },
   { key: "queue",       label: "FILA DE TAREFAS & SYNC", icon: Cpu, group: "SYSTEM" },
@@ -165,8 +173,12 @@ function SkillsEditor({ skills = [], onChange }) {
 }
 
 /* ─── Modal/Drawer para Editar / Criar Carta (Com Classificações) ─── */
-function CardEditorModal({ card, collections = [], onClose, onSave }) {
-  const [formData, setFormData] = useState({ ...EMPTY_CARD, ...card });
+function CardEditorModal({ card, prefilledCollectionCode, collections = [], onClose, onSave, onCollision }) {
+  const [formData, setFormData] = useState(() => ({
+    ...EMPTY_CARD,
+    ...(card || {}),
+    collection_id: card?.collection_id || prefilledCollectionCode || EMPTY_CARD.collection_id
+  }));
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
@@ -182,7 +194,11 @@ function CardEditorModal({ card, collections = [], onClose, onSave }) {
       toast({ title: "✅ Carta salva com sucesso!" });
       onClose();
     } catch (err) {
-      toast({ title: "❌ Erro ao salvar carta", description: err.message, variant: "destructive" });
+      if (err.isCollision && onCollision) {
+        onCollision(err, formData);
+      } else {
+        toast({ title: "❌ Erro ao salvar carta", description: err.message, variant: "destructive" });
+      }
     } finally {
       setSaving(false);
     }
@@ -1277,6 +1293,16 @@ export default function Admin() {
   const [globalSearch, setGlobalSearch] = useState("");
   const { toast } = useToast();
 
+  // Phase 2 Catalog Manager State
+  const [selectedCollectionDetail, setSelectedCollectionDetail] = useState(null);
+  const [editingCollection, setEditingCollection] = useState(null);
+  const [isCreatingCollection, setIsCreatingCollection] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+  const [isCreatingItem, setIsCreatingItem] = useState(false);
+  const [prefilledCollectionCodeForItem, setPrefilledCollectionCodeForItem] = useState("");
+  const [duplicateConflictData, setDuplicateConflictData] = useState(null);
+  const [prefilledCardCollectionCode, setPrefilledCardCollectionCode] = useState("");
+
   useEffect(() => {
     if (user?.role === "admin") {
       setIsAuthenticated(true);
@@ -1444,6 +1470,23 @@ export default function Admin() {
 
       {/* ─── CONTEÚDO PRINCIPAL ─── */}
       <main className="flex-1 p-4 md:p-6 overflow-y-auto max-w-7xl mx-auto space-y-6">
+        {/* Barra de Busca Administrativa Global */}
+        <div className="border-b border-border/30 pb-4">
+          <GlobalAdminSearch
+            onSelectResult={(item) => {
+              if (item.entityType === "collection") {
+                setSelectedCollectionDetail(item);
+              } else if (item.entityType === "character") {
+                setActiveTab("cards");
+              } else if (item.entityType === "item") {
+                setEditingItem(item);
+              } else if (item.entityType === "boss") {
+                setActiveTab("bosses");
+              }
+            }}
+          />
+        </div>
+
         {/* Dashboard Overview */}
         {activeTab === "dashboard" && (
           <div className="space-y-6">
@@ -1601,41 +1644,109 @@ export default function Admin() {
 
         {/* Collections Tab */}
         {activeTab === "collections" && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between border-b border-border/30 pb-3">
-              <h1 className="font-heading text-lg font-bold font-mono">COLEÇÕES DO MULTIVERSO ({collections.length})</h1>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {collections.map(c => (
-                <div key={c.id || c.code} className="p-3 border border-border/30 bg-card/40 hover:border-primary/40 rounded flex items-center justify-between gap-3 group transition-all">
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className="w-10 h-10 rounded bg-primary/20 border border-primary/40 flex items-center justify-center font-bold font-mono text-primary text-xs shrink-0">
-                      {c.code}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="font-heading font-bold text-xs text-foreground truncate">{c.name}</div>
-                      <p className="text-[10px] font-mono text-muted-foreground truncate">{c.description || "Sem descrição"}</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={async () => {
-                      if (confirm(`Tem certeza que deseja excluir a coleção "${c.name}" (${c.code})?`)) {
-                        await adminController.deleteCollection(c.code || c.id);
-                        toast({ title: `Coleção "${c.name}" excluída com sucesso!` });
-                        refetchCollections();
-                        refetchCards();
-                        refetchSummary();
-                      }
-                    }}
-                    title="Excluir Coleção"
-                    className="p-1.5 text-destructive hover:bg-destructive/10 rounded border border-destructive/20 text-xs shrink-0"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
+          <CollectionManagerTab
+            onOpenCollection={col => setSelectedCollectionDetail(col)}
+            onEditCollection={col => setEditingCollection(col)}
+            onCreateCollection={() => setIsCreatingCollection(true)}
+            onCreateCharacter={colCode => { setPrefilledCardCollectionCode(colCode); setIsCreatingCard(true); }}
+            onCreateItem={colCode => { setPrefilledCollectionCodeForItem(colCode); setIsCreatingItem(true); }}
+            onCreateBoss={colCode => { setActiveTab("bosses"); }}
+          />
+        )}
+
+        {/* Items Tab */}
+        {activeTab === "items" && (
+          <ItemManagerTab
+            onCreateItem={colCode => { setPrefilledCollectionCodeForItem(colCode || "COL-00-MULTI"); setIsCreatingItem(true); }}
+            onEditItem={item => setEditingItem(item)}
+          />
+        )}
+
+        {/* Phase 2 Modals */}
+        {selectedCollectionDetail && (
+          <CollectionDetailModal
+            collection={selectedCollectionDetail}
+            onClose={() => setSelectedCollectionDetail(null)}
+            onEditCollection={col => { setSelectedCollectionDetail(null); setEditingCollection(col); }}
+            onCreateCharacter={colCode => { setSelectedCollectionDetail(null); setPrefilledCardCollectionCode(colCode); setIsCreatingCard(true); }}
+            onCreateItem={colCode => { setSelectedCollectionDetail(null); setPrefilledCollectionCodeForItem(colCode); setIsCreatingItem(true); }}
+            onCreateBoss={colCode => { setSelectedCollectionDetail(null); setActiveTab("bosses"); }}
+          />
+        )}
+
+        {(isCreatingCollection || editingCollection) && (
+          <CollectionEditorModal
+            collection={editingCollection}
+            onClose={() => { setIsCreatingCollection(false); setEditingCollection(null); }}
+            onSave={async (colData) => {
+              try {
+                await adminController.saveCollection(colData);
+                toast({ title: "✅ Coleção salva com sucesso!" });
+                refetchCollections();
+                refetchSummary();
+                setIsCreatingCollection(false);
+                setEditingCollection(null);
+              } catch (err) {
+                if (err.isCollision) {
+                  setDuplicateConflictData({
+                    attemptedEntity: colData,
+                    existingEntity: err.existingEntity,
+                    message: err.message,
+                    entityType: "collection"
+                  });
+                } else {
+                  toast({ title: "❌ Erro ao salvar coleção", description: err.message, variant: "destructive" });
+                }
+              }
+            }}
+          />
+        )}
+
+        {(isCreatingItem || editingItem) && (
+          <ItemEditorModal
+            item={editingItem}
+            prefilledCollectionCode={prefilledCollectionCodeForItem}
+            collections={collections}
+            onClose={() => { setIsCreatingItem(false); setEditingItem(null); setPrefilledCollectionCodeForItem(""); }}
+            onSave={async (itemData) => {
+              try {
+                await adminController.saveItem(itemData);
+                toast({ title: "✅ Item salvo com sucesso!" });
+                refetchSummary();
+                setIsCreatingItem(false);
+                setEditingItem(null);
+                setPrefilledCollectionCodeForItem("");
+              } catch (err) {
+                if (err.isCollision) {
+                  setDuplicateConflictData({
+                    attemptedEntity: itemData,
+                    existingEntity: err.existingEntity,
+                    message: err.message,
+                    entityType: "item"
+                  });
+                } else {
+                  toast({ title: "❌ Erro ao salvar item", description: err.message, variant: "destructive" });
+                }
+              }
+            }}
+          />
+        )}
+
+        {duplicateConflictData && (
+          <DuplicateConflictModal
+            conflictData={duplicateConflictData}
+            onClose={() => setDuplicateConflictData(null)}
+            onViewExisting={(existing) => {
+              setDuplicateConflictData(null);
+              if (duplicateConflictData.entityType === "collection") {
+                setSelectedCollectionDetail(existing);
+              } else if (duplicateConflictData.entityType === "item") {
+                setEditingItem(existing);
+              } else if (duplicateConflictData.entityType === "character") {
+                setActiveTab("cards");
+              }
+            }}
+          />
         )}
       </main>
     </div>

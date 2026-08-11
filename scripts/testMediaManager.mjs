@@ -171,10 +171,47 @@ async function runMediaManagerTests() {
     const expectedTotal = mockCatalog.collections.length + mockCatalog.cards.length + mockCatalog.items.length + mockCatalog.bosses.length;
     const coverage = calculateMediaCoverage(mockCatalog);
     assert.strictEqual(coverage.totalMediaEligible, expectedTotal);
+    assert.strictEqual(coverage.itemsTotal, mockCatalog.items.length);
+    assert.strictEqual(coverage.coverageAccountingValid, true);
     assert.strictEqual(coverage.realUsableMedia, 0);
     assert.strictEqual(coverage.missingRealMedia, expectedTotal);
     assert.strictEqual(coverage.unsplashConsideredUsable, 0);
     assert.strictEqual(coverage.localPlaceholderConsideredUsable, 0);
+  });
+
+  // 15. Invariantes com Fonte Real e Exclusão de Metadata/Lore
+  test("Media Coverage Real Repository Invariants: inclui Item, fontes reais, e exclusão de metadata/lore", async () => {
+    const realItems = await entityRepository.getAllItems();
+    const realCols = await entityRepository.getAllCollections();
+    const realCards = await entityRepository.getAllCards();
+    const realBosses = await entityRepository.getAllBosses();
+
+    assert.ok(Array.isArray(realItems), "getAllItems() deve retornar um Array");
+    assert.ok(realItems.length > 0, "A fonte real de Item deve possuir itens registrados");
+
+    const realCatalog = {
+      collections: realCols,
+      cards: realCards,
+      items: realItems,
+      bosses: realBosses
+    };
+
+    const cov = calculateMediaCoverage(realCatalog);
+
+    assert.strictEqual(cov.itemsTotal, realItems.length, "itemsTotal deve vir da fonte real de itens");
+    assert.strictEqual(cov.collectionsTotal, realCols.length);
+    assert.strictEqual(cov.charactersTotal, realCards.length);
+    assert.strictEqual(cov.bossesTotal, realBosses.length);
+
+    assert.strictEqual(cov.totalMediaEligible, cov.collectionsTotal + cov.charactersTotal + cov.itemsTotal + cov.bossesTotal);
+    assert.strictEqual(cov.coverageAccountingValid, true, "Invariante de soma de mídia elegível válida");
+
+    assert.ok(cov.itemsMissingMedia > 0, "itemsMissingMedia não pode ser 0 por ausência silenciosa da API");
+
+    // Testar que falta de items na chamada dispara erro explícito
+    assert.throws(() => {
+      calculateMediaCoverage({ collections: realCols, cards: realCards, bosses: realBosses });
+    }, /MEDIA_COVERAGE_ERROR/, "Ausência de itens na fonte dispara erro de integridade");
   });
 
   console.log(`\n📊 RESULTADO DOS TESTES DO MEDIA MANAGER: ${passed}/${total} Passaram`);

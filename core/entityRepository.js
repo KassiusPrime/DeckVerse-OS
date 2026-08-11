@@ -35,20 +35,39 @@ class EntityRepository {
       throw new Error("Dados da carta são obrigatórios");
     }
     const data = cardData.data || cardData;
-    const name = (data.name || data.title || "Carta Sem Nome").trim();
-    const targetKey = createEntityKey(data);
+    const name = (data.name || data.title || "").trim();
+    if (!name) {
+      throw new Error("Nome da carta é obrigatório");
+    }
 
+    const typeLower = (data.entityType || data.type || "character").toString().toLowerCase();
+    if (typeLower === "metadata" || typeLower === "lore") {
+      throw new Error("Criação de metadados/lore através de formulário jogável não é permitida");
+    }
+
+    const targetKey = createEntityKey(data);
     const cards = await this.getAllCards();
 
-    // STRICT IDENTITY SEARCH ORDER:
-    // 1. Exact ID
-    // 2. Exact card_id
-    // 3. Exact canonical entityKey
-    // NEVER name alone!
+    // Collision check: check if another card has the exact same entityKey
+    const collision = cards.find(c =>
+      targetKey &&
+      createEntityKey(c) === targetKey &&
+      (!data.id || c.id !== data.id) &&
+      (!data.card_id || c.card_id !== data.card_id)
+    );
+
+    if (collision) {
+      const err = new Error("Entidade já existente");
+      err.isCollision = true;
+      err.existingEntity = collision;
+      err.entityKey = targetKey;
+      throw err;
+    }
+
+    // STRICT IDENTITY SEARCH ORDER FOR UPDATES:
     const existing = cards.find(c =>
       (data.id && c.id === data.id) ||
-      (data.card_id && c.card_id === data.card_id) ||
-      (targetKey && createEntityKey(c) === targetKey)
+      (data.card_id && c.card_id === data.card_id)
     );
 
     if (existing) {
@@ -142,7 +161,7 @@ class EntityRepository {
     const data = collectionData.data || collectionData;
     const name = (data.name || data.title || "").trim();
     const rawCode = data.code || data.id || data.collection_id || name;
-    const code = resolveCollectionCode(rawCode);
+    const code = resolveCollectionCode(rawCode) || (rawCode ? rawCode.toUpperCase().trim() : "");
 
     if (!name || !code) {
       throw new Error("Nome e Código da coleção são obrigatórios");
@@ -155,13 +174,19 @@ class EntityRepository {
     };
 
     const collections = await this.getAllCollections();
-    // Strict match by ID or Code (NEVER name alone)
     const existing = collections.find(c =>
       (payload.id && c.id === payload.id) ||
       (c.code && c.code === payload.code)
     );
 
     if (existing) {
+      // Check if trying to rename code to another existing collection
+      if (!payload.id && existing.code === payload.code) {
+        const err = new Error("Código de coleção já existente ou indisponível");
+        err.isCollision = true;
+        err.existingEntity = existing;
+        throw err;
+      }
       return await db.entities.Collection.update(existing.id, {
         ...existing,
         ...payload,
@@ -179,12 +204,27 @@ class EntityRepository {
 
   async deleteCollection(idOrCode) {
     const col = await this.getCollectionById(idOrCode);
-    if (col) {
-      if (col.id) await db.entities.Collection.delete(col.id);
-      if (col.code && col.code !== col.id) await db.entities.Collection.delete(col.code);
-      return { success: true };
+    if (!col) return { success: false, reason: "Coleção não encontrada" };
+
+    const canonCode = col.code || idOrCode;
+
+    // Check linked entities before deleting
+    const cards = await this.getAllCards();
+    const items = await this.getAllItems();
+    const bosses = await this.getAllBosses();
+
+    const linkedCards = cards.filter(c => resolveCollectionCode(c.collection_id || c.collection_code) === canonCode);
+    const linkedItems = items.filter(i => resolveCollectionCode(i.collection_id || i.collection_code) === canonCode);
+    const linkedBosses = bosses.filter(b => resolveCollectionCode(b.collection_id || b.collection_code) === canonCode);
+
+    const totalLinked = linkedCards.length + linkedItems.length + linkedBosses.length;
+    if (totalLinked > 0) {
+      throw new Error("Esta coleção contém entidades associadas.");
     }
-    return await db.entities.Collection.delete(idOrCode);
+
+    if (col.id) await db.entities.Collection.delete(col.id);
+    if (col.code && col.code !== col.id) await db.entities.Collection.delete(col.code);
+    return { success: true };
   }
 
   /**
@@ -195,21 +235,41 @@ class EntityRepository {
   }
 
   async saveBoss(bossData) {
-    const bosses = await this.getAllBosses();
-    const targetKey = createEntityKey({ ...bossData, type: "boss" });
+    if (!bossData) throw new Error("Dados do boss são obrigatórios");
+    const name = (bossData.name || bossData.title || "").trim();
+    if (!name) throw new Error("Nome do boss é obrigatório");
 
-    // Strict match by ID or entityKey
-    const existing = bosses.find(b =>
-      (bossData.id && b.id === bossData.id) ||
-      (targetKey && createEntityKey({ ...b, type: "boss" }) === targetKey)
+    const typeLower = (bossData.entityType || bossData.type || "boss").toString().toLowerCase();
+    if (typeLower === "metadata" || typeLower === "lore") {
+      throw new Error("Criação de metadados/lore através de formulário jogável não é permitida");
+    }
+
+    const bosses = await this.getAllBosses();
+    const targetKey = createEntityKey({ ...bossData, type: "boss", name });
+
+    const collision = bosses.find(b =>
+      targetKey &&
+      createEntityKey({ ...b, type: "boss" }) === targetKey &&
+      (!bossData.id || b.id !== bossData.id)
     );
 
+    if (collision) {
+      const err = new Error("Entidade já existente");
+      err.isCollision = true;
+      err.existingEntity = collision;
+      err.entityKey = targetKey;
+      throw err;
+    }
+
+    const existing = bosses.find(b => bossData.id && b.id === bossData.id);
+
     if (existing) {
-      return await db.entities.Boss.update(existing.id, bossData);
+      return await db.entities.Boss.update(existing.id, { ...existing, ...bossData, name });
     } else {
       return await db.entities.Boss.create({
         id: bossData.id || `boss_${Date.now()}`,
-        ...bossData
+        ...bossData,
+        name
       });
     }
   }
@@ -238,6 +298,63 @@ class EntityRepository {
     } else {
       return await db.entities.Player.create(playerData);
     }
+  }
+
+  /**
+   * Items
+   */
+  async getAllItems() {
+    return (await db.entities.Item.list(null, 5000)) || [];
+  }
+
+  async getItemById(id) {
+    if (!id) return null;
+    const items = await this.getAllItems();
+    return items.find(i => i.id === id || i.item_id === id) || null;
+  }
+
+  async saveItem(itemData) {
+    if (!itemData) throw new Error("Dados do item são obrigatórios");
+    const name = (itemData.name || itemData.title || "").trim();
+    if (!name) throw new Error("Nome do item é obrigatório");
+
+    const typeLower = (itemData.entityType || itemData.type || "item").toString().toLowerCase();
+    if (typeLower === "metadata" || typeLower === "lore") {
+      throw new Error("Criação de metadados/lore através de formulário jogável não é permitida");
+    }
+
+    const items = await this.getAllItems();
+    const targetKey = createEntityKey({ ...itemData, type: "item", name });
+
+    const collision = items.find(i =>
+      targetKey &&
+      createEntityKey({ ...i, type: "item" }) === targetKey &&
+      (!itemData.id || i.id !== itemData.id) &&
+      (!itemData.item_id || i.item_id !== itemData.item_id)
+    );
+
+    if (collision) {
+      const err = new Error("Entidade já existente");
+      err.isCollision = true;
+      err.existingEntity = collision;
+      err.entityKey = targetKey;
+      throw err;
+    }
+
+    const existing = items.find(i => (itemData.id && i.id === itemData.id) || (itemData.code && i.code === itemData.code));
+    if (existing) {
+      return await db.entities.Item.update(existing.id, { ...existing, ...itemData, name });
+    } else {
+      return await db.entities.Item.create({
+        id: itemData.id || `item_${Date.now()}`,
+        ...itemData,
+        name
+      });
+    }
+  }
+
+  async deleteItem(id) {
+    return await db.entities.Item.delete(id);
   }
 
   /**

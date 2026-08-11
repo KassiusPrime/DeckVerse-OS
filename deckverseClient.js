@@ -301,17 +301,15 @@ function getStorageTable(tableName, defaultData) {
     if (raw) {
       let parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        // Always filter stored items against deletedKeys set (EXACT ID/KEY MATCH ONLY)
+        // Always filter stored items against deletedKeys set (EXACT ID/CARD_ID/CODE MATCH ONLY)
         parsed = parsed.filter(item => {
           const keyId = item.id;
           const keyCardId = item.card_id;
           const keyCode = item.code;
-          const eKey = createEntityKey(item);
           return !(
             (keyId && deletedKeys.has(String(keyId))) ||
             (keyCardId && deletedKeys.has(String(keyCardId))) ||
-            (keyCode && deletedKeys.has(String(keyCode))) ||
-            (eKey && deletedKeys.has(String(eKey)))
+            (keyCode && deletedKeys.has(String(keyCode)))
           );
         });
 
@@ -472,7 +470,7 @@ function createEntityStore(tableName, defaultData) {
     delete: async (id) => {
       let items = getStorageTable(tableName, defaultData);
       const toDelete = items.filter(item =>
-        item.id === id || item.card_id === id || item.code === id || createEntityKey(item) === id
+        item.id === id || item.card_id === id || item.code === id
       );
 
       const keysToMark = [id];
@@ -480,12 +478,10 @@ function createEntityStore(tableName, defaultData) {
         if (item.id) keysToMark.push(item.id);
         if (item.card_id) keysToMark.push(item.card_id);
         if (item.code) keysToMark.push(item.code);
-        const ek = createEntityKey(item);
-        if (ek) keysToMark.push(ek);
       });
       addDeletedKeys(tableName, keysToMark);
 
-      items = items.filter(item => item.id !== id && item.card_id !== id && item.code !== id && createEntityKey(item) !== id);
+      items = items.filter(item => item.id !== id && item.card_id !== id && item.code !== id);
       saveStorageTable(tableName, items);
       return { success: true };
     }

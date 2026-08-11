@@ -3,6 +3,8 @@ import { parseMediaFilename } from "./mediaFilenameParser.js";
 import { matchMediaEntity } from "./mediaEntityMatcher.js";
 import { hasUsableMedia } from "../ai/dataQualityEngine.js";
 
+export { hasUsableMedia };
+
 /**
  * Calcula dinamicamente as métricas de cobertura de mídia do catálogo runtime.
  * Entidades elegíveis: collection, character, item, boss (Metadata/Lore EXCLUÍDOS).
@@ -11,12 +13,25 @@ import { hasUsableMedia } from "../ai/dataQualityEngine.js";
  * @returns {Object} Métrica completa de cobertura de mídia
  */
 export function calculateMediaCoverage(catalog = {}) {
+  if (!catalog || typeof catalog !== "object") {
+    throw new Error("MEDIA_COVERAGE_ERROR: Catálogo inválido fornecido para calculateMediaCoverage().");
+  }
+
+  if (!Array.isArray(catalog.items)) {
+    throw new Error("MEDIA_COVERAGE_ERROR: items source real não fornecida ou inválida em calculateMediaCoverage(). Ausência silenciosa de itens não é permitida.");
+  }
+
   const collections = catalog.collections || [];
   const characters = catalog.cards || catalog.characters || [];
-  const items = catalog.items || [];
+  const items = catalog.items;
   const bosses = catalog.bosses || [];
 
-  const totalMediaEligible = collections.length + characters.length + items.length + bosses.length;
+  const collectionsTotal = collections.length;
+  const charactersTotal = characters.length;
+  const itemsTotal = items.length;
+  const bossesTotal = bosses.length;
+
+  const totalMediaEligible = collectionsTotal + charactersTotal + itemsTotal + bossesTotal;
 
   const collectionsMissingMedia = collections.filter(c => !hasUsableMedia(c)).length;
   const charactersMissingMedia = characters.filter(c => !hasUsableMedia(c)).length;
@@ -26,14 +41,21 @@ export function calculateMediaCoverage(catalog = {}) {
   const missingRealMedia = collectionsMissingMedia + charactersMissingMedia + itemsMissingMedia + bossesMissingMedia;
   const realUsableMedia = totalMediaEligible - missingRealMedia;
 
+  const coverageAccountingValid = (totalMediaEligible === collectionsTotal + charactersTotal + itemsTotal + bossesTotal);
+
   return {
     totalMediaEligible,
+    collectionsTotal,
+    charactersTotal,
+    itemsTotal,
+    bossesTotal,
     realUsableMedia,
     missingRealMedia,
     collectionsMissingMedia,
     charactersMissingMedia,
     itemsMissingMedia,
     bossesMissingMedia,
+    coverageAccountingValid,
     unsplashConsideredUsable: 0,
     localPlaceholderConsideredUsable: 0,
     coveragePercentage: totalMediaEligible > 0 ? Number(((realUsableMedia / totalMediaEligible) * 100).toFixed(1)) : 0
