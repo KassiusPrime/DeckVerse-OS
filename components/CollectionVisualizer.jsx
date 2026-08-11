@@ -14,55 +14,51 @@ import {
   Globe, Gamepad2, Tv, Shield, ArrowRight, Activity
 } from "lucide-react";
 
-// Helper label and images metadata per code
-const COLLECTION_METADATA = {
-  "COL-01-NRT": { name: "Naruto / Boruto", category: "COL-01", universe: "Anime & Manga", image: "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&auto=format&fit=crop&q=80" },
-  "COL-01-OP": { name: "One Piece", category: "COL-01", universe: "Anime & Manga", image: "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=800&auto=format&fit=crop&q=80" },
-  "COL-01-DBZ": { name: "Dragon Ball Z / Super", category: "COL-01", universe: "Anime & Manga", image: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&auto=format&fit=crop&q=80" },
-  "COL-01-AOT": { name: "Attack on Titan", category: "COL-01", universe: "Anime & Manga", image: "https://images.unsplash.com/photo-1563089145-599997674d42?w=800&auto=format&fit=crop&q=80" },
-  "COL-01-JJK": { name: "Jujutsu Kaisen", category: "COL-01", universe: "Anime & Manga", image: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&auto=format&fit=crop&q=80" },
-  "COL-01-BLC": { name: "Bleach", category: "COL-01", universe: "Anime & Manga", image: "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&auto=format&fit=crop&q=80" },
-  "COL-01-HXH": { name: "Hunter x Hunter", category: "COL-01", universe: "Anime & Manga", image: "https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=800&auto=format&fit=crop&q=80" },
-  "COL-01-SLV": { name: "Solo Leveling", category: "COL-01", universe: "Anime & Manga", image: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&auto=format&fit=crop&q=80" },
-  "COL-01-JJBA": { name: "JoJo's Bizarre Adventure", category: "COL-01", universe: "Anime & Manga", image: "https://images.unsplash.com/photo-1563089145-599997674d42?w=800&auto=format&fit=crop&q=80" },
-  "COL-01-BSK": { name: "Berserk", category: "COL-01", universe: "Anime & Manga", image: "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=800&auto=format&fit=crop&q=80" },
+// Helper metadata derived dynamically from canonical MEGA_COLLECTIONS
+const MEGA_MAP = new Map(MEGA_COLLECTIONS.map((col) => [col.code, col]));
 
-  "COL-02-CP77": { name: "Cyberpunk 2077", category: "COL-02", universe: "Gaming", image: "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&auto=format&fit=crop&q=80" },
-  "COL-02-FF": { name: "Final Fantasy", category: "COL-02", universe: "Gaming", image: "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&auto=format&fit=crop&q=80" },
-  "COL-02-ZELDA": { name: "The Legend of Zelda", category: "COL-02", universe: "Gaming", image: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&auto=format&fit=crop&q=80" },
-  "COL-02-PKM": { name: "Pokémon Universe", category: "COL-02", universe: "Gaming", image: "https://images.unsplash.com/photo-1563089145-599997674d42?w=800&auto=format&fit=crop&q=80" },
-  "COL-02-EGD": { name: "Elden Ring / Dark Souls", category: "COL-02", universe: "Gaming", image: "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=800&auto=format&fit=crop&q=80" },
+function getCategoryFromCode(code = "") {
+  if (code.startsWith("COL-01")) return "COL-01";
+  if (code.startsWith("COL-02")) return "COL-02";
+  if (code.startsWith("COL-03")) return "COL-03";
+  if (code.startsWith("COL-04")) return "COL-04";
+  if (code.startsWith("COL-05")) return "COL-05";
+  if (code.startsWith("COL-06")) return "COL-06";
+  return "COL-00";
+}
 
-  "COL-03-MARVEL": { name: "Marvel Universe", category: "COL-03", universe: "Comics & Pop", image: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&auto=format&fit=crop&q=80" },
-  "COL-03-DC": { name: "DC Comics Universe", category: "COL-03", universe: "Comics & Pop", image: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&auto=format&fit=crop&q=80" },
-  "COL-03-SW": { name: "Star Wars Saga", category: "COL-03", universe: "Comics & Pop", image: "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&auto=format&fit=crop&q=80" },
-
-  "COL-00-MULTI": { name: "Multiverso DeckVerse", category: "COL-00", universe: "Multiverse", image: "https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=800&auto=format&fit=crop&q=80" }
-};
+function getUniverseFromCode(code = "") {
+  if (code.startsWith("COL-01")) return "Anime & Manga";
+  if (code.startsWith("COL-02")) return "Gaming";
+  if (code.startsWith("COL-03")) return "Comics & Pop";
+  if (code.startsWith("COL-04")) return "Cartoons & Series";
+  if (code.startsWith("COL-05")) return "Mythology";
+  if (code.startsWith("COL-06")) return "History";
+  return "Multiverse";
+}
 
 export default function CollectionVisualizer({ dbCards = [], onSelectCollection }) {
   const [categoryFilter, setCategoryFilter] = useState("ALL"); // ALL | COL-01 | COL-02 | COL-03 | COL-00
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Process collection stats for all 60 canonical codes
+  // Process collection stats for canonical codes
   const collectionStats = useMemo(() => {
     const statsMap = {};
 
     // Initialize all canonical codes
     CANONICAL_COLLECTION_CODES.forEach((code) => {
-      const meta = COLLECTION_METADATA[code] || {
-        name: code.replace("COL-", "").replace("-", " "),
-        category: code.startsWith("COL-01") ? "COL-01" : code.startsWith("COL-02") ? "COL-02" : code.startsWith("COL-03") ? "COL-03" : "COL-00",
-        universe: code.startsWith("COL-01") ? "Anime & Manga" : code.startsWith("COL-02") ? "Gaming" : code.startsWith("COL-03") ? "Comics & Pop" : "Multiverse",
-        image: "https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=800&auto=format&fit=crop&q=80"
-      };
+      const megaEntry = MEGA_MAP.get(code);
+      const name = megaEntry?.name || code.replace("COL-", "").replace("-", " ");
+      const category = megaEntry?.bank || getCategoryFromCode(code);
+      const universe = megaEntry?.category || getUniverseFromCode(code);
+      const image = megaEntry?.image_url || "/assets/placeholders/collection.svg";
 
       statsMap[code] = {
         code,
-        name: meta.name,
-        category: meta.category,
-        universe: meta.universe,
-        image: meta.image,
+        name,
+        category,
+        universe,
+        image,
         totalCards: 0,
         validCards: 0,
         quarantineCards: 0,
@@ -80,7 +76,7 @@ export default function CollectionVisualizer({ dbCards = [], onSelectCollection 
           name: code,
           category: "COL-00",
           universe: "Multiverse",
-          image: "https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=800&auto=format&fit=crop&q=80",
+          image: "/assets/placeholders/collection.svg",
           totalCards: 0,
           validCards: 0,
           quarantineCards: 0,

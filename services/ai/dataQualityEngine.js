@@ -10,17 +10,6 @@ import { classifyEntityDetail, isInvalidCardEntity, classifyEntityType, KNOWN_IT
 import { normalizeNameKey } from "../../src/utils/deduplication.js";
 import { MEGA_COLLECTIONS, MEGA_ITEMS, MEGA_BOSSES, getAllExpandedCards } from "../../src/data/megaCollectionsData.js";
 
-// Fallback images per collection
-const FALLBACK_IMAGES = {
-  "COL-01-NRT": "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&auto=format&fit=crop&q=80",
-  "COL-01-DBZ": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&auto=format&fit=crop&q=80",
-  "COL-03-MARVEL": "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&auto=format&fit=crop&q=80",
-  "COL-01-AOT": "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=800&auto=format&fit=crop&q=80",
-  "COL-01-JJK": "https://images.unsplash.com/photo-1563089145-599997674d42?w=800&auto=format&fit=crop&q=80",
-  "COL-02-CP77": "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&auto=format&fit=crop&q=80",
-  DEFAULT: "https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=800&auto=format&fit=crop&q=80"
-};
-
 export { inferCollectionCode };
 
 /**
@@ -28,7 +17,7 @@ export { inferCollectionCode };
  */
 export async function validateImageUrl(url, timeoutMs = 3000) {
   if (!url || typeof url !== "string" || !url.startsWith("http")) return false;
-  if (url.includes("placeholder") || url.includes("broken") || url.includes("null") || url.includes("undefined")) {
+  if (url.includes("placeholder") || url.includes("unsplash.com") || url.includes("broken") || url.includes("null") || url.includes("undefined")) {
     return false;
   }
 
@@ -93,6 +82,7 @@ export function hasUsableMedia(entity = {}) {
     ) {
       if (
         !clean.includes("placeholder") &&
+        !clean.includes("unsplash.com") &&
         !clean.includes("broken") &&
         !clean.includes("null") &&
         !clean.includes("undefined")

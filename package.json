@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 3000",
     "build": "vite build",
-    "test": "node scripts/testRepository.mjs",
+    "test": "node scripts/testRepository.mjs && node scripts/testMediaManager.mjs",
     "audit:catalog": "node scripts/auditCatalog.mjs",
     "test:repo": "node scripts/testRepository.mjs",
     "validate:codes": "node scripts/validateCollectionCodes.mjs",
@@ -60,6 +60,7 @@
     "html2canvas": "^1.4.1",
     "input-otp": "^1.4.2",
     "jspdf": "^4.0.0",
+    "jszip": "^3.10.1",
     "lodash": "^4.17.21",
     "lucide-react": "^0.475.0",
     "moment": "^2.30.1",

@@ -5,19 +5,59 @@
 import {
   CANONICAL_COLLECTION_CODES,
   LEGACY_ALIASES,
+  LEGACY_FULL_CODE_ALIASES,
   resolveCollectionCode,
   validateCollectionCode
 } from '../lib/collectionCodes.js';
+import { MEGA_COLLECTIONS } from '../src/data/megaCollectionsData.js';
 
 console.log('🔍 [CI] Iniciando validação dos códigos de coleção do DeckVerse OS...\n');
 
 let errors = 0;
 
-// 1. Validar quantidade e formato dos códigos canônicos
+// 1. Validar estrutura e integridade dos códigos canônicos
 console.log(`📦 Total de códigos canônicos cadastrados: ${CANONICAL_COLLECTION_CODES.length}`);
 
-if (CANONICAL_COLLECTION_CODES.length < 60) {
-  console.warn(`⚠️ Alerta: esperavam-se 60 códigos canônicos, encontrados ${CANONICAL_COLLECTION_CODES.length}`);
+if (CANONICAL_COLLECTION_CODES.length === 0) {
+  console.error('❌ A lista de códigos canônicos não pode estar vazia.');
+  errors++;
+}
+
+const uniqueCanonicalCodes = new Set(CANONICAL_COLLECTION_CODES);
+if (uniqueCanonicalCodes.size !== CANONICAL_COLLECTION_CODES.length) {
+  console.error(`❌ Códigos canônicos duplicados encontrados: ${CANONICAL_COLLECTION_CODES.length - uniqueCanonicalCodes.size}`);
+  errors++;
+} else {
+  console.log('✅ Todos os códigos canônicos são únicos.');
+}
+
+// Check zero canonicalAliasContamination
+const allAliasKeys = new Set([...Object.keys(LEGACY_ALIASES), ...Object.keys(LEGACY_FULL_CODE_ALIASES)]);
+let contaminationCount = 0;
+CANONICAL_COLLECTION_CODES.forEach(code => {
+  if (allAliasKeys.has(code)) {
+    console.error(`❌ Contaminação de alias em código canônico encontrada: ${code}`);
+    contaminationCount++;
+  }
+});
+if (contaminationCount > 0) {
+  errors += contaminationCount;
+} else {
+  console.log('✅ Zero contaminação de aliases nos códigos canônicos (canonicalAliasContamination = 0).');
+}
+
+// Check zero legacy codes inside seed
+let legacyInSeedCount = 0;
+MEGA_COLLECTIONS.forEach(col => {
+  if (!uniqueCanonicalCodes.has(col.code)) {
+    console.error(`❌ Código de coleção no seed não é canônico: ${col.code}`);
+    legacyInSeedCount++;
+  }
+});
+if (legacyInSeedCount > 0) {
+  errors += legacyInSeedCount;
+} else {
+  console.log('✅ Zero códigos legados dentro do seed de coleções (legacyCodesInsideMegaCollections = 0).');
 }
 
 CANONICAL_COLLECTION_CODES.forEach(code => {

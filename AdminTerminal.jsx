@@ -51,7 +51,7 @@ export default function AdminTerminal({ onAddCard }) {
       "Comum": "C"
     };
     const officialRarity = rarityMap[newCard.rarity] || newCard.rarity || "UR";
-    const img = newCard.imgUrl || 'https://images.unsplash.com/photo-1605629713998-167cdc70fa2f?w=600&auto=format&fit=crop&q=80';
+    const img = newCard.imgUrl || '/assets/placeholders/entity.svg';
 
     // Save locally following official schema
     const createdCard = await db.entities.Card.create({
@@ -244,7 +244,7 @@ export default function AdminTerminal({ onAddCard }) {
                 <label className="text-[11px] text-cyan-300">URL da Imagem (WebP/PNG)</label>
                 <input 
                   className="bg-black/80 border border-cyan-900 p-2 rounded text-white w-full text-xs focus:border-[#00F0FF] outline-none" 
-                  placeholder="https://images.unsplash.com/..."
+                  placeholder="https://exemplo.com/imagem.png"
                   value={newCard.imgUrl} 
                   onChange={e => setNewCard({...newCard, imgUrl: e.target.value})} 
                 />

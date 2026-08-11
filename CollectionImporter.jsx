@@ -28,7 +28,7 @@ export default function CollectionImporter() {
   const [collectionCode, setCollectionCode] = useState("NAR");
   const [collectionName, setCollectionName] = useState("Naruto");
   const [collectionDesc, setCollectionDesc] = useState("Ninjas de Konoha, Akatsuki, Hokages e Jinchurikis");
-  const [collectionImage, setCollectionImage] = useState("https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&auto=format&fit=crop&q=80");
+  const [collectionImage, setCollectionImage] = useState("/assets/placeholders/collection.svg");
 
   const [cardSeeds, setCardSeeds] = useState([
     { name: "Naruto Uzumaki", rarity: "SSR", role: "DPS", isBoss: false },

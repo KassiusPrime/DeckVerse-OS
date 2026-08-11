@@ -6,6 +6,7 @@
 import { createEntityKey } from "../src/utils/entityIdentity.js";
 import { CANONICAL_COLLECTION_CODES, resolveCollectionCode, resolveCollectionCodeStrict } from "../lib/collectionCodes.js";
 import { evaluateEntityPipeline, runDataQualityAudit } from "../services/ai/dataQualityEngine.js";
+import { MEGA_COLLECTIONS } from "../src/data/megaCollectionsData.js";
 
 console.log("🧪 [TEST] Iniciando testes do Repositório Unificado e Entity Identity...\n");
 
@@ -352,9 +353,10 @@ async function runFinalGateTests() {
 
   // 7. collectionRecordUniquenessTest
   const colAcc = report.collectionRecordsAccounting;
-  assert(colAcc.collectionRecords === 60, `collectionRecordUniquenessTest: Exactly 60 collection records (${colAcc.collectionRecords})`);
-  assert(colAcc.resolvedCollectionRecords === 60, `collectionRecordUniquenessTest: 60 collection records resolvidas (${colAcc.resolvedCollectionRecords})`);
-  assert(colAcc.uniqueResolvedCanonicalIds === 60, `collectionRecordUniquenessTest: 60 IDs canônicos únicos resolvidos (${colAcc.uniqueResolvedCanonicalIds})`);
+  const collectionRecords = colAcc.collectionRecords;
+  assert(collectionRecords === MEGA_COLLECTIONS.length, `collectionRecordUniquenessTest: collectionRecords (${collectionRecords}) === MEGA_COLLECTIONS.length (${MEGA_COLLECTIONS.length})`);
+  assert(colAcc.resolvedCollectionRecords === collectionRecords, `collectionRecordUniquenessTest: resolvedCollectionRecords (${colAcc.resolvedCollectionRecords}) === collectionRecords (${collectionRecords})`);
+  assert(colAcc.uniqueResolvedCanonicalIds === collectionRecords, `collectionRecordUniquenessTest: uniqueResolvedCanonicalIds (${colAcc.uniqueResolvedCanonicalIds}) === collectionRecords (${collectionRecords})`);
   assert(colAcc.duplicateCanonicalMappings === 0, `collectionRecordUniquenessTest: 0 mapeamentos duplicados (${colAcc.duplicateCanonicalMappings})`);
   assert(colAcc.unresolvedCollectionRecords === 0, `collectionRecordUniquenessTest: 0 registros de coleção não resolvidos (${colAcc.unresolvedCollectionRecords})`);
 

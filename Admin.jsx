@@ -6,7 +6,7 @@ import {
   Shield, Upload, Database, Scroll, Swords, ChevronRight, ChevronLeft,
   Plus, Save, Trash2, Eye, EyeOff, Pencil, X, Check, Sparkles, ShieldCheck,
   Search, Lock, Unlock, Cpu, Activity, RefreshCw, AlertTriangle, Layers,
-  Terminal, UserCheck, HardDrive, Zap, CheckCircle2, XCircle, Filter, SlidersHorizontal, FileText, Crown, FileCheck
+  Terminal, UserCheck, HardDrive, Zap, CheckCircle2, XCircle, Filter, SlidersHorizontal, FileText, Crown, FileCheck, Images
 } from "lucide-react";
 
 import { adminController } from "./core/adminController.js";
@@ -15,6 +15,7 @@ import FandomImporter from "@/FandomImporter";
 import CollectionImporter from "@/CollectionImporter";
 import DataQualityCenter from "@/DataQualityCenter";
 import SchemaRegistryPanel from "./components/SchemaRegistryPanel";
+import AdminMediaManager from "./AdminMediaManager";
 import { Input } from "@/input";
 import { Textarea } from "@/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/select";
@@ -40,6 +41,7 @@ const NAV_ITEMS = [
   { key: "fandom",      label: "FANDOM IA IMPORT", icon: Sparkles, group: "TOOLS" },
   { key: "collection_import", label: "COLLECTION IMPORT", icon: Layers, group: "TOOLS" },
   { key: "schemas",     label: "SCHEMAS & VALIDAÇÃO", icon: FileCheck, group: "TOOLS" },
+  { key: "media",       label: "MÍDIA (MEDIA MANAGER)", icon: Images, group: "TOOLS" },
 ];
 
 const EMPTY_CARD = {
@@ -1590,6 +1592,9 @@ export default function Admin() {
 
         {/* Schemas & Validação Tab */}
         {activeTab === "schemas" && <SchemaRegistryPanel />}
+
+        {/* Media Manager Tab */}
+        {activeTab === "media" && <AdminMediaManager />}
 
         {/* Data Quality Center Tab */}
         {activeTab === "quality" && <DataQualityCenter />}

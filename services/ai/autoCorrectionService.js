@@ -8,13 +8,7 @@ import { inferCollectionCode, CANONICAL_SERIES_NAMES } from "@/lib/collectionCod
 import { fandomClient } from "../fandom/fandomClient";
 
 const DEFAULT_FALLBACK_IMAGES = {
-  NAR: "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&auto=format&fit=crop&q=80",
-  DBZ: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&auto=format&fit=crop&q=80",
-  MVC: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&auto=format&fit=crop&q=80",
-  AOT: "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=800&auto=format&fit=crop&q=80",
-  JJK: "https://images.unsplash.com/photo-1563089145-599997674d42?w=800&auto=format&fit=crop&q=80",
-  CYB: "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&auto=format&fit=crop&q=80",
-  DEFAULT: "https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=800&auto=format&fit=crop&q=80"
+  DEFAULT: "/assets/placeholders/entity.svg"
 };
 
 /**

@@ -45,16 +45,7 @@ export async function syncAllCollectionStats() {
  * Retorna banner recomendado para a coleção baseado no código
  */
 export function getCollectionBanner(collectionCode, defaultImage = "") {
-  const code = (collectionCode || "").toUpperCase();
-  const banners = {
-    NAR: "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=1200&auto=format&fit=crop&q=80",
-    MVC: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=1200&auto=format&fit=crop&q=80",
-    DC: "https://images.unsplash.com/photo-1568832359672-e36cf5d74f54?w=1200&auto=format&fit=crop&q=80",
-    JJK: "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=1200&auto=format&fit=crop&q=80",
-    DBZ: "https://images.unsplash.com/photo-1563089145-599997674d42?w=1200&auto=format&fit=crop&q=80"
-  };
-
-  return banners[code] || defaultImage || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200&auto=format&fit=crop&q=80";
+  return defaultImage || "/assets/placeholders/collection.svg";
 }
 
 export const collectionService = {
