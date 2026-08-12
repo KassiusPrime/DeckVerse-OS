@@ -7,7 +7,8 @@
 import { db } from "../deckverseClient.js";
 import { deduplicateCards, deduplicateCollections } from "../src/utils/deduplication.js";
 import { createEntityKey } from "../src/utils/entityIdentity.js";
-import { resolveCollectionCode } from "../lib/collectionCodes.js";
+import { CANONICAL_COLLECTION_CODES, resolveCollectionCode } from "../lib/collectionCodes.js";
+import { collectionRegistryService } from "../services/registry/collectionRegistryService.js";
 
 class EntityRepository {
   /**
@@ -139,7 +140,16 @@ class EntityRepository {
    */
   async getAllCollections() {
     const rawCols = (await db.entities.Collection.list(null, 5000)) || [];
-    return deduplicateCollections(rawCols);
+    const deduplicated = deduplicateCollections(rawCols);
+
+    return deduplicated.map(c => {
+      const code = (c.code || "").toUpperCase();
+      const isStatic = CANONICAL_COLLECTION_CODES.includes(code);
+      return {
+        ...c,
+        registrySource: c.registrySource || (isStatic ? "STATIC" : "DYNAMIC")
+      };
+    });
   }
 
   async getCollectionById(idOrCode) {
@@ -161,44 +171,61 @@ class EntityRepository {
     const data = collectionData.data || collectionData;
     const name = (data.name || data.title || "").trim();
     const rawCode = data.code || data.id || data.collection_id || name;
-    const code = resolveCollectionCode(rawCode) || (rawCode ? rawCode.toUpperCase().trim() : "");
+    const code = rawCode ? rawCode.toUpperCase().trim() : "";
 
     if (!name || !code) {
       throw new Error("Nome e Código da coleção são obrigatórios");
     }
 
-    const payload = {
-      ...data,
-      name,
-      code
-    };
-
     const collections = await this.getAllCollections();
     const existing = collections.find(c =>
-      (payload.id && c.id === payload.id) ||
-      (c.code && c.code === payload.code)
+      (data.id && c.id === data.id) ||
+      (c.code && c.code === code)
     );
 
     if (existing) {
-      // Check if trying to rename code to another existing collection
-      if (!payload.id && existing.code === payload.code) {
-        const err = new Error("Código de coleção já existente ou indisponível");
+      // Check if code changed
+      if (existing.code !== code) {
+        const canEdit = await collectionRegistryService.canEditCanonicalCode(existing.code);
+        if (!canEdit.allowed) {
+          throw new Error(canEdit.reason);
+        }
+        await collectionRegistryService.validateCollision(code, data.aliases, existing.id);
+      } else if (!data.id && existing.code === code) {
+        const err = new Error(`O código "${code}" já pertence a outra coleção cadastrada.`);
         err.isCollision = true;
         err.existingEntity = existing;
         throw err;
       }
-      return await db.entities.Collection.update(existing.id, {
+
+      const payload = {
         ...existing,
-        ...payload,
+        ...data,
+        name,
+        code,
+        registrySource: existing.registrySource || (CANONICAL_COLLECTION_CODES.includes(code) ? "STATIC" : "DYNAMIC"),
         updated_at: new Date().toISOString()
-      });
+      };
+
+      const saved = await db.entities.Collection.update(existing.id, payload);
+      await collectionRegistryService.getDynamicCollections();
+      return saved;
     } else {
-      const id = payload.id || `col_${Date.now()}`;
-      return await db.entities.Collection.create({
-        ...payload,
-        id,
-        created_date: payload.created_date || new Date().toISOString()
-      });
+      // Creating NEW collection -> validate collision
+      await collectionRegistryService.validateCollision(code, data.aliases);
+
+      const payload = {
+        ...data,
+        name,
+        code,
+        id: data.id || `col_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        registrySource: "DYNAMIC",
+        created_date: data.created_date || new Date().toISOString()
+      };
+
+      const created = await db.entities.Collection.create(payload);
+      await collectionRegistryService.getDynamicCollections();
+      return created;
     }
   }
 
@@ -208,22 +235,15 @@ class EntityRepository {
 
     const canonCode = col.code || idOrCode;
 
-    // Check linked entities before deleting
-    const cards = await this.getAllCards();
-    const items = await this.getAllItems();
-    const bosses = await this.getAllBosses();
-
-    const linkedCards = cards.filter(c => resolveCollectionCode(c.collection_id || c.collection_code) === canonCode);
-    const linkedItems = items.filter(i => resolveCollectionCode(i.collection_id || i.collection_code) === canonCode);
-    const linkedBosses = bosses.filter(b => resolveCollectionCode(b.collection_id || b.collection_code) === canonCode);
-
-    const totalLinked = linkedCards.length + linkedItems.length + linkedBosses.length;
-    if (totalLinked > 0) {
-      throw new Error("Esta coleção contém entidades associadas.");
+    // Static and entity linked checks via collectionRegistryService
+    const checkDelete = await collectionRegistryService.canDeleteCollection(canonCode);
+    if (!checkDelete.allowed) {
+      throw new Error(checkDelete.reason);
     }
 
     if (col.id) await db.entities.Collection.delete(col.id);
     if (col.code && col.code !== col.id) await db.entities.Collection.delete(col.code);
+    await collectionRegistryService.getDynamicCollections();
     return { success: true };
   }
 

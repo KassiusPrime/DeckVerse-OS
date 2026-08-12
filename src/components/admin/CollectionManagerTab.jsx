@@ -124,7 +124,10 @@ export function CollectionManagerTab({
                     <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-primary/20 text-primary border border-primary/30">
                       {colCode}
                     </span>
-                    <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded border ${colHasMedia ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 font-bold" : "bg-amber-500/10 text-amber-400 border-amber-500/30"}`}>
+                    <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded border ${col.registrySource === "DYNAMIC" ? "bg-purple-500/10 text-purple-400 border-purple-500/30 font-bold" : "bg-blue-500/10 text-blue-400 border-blue-500/30"}`}>
+                      {col.registrySource === "DYNAMIC" ? "⚡ DINÂMICO" : "🔒 ESTÁTICO"}
+                    </span>
+                    <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded border ${colHasMedia ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 font-bold" : "bg-amber-500/10 text-amber-400 border-amber-500/30"}`}>
                       {colHasMedia ? "● MÍDIA OK" : "○ SEM MÍDIA"}
                     </span>
                   </div>

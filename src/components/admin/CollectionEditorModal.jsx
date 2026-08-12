@@ -1,24 +1,68 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Layers, X, Save, AlertCircle } from "lucide-react";
+import { Layers, X, Save, AlertCircle, Wand2, Lock } from "lucide-react";
 import { Input } from "@/input";
 import { Textarea } from "@/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/select";
 import { useToast } from "@/hooks/use-toast";
+import { collectionRegistryService } from "../../../services/registry/collectionRegistryService";
 
-const CATEGORIES = ["Anime/Mangá", "Games", "Quadrinhos/Herois", "Séries/Cinema", "Mitologia/História", "Ficção/Original"];
+const CATEGORIES = [
+  "COL-01 Anime/Mangá",
+  "COL-02 Games",
+  "COL-03 Quadrinhos/Herois",
+  "COL-04 Séries/Cinema",
+  "COL-05 Mitologia/História",
+  "COL-06 Ficção/Original"
+];
 
 export function CollectionEditorModal({ collection, onClose, onSave }) {
   const [formData, setFormData] = useState({
     id: collection?.id || "",
     name: collection?.name || "",
     code: collection?.code || "",
-    category: collection?.category || "Anime/Mangá",
-    description: collection?.description || ""
+    category: collection?.category || collection?.bank || "COL-01 Anime/Mangá",
+    description: collection?.description || "",
+    aliases: Array.isArray(collection?.aliases)
+      ? collection.aliases.join(", ")
+      : collection?.aliases || ""
   });
 
+  const [codeLock, setCodeLock] = useState({ isLocked: false, reason: "" });
   const [saving, setSaving] = useState(false);
+  const [suggesting, setSuggesting] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    async function checkLock() {
+      if (formData.id || formData.code) {
+        const check = await collectionRegistryService.canEditCanonicalCode(formData.code || formData.id);
+        if (!check.allowed) {
+          setCodeLock({ isLocked: true, reason: check.reason });
+        } else {
+          setCodeLock({ isLocked: false, reason: "" });
+        }
+      }
+    }
+    checkLock();
+  }, [formData.id, formData.code]);
+
+  const handleSuggestCode = async () => {
+    if (!formData.name.trim()) {
+      toast({ title: "⚠️ Digite o nome da coleção primeiro para sugerir o código", variant: "destructive" });
+      return;
+    }
+    setSuggesting(true);
+    try {
+      const suggested = await collectionRegistryService.suggestCollectionCode(formData.name, formData.category);
+      setFormData(prev => ({ ...prev, code: suggested }));
+      toast({ title: "✨ Código sugerido!", description: `Código gerado: ${suggested}` });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSuggesting(false);
+    }
+  };
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -33,17 +77,22 @@ export function CollectionEditorModal({ collection, onClose, onSave }) {
 
     setSaving(true);
     try {
+      const parsedAliases = formData.aliases
+        ? formData.aliases.split(",").map(a => a.trim().toUpperCase()).filter(Boolean)
+        : [];
+
       await onSave({
         ...formData,
-        code: formData.code.toUpperCase().trim()
+        code: formData.code.toUpperCase().trim(),
+        aliases: parsedAliases
       });
       toast({ title: "✨ Coleção salva com sucesso!" });
       onClose();
     } catch (err) {
       if (err.isCollision) {
         toast({
-          title: "❌ Código de coleção já existente",
-          description: err.message || "Este código já pertence a outra coleção cadastrada.",
+          title: "❌ Colisão de Código/Alias de Coleção",
+          description: err.message || "Este código ou alias já pertence a outra coleção cadastrada.",
           variant: "destructive"
         });
       } else {
@@ -65,7 +114,7 @@ export function CollectionEditorModal({ collection, onClose, onSave }) {
           <div className="flex items-center gap-2">
             <Layers className="w-5 h-5 text-primary" />
             <h2 className="font-heading font-bold text-base tracking-wider text-foreground">
-              {formData.id ? `EDITAR COLEÇÃO: ${formData.code}` : "CRIAR NOVA COLEÇÃO"}
+              {formData.id ? `EDITAR COLEÇÃO: ${formData.code}` : "NOVA COLEÇÃO (Phase 3 Dynamic Registry)"}
             </h2>
           </div>
           <button onClick={onClose} className="p-1 text-muted-foreground hover:text-foreground">
@@ -79,7 +128,7 @@ export function CollectionEditorModal({ collection, onClose, onSave }) {
             <Input
               value={formData.name}
               onChange={e => setFormData({ ...formData, name: e.target.value })}
-              placeholder="Ex: Demon Slayer: Kimetsu no Yaiba"
+              placeholder="Ex: Dandadan"
               className="font-body text-xs bg-muted/20 border-border/50"
               required
             />
@@ -87,20 +136,41 @@ export function CollectionEditorModal({ collection, onClose, onSave }) {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="text-[10px] font-heading text-muted-foreground">CÓDIGO CANÔNICO (CÓDIGO DA COLEÇÃO)</label>
-              <Input
-                value={formData.code}
-                onChange={e => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                placeholder="Ex: COL-01-DS"
-                className="font-mono text-xs bg-muted/20 border-border/50"
-                required
-                disabled={Boolean(formData.id)}
-              />
-              <span className="text-[9px] font-mono text-muted-foreground">Ex: COL-01-DS, COL-02-GOW</span>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-[10px] font-heading text-muted-foreground">CÓDIGO CANÔNICO</label>
+                {!formData.id && (
+                  <button
+                    type="button"
+                    onClick={handleSuggestCode}
+                    disabled={suggesting}
+                    className="text-[9px] font-mono text-cyan-400 hover:text-cyan-300 flex items-center gap-1 bg-cyan-950/40 px-1.5 py-0.5 rounded border border-cyan-500/30"
+                  >
+                    <Wand2 className="w-2.5 h-2.5" /> Sugerir Código
+                  </button>
+                )}
+              </div>
+              <div className="relative">
+                <Input
+                  value={formData.code}
+                  onChange={e => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                  placeholder="Ex: COL-01-DAN"
+                  className="font-mono text-xs bg-muted/20 border-border/50"
+                  required
+                  disabled={codeLock.isLocked}
+                />
+                {codeLock.isLocked && (
+                  <Lock className="w-3.5 h-3.5 text-amber-400 absolute right-2.5 top-2.5" />
+                )}
+              </div>
+              {codeLock.isLocked ? (
+                <span className="text-[9px] font-mono text-amber-400/90 block mt-0.5">{codeLock.reason}</span>
+              ) : (
+                <span className="text-[9px] font-mono text-muted-foreground">Ex: COL-01-DAN, COL-02-CP77</span>
+              )}
             </div>
 
             <div>
-              <label className="text-[10px] font-heading text-muted-foreground">CATEGORIA / GÊNERO</label>
+              <label className="text-[10px] font-heading text-muted-foreground">BANCO / CATEGORIA</label>
               <Select value={formData.category} onValueChange={v => setFormData({ ...formData, category: v })}>
                 <SelectTrigger className="bg-muted/20 border-border/50 font-body text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -111,12 +181,23 @@ export function CollectionEditorModal({ collection, onClose, onSave }) {
           </div>
 
           <div>
+            <label className="text-[10px] font-heading text-muted-foreground">ALIASES ADICIONAIS (Separados por vírgula)</label>
+            <Input
+              value={formData.aliases}
+              onChange={e => setFormData({ ...formData, aliases: e.target.value })}
+              placeholder="Ex: DAN, DANDADAN_MANGA"
+              className="font-mono text-xs bg-muted/20 border-border/50"
+            />
+            <span className="text-[9px] font-mono text-muted-foreground">Aliases curtos para reconhecer mídias e buscas</span>
+          </div>
+
+          <div>
             <label className="text-[10px] font-heading text-muted-foreground">DESCRIÇÃO DA COLEÇÃO / UNIVERSO</label>
             <Textarea
               value={formData.description}
               onChange={e => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Resumo do universo, era, e contextualização multiversal..."
-              className="font-body text-xs bg-muted/20 border-border/50 h-24 resize-none"
+              placeholder="Resumo do universo, autor, gênero e contextualização..."
+              className="font-body text-xs bg-muted/20 border-border/50 h-20 resize-none"
             />
           </div>
 
@@ -134,7 +215,7 @@ export function CollectionEditorModal({ collection, onClose, onSave }) {
               disabled={saving}
               className="px-6 py-2 bg-primary text-primary-foreground font-heading font-bold text-xs rounded shadow-[0_0_12px_rgba(0,240,255,0.3)] flex items-center gap-1.5"
             >
-              <Save className="w-3.5 h-3.5" /> {saving ? "SALVANDO..." : "SALVAR COLEÇÃO"}
+              <Save className="w-3.5 h-3.5" /> {saving ? "SALVANDO..." : "CONFIRMAR COLEÇÃO"}
             </button>
           </div>
         </form>

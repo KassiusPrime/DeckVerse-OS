@@ -144,8 +144,11 @@ class ImportService {
    * Import or update collection metadata
    */
   async importCollection(collectionData) {
-    const code = normalizeCode(collectionData.code || collectionData.name || "NEW");
+    const rawCode = collectionData.code || collectionData.name || "NEW";
+    const code = rawCode.startsWith("COL-") ? rawCode : (normalizeCode(rawCode) || rawCode);
+
     const payload = {
+      ...collectionData,
       name: collectionData.name || "Nova Coleção",
       code,
       description: collectionData.description || `Coleção ${code} importada no DeckVerse OS.`,
@@ -154,7 +157,7 @@ class ImportService {
     };
 
     const validated = validateCollection(payload);
-    const colToSave = validated.ok ? validated.data : payload;
+    const colToSave = validated.ok ? { ...payload, ...validated.data } : payload;
     return await entityRepository.saveCollection(colToSave);
   }
 
