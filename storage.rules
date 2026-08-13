@@ -1,0 +1,27 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+        firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin' &&
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.status == 'active';
+    }
+
+    // Default Deny
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+
+    // Canonical DeckVerse Media Storage Path
+    match /deckverse-media/{collectionCode}/{entityType}/{filename} {
+      allow read: if true;
+      allow write: if isAdmin() && (entityType == 'collection' || entityType == 'character' || entityType == 'item' || entityType == 'boss');
+    }
+  }
+}

@@ -1,0 +1,66 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── HELPER FUNCTIONS ──────────────────────────────────────────────────
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.status == 'active';
+    }
+
+    // Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ── USERS ─────────────────────────────────────────────────────────────
+    match /users/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    // ── COLLECTIONS & DYNAMIC REGISTRY ─────────────────────────────────────
+    match /collections/{collectionCode} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /dynamicRegistry/{canonicalCode} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ── PLAYABLE CATALOG ENTITIES ──────────────────────────────────────────
+    match /characters/{characterId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /items/{itemId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /bosses/{bossId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /lore/{loreId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ── MEDIA INDEX ────────────────────────────────────────────────────────
+    match /mediaIndex/{mediaId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}
