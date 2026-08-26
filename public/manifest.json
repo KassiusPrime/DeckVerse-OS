@@ -1,11 +1,12 @@
 {
-  "name": "DeckVerse OS — Tactical Multiverse TCG",
+  "name": "DeckVerse — Multiverse Archive",
   "short_name": "DeckVerse",
-  "description": "Sistema Operacional Canônico e Coleções de Cartas Multiversais",
+  "description": "Arquivo multiversal colecionável de universos, personagens, itens, bosses e formas desbloqueáveis.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#030305",
-  "theme_color": "#00F0FF",
+  "background_color": "#080B10",
+  "theme_color": "#080B10",
   "orientation": "any",
   "icons": [
     {
