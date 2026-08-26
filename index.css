@@ -1,193 +1,146 @@
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  :root {
-    --font-heading: 'Orbitron', sans-serif;
-    --font-body: 'Inter', sans-serif;
-
-    --background: 240 25% 2%;
-    --foreground: 220 20% 92%;
-    --card: 240 20% 4%;
-    --card-foreground: 220 20% 92%;
-    --popover: 240 20% 4%;
-    --popover-foreground: 220 20% 92%;
-    --primary: 185 100% 50%;
-    --primary-foreground: 240 25% 2%;
-    --secondary: 280 100% 50%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 240 15% 7%;
-    --muted-foreground: 220 10% 50%;
-    --accent: 38 100% 50%;
-    --accent-foreground: 240 25% 2%;
-    --destructive: 348 100% 50%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 15% 11%;
-    --input: 240 15% 11%;
-    --ring: 185 100% 50%;
-    --chart-1: 185 100% 50%;
-    --chart-2: 280 100% 50%;
-    --chart-3: 38 100% 50%;
-    --chart-4: 348 100% 50%;
-    --chart-5: 150 60% 50%;
-    --radius: 0.75rem;
-    --sidebar-background: 240 25% 2%;
-    --sidebar-foreground: 220 20% 92%;
-    --sidebar-primary: 185 100% 50%;
-    --sidebar-primary-foreground: 240 25% 2%;
-    --sidebar-accent: 240 15% 7%;
-    --sidebar-accent-foreground: 220 20% 92%;
-    --sidebar-border: 240 15% 11%;
-    --sidebar-ring: 185 100% 50%;
-  }
-
+  :root,
   .dark {
-    --background: 240 25% 2%;
-    --foreground: 220 20% 92%;
-    --card: 240 20% 4%;
-    --card-foreground: 220 20% 92%;
-    --popover: 240 20% 4%;
-    --popover-foreground: 220 20% 92%;
-    --primary: 185 100% 50%;
-    --primary-foreground: 240 25% 2%;
-    --secondary: 280 100% 50%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 240 15% 7%;
-    --muted-foreground: 220 10% 50%;
-    --accent: 38 100% 50%;
-    --accent-foreground: 240 25% 2%;
-    --destructive: 348 100% 50%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 15% 11%;
-    --input: 240 15% 11%;
-    --ring: 185 100% 50%;
-    --chart-1: 185 100% 50%;
-    --chart-2: 280 100% 50%;
-    --chart-3: 38 100% 50%;
-    --chart-4: 348 100% 50%;
-    --chart-5: 150 60% 50%;
-    --sidebar-background: 240 25% 2%;
-    --sidebar-foreground: 220 20% 92%;
-    --sidebar-primary: 185 100% 50%;
-    --sidebar-primary-foreground: 240 25% 2%;
-    --sidebar-accent: 240 15% 7%;
-    --sidebar-accent-foreground: 220 20% 92%;
-    --sidebar-border: 240 15% 11%;
-    --sidebar-ring: 185 100% 50%;
+    --font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --background: 216 33% 5%;
+    --foreground: 216 33% 97%;
+    --card: 215 33% 10%;
+    --card-foreground: 216 33% 97%;
+    --popover: 215 33% 10%;
+    --popover-foreground: 216 33% 97%;
+    --primary: 252 100% 68%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 175 73% 48%;
+    --secondary-foreground: 168 48% 5%;
+    --muted: 215 29% 13%;
+    --muted-foreground: 215 15% 65%;
+    --accent: 36 100% 65%;
+    --accent-foreground: 216 33% 5%;
+    --destructive: 355 78% 57%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 22% 21%;
+    --input: 214 22% 21%;
+    --ring: 252 100% 68%;
+    --chart-1: 252 100% 68%;
+    --chart-2: 175 73% 48%;
+    --chart-3: 36 100% 65%;
+    --chart-4: 355 78% 57%;
+    --chart-5: 205 90% 65%;
+    --radius: 1rem;
+    --sidebar-background: 216 33% 5%;
+    --sidebar-foreground: 216 33% 97%;
+    --sidebar-primary: 252 100% 68%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 29% 13%;
+    --sidebar-accent-foreground: 216 33% 97%;
+    --sidebar-border: 214 22% 21%;
+    --sidebar-ring: 252 100% 68%;
+  }
+
+  * {
+    @apply border-border outline-ring/50;
+    box-sizing: border-box;
+  }
+
+  html {
+    color-scheme: dark;
+    background: hsl(var(--background));
+    scroll-behavior: smooth;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+    margin: 0;
+    min-width: 320px;
+    min-height: 100vh;
+    overflow-x: hidden;
+    padding-top: env(safe-area-inset-top);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    background-image:
+      radial-gradient(circle at 16% -10%, hsl(var(--primary) / 0.08), transparent 30rem),
+      radial-gradient(circle at 90% 10%, hsl(var(--secondary) / 0.045), transparent 28rem);
+  }
+
+  body,
+  button,
+  input,
+  select,
+  textarea {
+    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  }
+
+  button,
+  a,
+  [role='button'],
+  select {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid hsl(var(--ring) / 0.75);
+    outline-offset: 2px;
+  }
+
+  img {
+    max-width: 100%;
+  }
+
+  ::selection {
+    color: hsl(var(--foreground));
+    background: hsl(var(--primary) / 0.34);
   }
 }
 
-/* ─── Scanlines overlay ─────────────────────── */
 @layer utilities {
+  .archive-grid {
+    background-image:
+      linear-gradient(hsl(var(--border) / 0.24) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--border) / 0.24) 1px, transparent 1px);
+    background-size: 42px 42px;
+    mask-image: linear-gradient(to bottom, black, transparent 90%);
+  }
+
+  .cyber-grid {
+    background-image:
+      linear-gradient(hsl(var(--primary) / 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--primary) / 0.045) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+
   .scanlines::after {
-    content: "";
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    background: repeating-linear-gradient(
-      to bottom,
-      transparent 0px,
-      transparent 3px,
-      rgba(0, 240, 255, 0.018) 3px,
-      rgba(0, 240, 255, 0.018) 4px
-    );
-    z-index: 9999;
+    content: none;
+  }
+
+  .glass-surface {
+    background: hsl(var(--card) / 0.78);
+    border: 1px solid hsl(var(--border) / 0.9);
+    backdrop-filter: blur(18px);
+  }
+
+  .text-balance {
+    text-wrap: balance;
   }
 }
 
-/* ─── Neon flicker animation ────────────────── */
-@keyframes neon-flicker {
-  0%, 95%, 100% { opacity: 1; }
-  96% { opacity: 0.7; }
-  97% { opacity: 1; }
-  98% { opacity: 0.5; }
-  99% { opacity: 1; }
-}
-.neon-flicker {
-  animation: neon-flicker 6s infinite;
-}
-
-/* ─── Tactical Toast — Glitch Anomaly ──────────── */
-@keyframes glitch-shift {
-  0%   { transform: translate(0, 0) skewX(0deg); }
-  10%  { transform: translate(-3px, 1px) skewX(-1deg); }
-  20%  { transform: translate(2px, -1px) skewX(0.5deg); }
-  30%  { transform: translate(-1px, 2px) skewX(1deg); }
-  40%  { transform: translate(3px, -2px) skewX(-0.5deg); }
-  50%  { transform: translate(-2px, 1px) skewX(0deg); }
-  60%  { transform: translate(1px, -1px) skewX(0.5deg); }
-  70%  { transform: translate(-3px, 2px) skewX(-1deg); }
-  80%  { transform: translate(2px, 0) skewX(0deg); }
-  100% { transform: translate(0, 0) skewX(0deg); }
-}
-@keyframes glitch-text {
-  0%   { text-shadow: 0 0 0 transparent; }
-  15%  { text-shadow: -2px 0 #ff003c, 2px 0 #00f0ff; clip-path: inset(20% 0 60% 0); }
-  30%  { text-shadow: 2px 0 #ff003c, -2px 0 #00f0ff; clip-path: inset(60% 0 10% 0); }
-  45%  { text-shadow: 0 0 0 transparent; clip-path: none; }
-  100% { text-shadow: 0 0 0 transparent; clip-path: none; }
-}
-@keyframes anomaly-red {
-  0%, 100% { opacity: 0; transform: translate(0,0); }
-  25% { opacity: 0.12; transform: translate(-2px, 0); }
-  75% { opacity: 0.08; transform: translate(1px, 0); }
-}
-@keyframes anomaly-blue {
-  0%, 100% { opacity: 0; transform: translate(0,0); }
-  25% { opacity: 0.10; transform: translate(2px, 0); }
-  75% { opacity: 0.06; transform: translate(-1px, 0); }
-}
-@keyframes scanline-flicker {
-  0%, 100% { opacity: 0.15; }
-  50% { opacity: 0.05; }
-}
-
-.anomaly-glitch {
-  animation: glitch-shift 2s infinite;
-  box-shadow: 0 0 20px rgba(180, 0, 255, 0.4), 0 0 40px rgba(255, 0, 60, 0.2) !important;
-}
-.anomaly-text {
-  animation: glitch-text 1.5s infinite;
-}
-.anomaly-red-shift {
-  background: rgba(255, 0, 60, 0.06);
-  mix-blend-mode: screen;
-  animation: anomaly-red 1.2s infinite;
-}
-.anomaly-blue-shift {
-  background: rgba(0, 180, 255, 0.06);
-  mix-blend-mode: screen;
-  animation: anomaly-blue 1.2s infinite;
-}
-.scanlines-glitch {
-  background: repeating-linear-gradient(
-    to bottom,
-    transparent 0px,
-    transparent 2px,
-    rgba(255,255,255,0.08) 2px,
-    rgba(255,255,255,0.08) 3px
-  );
-  animation: scanline-flicker 0.5s infinite;
-}
-
-/* ─── Toast progress bar shrink ─────────────── */
 @keyframes shrink-bar {
   from { width: 100%; }
   to { width: 0%; }
 }
 
-/* ─── Cyber grid background ─────────────────── */
-.cyber-grid {
-  background-image:
-    linear-gradient(rgba(0,240,255,0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,240,255,0.04) 1px, transparent 1px);
-  background-size: 48px 48px;
-}
-
-/* ─── Scanline Progress & Purge Disintegration Animations ─────────── */
 @keyframes scanline-sweep {
   0% { transform: translateX(-100%); }
   50% { transform: translateX(100%); }
@@ -195,36 +148,9 @@
 }
 
 @keyframes purge-disintegrate {
-  0% {
-    opacity: 1;
-    transform: scale(1) rotate(0deg);
-    filter: drop-shadow(0 0 0px transparent);
-  }
-  20% {
-    opacity: 0.9;
-    transform: scale(1.03) skewX(-4deg) translate(-2px, 2px);
-    filter: drop-shadow(0 0 12px #ff003c) hue-rotate(90deg);
-  }
-  40% {
-    opacity: 0.7;
-    transform: scale(0.95) skewX(6deg) translate(3px, -2px);
-    filter: drop-shadow(0 0 20px #00f0ff) contrast(200%);
-  }
-  60% {
-    opacity: 0.5;
-    transform: scale(0.8) skewX(-10deg) translate(-4px, 4px);
-    filter: drop-shadow(0 0 25px #ff0055) invert(80%);
-  }
-  80% {
-    opacity: 0.2;
-    transform: scale(0.4) skewX(20deg) translate(8px, -8px);
-    filter: drop-shadow(0 0 30px #e11d48) blur(4px);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(0) translate(20px, -20px);
-    filter: blur(12px);
-  }
+  0% { opacity: 1; transform: scale(1); filter: blur(0); }
+  55% { opacity: .58; transform: scale(.94); filter: blur(1px); }
+  100% { opacity: 0; transform: scale(.82); filter: blur(8px); }
 }
 
 .scanline-progress-bar {
@@ -233,79 +159,33 @@
 }
 
 .scanline-progress-bar::after {
-  content: "";
+  content: '';
   position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 40%;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(0, 240, 255, 0.8) 50%,
-    transparent 100%
-  );
+  inset-block: 0;
+  width: 38%;
+  background: linear-gradient(90deg, transparent, hsl(var(--secondary) / .72), transparent);
   animation: scanline-sweep 2s infinite ease-in-out;
 }
 
 .purge-animation-active {
-  animation: purge-disintegrate 0.85s forwards ease-in-out !important;
+  animation: purge-disintegrate .6s forwards ease-in-out !important;
   pointer-events: none !important;
 }
 
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
+/* Legacy anomaly classes remain available for admin-only tooling, but no longer affect public screens. */
+.anomaly-glitch { box-shadow: 0 0 0 1px hsl(var(--primary) / .35), 0 16px 45px rgba(0,0,0,.28) !important; }
+.anomaly-text { text-shadow: none; }
+.anomaly-red-shift { background: hsl(var(--destructive) / .035); }
+.anomaly-blue-shift { background: hsl(var(--secondary) / .035); }
+.scanlines-glitch { background: transparent; }
+.neon-flicker { animation: none; }
 
-  html {
-    overscroll-behavior: none;
-  }
-
-  body {
-    @apply bg-background text-foreground;
-    overscroll-behavior: none;
-    background-image:
-      linear-gradient(rgba(0,240,255,0.025) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,240,255,0.025) 1px, transparent 1px);
-    background-size: 48px 48px;
-    font-size: 14px;
-  }
-
-  /* Global tap target minimum & user-select for interactive elements */
-  button, a, [role="button"], label[for], select {
-    min-height: 44px;
-    min-width: 44px;
-    user-select: none;
-    -webkit-user-select: none;
-  }
-
-  input[type="checkbox"], input[type="radio"] {
-    min-height: auto;
-    min-width: auto;
-    user-select: none;
-    -webkit-user-select: none;
-  }
-
-  /* Safe area support */
-  body {
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
-    padding-left: env(safe-area-inset-left);
-    padding-right: env(safe-area-inset-right);
-  }
-
-  body::after {
-    content: "";
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    background: repeating-linear-gradient(
-      to bottom,
-      transparent 0px,
-      transparent 3px,
-      rgba(0, 240, 255, 0.012) 3px,
-      rgba(0, 240, 255, 0.012) 4px
-    );
-    z-index: 9999;
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
   }
 }
