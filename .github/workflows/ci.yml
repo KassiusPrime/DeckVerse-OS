@@ -27,8 +27,5 @@ jobs:
       - name: Install dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
 
-      - name: Validate Collection Codes
-        run: npm run validate:codes
-
-      - name: Build Application
-        run: npm run build
+      - name: Full repository certification
+        run: npm run ci
