@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 3000",
     "build": "vite build",
-    "test": "node scripts/testRepository.mjs && node scripts/testMediaManager.mjs && node scripts/testAdminCatalog.mjs && node scripts/testDynamicCollectionRegistry.mjs && node scripts/testFirebaseInfrastructure.mjs && node scripts/testMediaFirebaseCommit.mjs",
+    "test": "node scripts/testProductRoutes.mjs && node scripts/testRepository.mjs && node scripts/testMediaManager.mjs && node scripts/testAdminCatalog.mjs && node scripts/testDynamicCollectionRegistry.mjs && node scripts/testFirebaseInfrastructure.mjs && node scripts/testMediaFirebaseCommit.mjs",
+    "test:routes": "node scripts/testProductRoutes.mjs",
     "test:firebase": "node scripts/testFirebaseInfrastructure.mjs",
     "audit:catalog": "node scripts/auditCatalog.mjs",
     "test:repo": "node scripts/testRepository.mjs",
