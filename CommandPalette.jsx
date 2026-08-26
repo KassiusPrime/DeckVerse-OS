@@ -1,154 +1,78 @@
-import { db } from "@/deckverseClient";
-
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
-
-import { Search, Layers, Zap, Swords, Package, ArrowRight, Skull, Trophy, Sparkles, BookOpen } from "lucide-react";
+import { BookOpen, Layers, Package, Search, ShieldCheck, Skull, UserRound } from "lucide-react";
+import { db } from "@/deckverseClient";
+import { useAuth } from "@/AuthContext";
 
 const STATIC_COMMANDS = [
-  { label: "Home / Dashboard", to: "/dashboard", icon: "🏠", category: "Navegação" },
-  { label: "Visão Geral de Coleções", to: "/collections", icon: "📚", category: "Navegação" },
-  { label: "Sistema de Equipes & Sinergia", to: "/synergy", icon: "⚔️", category: "Navegação" },
-  { label: "Lore Archive & Histórias", to: "/lore", icon: "📜", category: "Navegação" },
-  { label: "Gacha Drop & Invocação", to: "/gacha", icon: "✨", category: "Navegação" },
-  { label: "Inventário de Objetos", to: "/inventory", icon: "🎒", category: "Navegação" },
-  { label: "Arena de Batalhas & Chefes", to: "/arena", icon: "🏟️", category: "Navegação" },
-  { label: "Guilda & Clãs", to: "/guilds", icon: "🛡️", category: "Navegação" },
-  { label: "Ranking Global", to: "/ranking", icon: "🏆", category: "Navegação" },
+  { label: "Início", to: "/", icon: BookOpen },
+  { label: "Coleções", to: "/collections", icon: Layers },
+  { label: "Personagens", to: "/characters", icon: UserRound },
+  { label: "Itens", to: "/items", icon: Package },
+  { label: "Bosses", to: "/bosses", icon: Skull },
+  { label: "Minha coleção", to: "/my-collection", icon: ShieldCheck },
 ];
+
+const normalize = (value) => String(value ?? "").trim().toLowerCase();
+const getName = (entity) => entity?.name || entity?.canonicalName || entity?.title || "Sem nome";
+const getImage = (entity) => entity?.image_url || entity?.imageUrl || entity?.img || entity?.media_url || "";
 
 export default function CommandPalette() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const inputRef = useRef(null);
   const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuth();
 
-  // Queries for Global Search
-  const { data: characters = [] } = useQuery({
-    queryKey: ["characters-cmd"],
-    queryFn: () => db.entities.Character.list("-created_date", 200),
-    enabled: open,
-  });
+  const collectionsQuery = useQuery({ queryKey: ["cmd-collections"], queryFn: () => db.entities.Collection.list(), enabled: open });
+  const charactersQuery = useQuery({ queryKey: ["cmd-characters"], queryFn: () => db.entities.Card.list("-created_date", 500), enabled: open });
+  const itemsQuery = useQuery({ queryKey: ["cmd-items"], queryFn: () => db.entities.Item.list(), enabled: open });
+  const bossesQuery = useQuery({ queryKey: ["cmd-bosses"], queryFn: () => db.entities.Boss.list(), enabled: open });
 
-  const { data: cards = [] } = useQuery({
-    queryKey: ["cards-cmd"],
-    queryFn: () => db.entities.Card.list("-created_date", 300),
-    enabled: open,
-  });
-
-  const { data: franchises = [] } = useQuery({
-    queryKey: ["franchises-cmd"],
-    queryFn: () => db.entities.Franchise.list(),
-    enabled: open,
-  });
-
-  const { data: collections = [] } = useQuery({
-    queryKey: ["collections-cmd"],
-    queryFn: () => db.entities.Collection.list(),
-    enabled: open,
-  });
-
-  const { data: items = [] } = useQuery({
-    queryKey: ["items-cmd"],
-    queryFn: () => db.entities.Item.list(),
-    enabled: open,
-  });
-
-  const { data: bosses = [] } = useQuery({
-    queryKey: ["bosses-cmd"],
-    queryFn: () => db.entities.Boss.list(),
-    enabled: open,
-  });
-
-  // Hotkeys & Custom open event listener
   useEffect(() => {
-    const handler = (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
-        e.preventDefault();
-        setOpen(o => !o);
-      }
-      if (e.key === "Escape") setOpen(false);
-      // Single letter shortcuts (no modifiers, not in input)
-      if (!e.ctrlKey && !e.metaKey && !e.altKey && !open) {
-        if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
-        if (e.key === "h") navigate("/dashboard");
-        if (e.key === "e") navigate("/synergy");
-        if (e.key === "l") navigate("/gacha");
+    const onKeyDown = (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setOpen((value) => !value);
+      } else if (event.key === "Escape") {
+        setOpen(false);
       }
     };
-
-    const customOpenHandler = (e) => {
+    const onCustomOpen = (event) => {
       setOpen(true);
-      if (e.detail?.query) setQuery(e.detail.query);
+      if (event.detail?.query) setQuery(event.detail.query);
     };
-
-    window.addEventListener("keydown", handler);
-    window.addEventListener("open-global-search", customOpenHandler);
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("open-global-search", onCustomOpen);
     return () => {
-      window.removeEventListener("keydown", handler);
-      window.removeEventListener("open-global-search", customOpenHandler);
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("open-global-search", onCustomOpen);
     };
-  }, [open, navigate]);
+  }, []);
 
   useEffect(() => {
-    if (open) setTimeout(() => inputRef.current?.focus(), 50);
+    if (open) requestAnimationFrame(() => inputRef.current?.focus());
     else setQuery("");
   }, [open]);
 
-  const cleanQuery = query.toLowerCase().trim();
+  const needle = normalize(query);
+  const matches = useMemo(() => {
+    const filter = (list) => !needle ? [] : (list || []).filter((entity) => [getName(entity), entity?.collectionCode, entity?.collection, entity?.series, entity?.code].some((value) => normalize(value).includes(needle))).slice(0, 5);
+    return {
+      collections: filter(collectionsQuery.data),
+      characters: filter(charactersQuery.data),
+      items: filter(itemsQuery.data),
+      bosses: filter(bossesQuery.data),
+    };
+  }, [needle, collectionsQuery.data, charactersQuery.data, itemsQuery.data, bossesQuery.data]);
 
-  const characterMatches = cleanQuery.length >= 2
-    ? characters.filter(ch =>
-        ch.canonical_name?.toLowerCase().includes(cleanQuery) ||
-        ch.bio?.toLowerCase().includes(cleanQuery) ||
-        ch.species?.toLowerCase().includes(cleanQuery)
-      ).slice(0, 4)
-    : [];
-
-  const franchiseMatches = cleanQuery.length >= 2
-    ? franchises.filter(fr =>
-        fr.name?.toLowerCase().includes(cleanQuery) ||
-        fr.slug?.toLowerCase().includes(cleanQuery)
-      ).slice(0, 3)
-    : [];
-
-  const cardMatches = cleanQuery.length >= 2
-    ? cards.filter(c =>
-        c.name?.toLowerCase().includes(cleanQuery) ||
-        c.series?.toLowerCase().includes(cleanQuery) ||
-        c.role?.toLowerCase().includes(cleanQuery) ||
-        c.tags?.some(t => t.toLowerCase().includes(cleanQuery))
-      ).slice(0, 5)
-    : [];
-
-  const collectionMatches = cleanQuery.length >= 2
-    ? collections.filter(col =>
-        col.name?.toLowerCase().includes(cleanQuery) ||
-        col.code?.toLowerCase().includes(cleanQuery)
-      ).slice(0, 4)
-    : [];
-
-  const itemMatches = cleanQuery.length >= 2
-    ? items.filter(it =>
-        it.name?.toLowerCase().includes(cleanQuery) ||
-        it.description?.toLowerCase().includes(cleanQuery) ||
-        it.series?.toLowerCase().includes(cleanQuery)
-      ).slice(0, 4)
-    : [];
-
-  const bossMatches = cleanQuery.length >= 2
-    ? bosses.filter(b =>
-        b.name?.toLowerCase().includes(cleanQuery) ||
-        b.series?.toLowerCase().includes(cleanQuery) ||
-        b.element?.toLowerCase().includes(cleanQuery)
-      ).slice(0, 3)
-    : [];
-
-  const staticMatches = STATIC_COMMANDS.filter(c =>
-    c.label.toLowerCase().includes(cleanQuery)
-  );
+  const commands = useMemo(() => {
+    const base = [...STATIC_COMMANDS];
+    const isActiveAdmin = isAuthenticated && user?.role === "admin" && user?.status !== "inactive" && user?.status !== "disabled";
+    if (isActiveAdmin) base.push({ label: "Admin", to: "/admin", icon: ShieldCheck });
+    return base.filter((command) => !needle || normalize(command.label).includes(needle));
+  }, [needle, isAuthenticated, user]);
 
   const go = (to) => {
     setOpen(false);
@@ -158,194 +82,54 @@ export default function CommandPalette() {
   if (!open) return null;
 
   return (
-    <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[9998] flex items-start justify-center pt-16 sm:pt-24 px-4"
-        onClick={() => setOpen(false)}
-      >
-        <div className="absolute inset-0 bg-black/75 backdrop-blur-md" />
+    <div className="fixed inset-0 z-[9998] flex items-start justify-center bg-black/70 px-4 pt-16 backdrop-blur-sm sm:pt-24" onMouseDown={() => setOpen(false)}>
+      <div className="w-full max-w-2xl overflow-hidden rounded-3xl border border-border bg-background shadow-2xl" onMouseDown={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-label="Busca global">
+        <div className="flex items-center gap-3 border-b border-border bg-card/80 px-4 py-3 sm:px-5">
+          <Search className="h-5 w-5 shrink-0 text-primary" />
+          <input ref={inputRef} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar no DeckVerse..." className="min-h-11 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/60" />
+          <kbd className="hidden rounded-lg border border-border bg-muted/50 px-2 py-1 text-[10px] font-mono text-muted-foreground sm:block">ESC</kbd>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: -20, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -20, scale: 0.95 }}
-          transition={{ type: "spring", stiffness: 400, damping: 30 }}
-          onClick={e => e.stopPropagation()}
-          className="relative w-full max-w-xl border border-primary/40 bg-background/95 shadow-2xl shadow-primary/20 rounded-2xl overflow-hidden z-10"
-        >
-          {/* Search Header */}
-          <div className="flex items-center gap-3 px-5 py-3.5 border-b border-border/40 bg-card/50">
-            <Search className="w-5 h-5 text-primary shrink-0" />
-            <input
-              ref={inputRef}
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              placeholder='Busca global: Cartas, Coleções, Objetos, Chefes... (ex: "Naruto")'
-              className="flex-1 bg-transparent text-sm font-body text-foreground placeholder:text-muted-foreground/60 outline-none"
-            />
-            {query && (
-              <button onClick={() => setQuery("")} className="text-muted-foreground hover:text-foreground text-xs font-heading font-bold px-1.5 py-0.5 rounded">
-                Limpar
-              </button>
-            )}
-            <kbd className="text-[10px] font-mono text-muted-foreground/50 border border-border/40 px-2 py-0.5 rounded bg-muted/20">ESC</kbd>
-          </div>
+        <div className="max-h-[70vh] overflow-y-auto p-2 sm:p-3">
+          {needle.length < 2 ? (
+            <Section title="Navegação">
+              {commands.map((command) => <CommandRow key={command.to} command={command} onClick={() => go(command.to)} />)}
+            </Section>
+          ) : (
+            <>
+              {matches.collections.length > 0 && <EntitySection title="Coleções" icon={Layers} entities={matches.collections} onOpen={() => go(`/collections?search=${encodeURIComponent(query)}`)} />}
+              {matches.characters.length > 0 && <EntitySection title="Personagens" icon={UserRound} entities={matches.characters} onOpen={(entity) => go(entity.id ? `/card/${entity.id}` : `/characters?search=${encodeURIComponent(query)}`)} />}
+              {matches.items.length > 0 && <EntitySection title="Itens" icon={Package} entities={matches.items} onOpen={() => go(`/items?search=${encodeURIComponent(query)}`)} />}
+              {matches.bosses.length > 0 && <EntitySection title="Bosses" icon={Skull} entities={matches.bosses} onOpen={() => go(`/bosses?search=${encodeURIComponent(query)}`)} />}
+              {commands.length > 0 && <Section title="Navegação">{commands.map((command) => <CommandRow key={command.to} command={command} onClick={() => go(command.to)} />)}</Section>}
+              {matches.collections.length + matches.characters.length + matches.items.length + matches.bosses.length + commands.length === 0 && <div className="px-5 py-12 text-center text-sm text-muted-foreground">Nenhum resultado encontrado.</div>}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
-          {/* Results Container */}
-          <div className="max-h-[70vh] overflow-y-auto py-3 space-y-4">
+function Section({ title, children }) {
+  return <section className="mb-2"><div className="px-3 pb-1 pt-2 text-[10px] font-extrabold uppercase tracking-[0.16em] text-muted-foreground">{title}</div>{children}</section>;
+}
 
-            {/* COLLECTIONS RESULTS */}
-            {collectionMatches.length > 0 && (
-              <div>
-                <p className="px-5 py-1 text-[10px] font-heading font-bold tracking-widest text-amber-400 uppercase flex items-center gap-1.5">
-                  <Layers className="w-3.5 h-3.5" /> Coleções ({collectionMatches.length})
-                </p>
-                {collectionMatches.map(col => (
-                  <button
-                    key={col.id}
-                    onClick={() => go("/collections")}
-                    className="w-full flex items-center gap-3.5 px-5 py-2 hover:bg-amber-500/10 text-left transition-colors group"
-                  >
-                    <div className="w-7 h-7 rounded bg-amber-500/10 border border-amber-500/30 flex items-center justify-center shrink-0">
-                      <BookOpen className="w-3.5 h-3.5 text-amber-400" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-heading font-bold text-foreground group-hover:text-amber-300 transition-colors truncate">{col.name}</p>
-                      <p className="text-[10px] font-mono text-muted-foreground">Coleção #{col.code || "COL"}</p>
-                    </div>
-                    <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-amber-400 group-hover:translate-x-0.5 transition-all" />
-                  </button>
-                ))}
-              </div>
-            )}
+function CommandRow({ command, onClick }) {
+  const Icon = command.icon;
+  return <button type="button" onClick={onClick} className="flex w-full min-h-12 items-center gap-3 rounded-xl px-3 text-left text-sm font-bold text-foreground transition hover:bg-muted/70"><Icon className="h-4 w-4 text-primary" />{command.label}</button>;
+}
 
-            {/* PERSONAGENS RESULTS */}
-            {(cardMatches.length > 0 || characterMatches.length > 0) && (
-              <div>
-                <p className="px-5 py-1 text-[10px] font-heading font-bold tracking-widest text-emerald-400 uppercase flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5" /> Personagens ({cardMatches.length + characterMatches.length})
-                </p>
-                {cardMatches.map(card => (
-                  <button
-                    key={card.id}
-                    onClick={() => go(`/card/${card.id}`)}
-                    className="w-full flex items-center gap-3.5 px-5 py-2 hover:bg-emerald-500/10 text-left transition-colors group"
-                  >
-                    {(card.img_custom || card.img_oficial || card.image_url) ? (
-                      <img src={card.img_custom || card.img_oficial || card.image_url} alt="" className="w-7 h-9 object-cover shrink-0 rounded border border-border/40 shadow-sm" />
-                    ) : (
-                      <div className="w-7 h-9 bg-muted/40 rounded flex items-center justify-center shrink-0">
-                        <Sparkles className="w-3.5 h-3.5 text-muted-foreground" />
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-heading font-bold text-foreground group-hover:text-emerald-300 transition-colors truncate">{card.name}</p>
-                      <p className="text-[10px] font-mono text-muted-foreground">{card.series || "Personagem"} · {card.role} · {card.rarity}</p>
-                    </div>
-                    <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all" />
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* ITENS RESULTS */}
-            {itemMatches.length > 0 && (
-              <div>
-                <p className="px-5 py-1 text-[10px] font-heading font-bold tracking-widest text-cyan-400 uppercase flex items-center gap-1.5">
-                  <Package className="w-3.5 h-3.5" /> Itens ({itemMatches.length})
-                </p>
-                {itemMatches.map(item => (
-                  <button
-                    key={item.id}
-                    onClick={() => go("/inventory")}
-                    className="w-full flex items-center gap-3.5 px-5 py-2 hover:bg-cyan-500/10 text-left transition-colors group"
-                  >
-                    <div className="w-7 h-7 rounded bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center shrink-0">
-                      <Package className="w-3.5 h-3.5 text-cyan-400" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-heading font-bold text-foreground group-hover:text-cyan-300 transition-colors truncate">{item.name}</p>
-                      <p className="text-[10px] font-mono text-muted-foreground">{item.series || item.collection_name || "Geral"} · {item.type || "Item"}</p>
-                    </div>
-                    <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-cyan-400 group-hover:translate-x-0.5 transition-all" />
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* BOSSES RESULTS */}
-            {bossMatches.length > 0 && (
-              <div>
-                <p className="px-5 py-1 text-[10px] font-heading font-bold tracking-widest text-red-400 uppercase flex items-center gap-1.5">
-                  <Skull className="w-3.5 h-3.5" /> Bosses ({bossMatches.length})
-                </p>
-                {bossMatches.map(boss => (
-                  <button
-                    key={boss.id}
-                    onClick={() => go("/arena")}
-                    className="w-full flex items-center gap-3.5 px-5 py-2 hover:bg-red-500/10 text-left transition-colors group"
-                  >
-                    <div className="w-7 h-7 rounded bg-red-500/10 border border-red-500/30 flex items-center justify-center shrink-0">
-                      <Skull className="w-3.5 h-3.5 text-red-400" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-heading font-bold text-foreground group-hover:text-red-300 transition-colors truncate">{boss.name}</p>
-                      <p className="text-[10px] font-mono text-muted-foreground">Nível {boss.level || 1} · {boss.series || "Boss"}</p>
-                    </div>
-                    <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-red-400 group-hover:translate-x-0.5 transition-all" />
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* STATIC / NAVIGATION RESULTS */}
-            {staticMatches.length > 0 && (
-              <div>
-                <p className="px-5 py-1 text-[10px] font-heading font-bold tracking-widest text-muted-foreground/60 uppercase">MÓDULOS DE SISTEMA</p>
-                {staticMatches.map(cmd => (
-                  <button
-                    key={cmd.to}
-                    onClick={() => go(cmd.to)}
-                    className="w-full flex items-center gap-3 px-5 py-2 hover:bg-card text-left transition-colors group"
-                  >
-                    <span className="text-base">{cmd.icon}</span>
-                    <span className="flex-1 text-xs font-heading font-bold text-foreground group-hover:text-primary transition-colors">{cmd.label}</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {cleanQuery.length >= 2 && cardMatches.length === 0 && collectionMatches.length === 0 && itemMatches.length === 0 && bossMatches.length === 0 && staticMatches.length === 0 && (
-              <p className="px-5 py-8 text-center text-xs font-body text-muted-foreground">Nenhum resultado encontrado para "{query}"</p>
-            )}
-
-            {cleanQuery.length === 0 && (
-              <div className="px-5 py-3 border-t border-border/20">
-                <p className="text-[10px] font-heading font-bold tracking-widest text-muted-foreground/50 uppercase mb-2">ATALHOS RÁPIDOS DO TECLADO</p>
-                <div className="flex flex-wrap gap-2">
-                  <div className="flex items-center gap-1.5 border border-border/40 px-2.5 py-1 rounded-lg text-[10px] font-mono text-muted-foreground bg-card/30">
-                    <kbd className="text-primary font-bold">Ctrl+K</kbd>
-                    <span>→ Abrir Busca Global</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 border border-border/40 px-2.5 py-1 rounded-lg text-[10px] font-mono text-muted-foreground bg-card/30">
-                    <kbd className="text-primary font-bold">H</kbd>
-                    <span>→ Dashboard</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 border border-border/40 px-2.5 py-1 rounded-lg text-[10px] font-mono text-muted-foreground bg-card/30">
-                    <kbd className="text-primary font-bold">E</kbd>
-                    <span>→ Equipes</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-          </div>
-        </motion.div>
-      </motion.div>
-    </AnimatePresence>
+function EntitySection({ title, icon: Icon, entities, onOpen }) {
+  return (
+    <Section title={title}>
+      {entities.map((entity, index) => {
+        const image = getImage(entity);
+        return <button type="button" key={entity.id || entity.entityKey || `${getName(entity)}-${index}`} onClick={() => onOpen(entity)} className="flex w-full min-h-14 items-center gap-3 rounded-xl px-3 py-2 text-left transition hover:bg-muted/70">
+          <div className="flex h-10 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted">{image ? <img src={image} alt="" className="h-full w-full object-cover" /> : <Icon className="h-4 w-4 text-muted-foreground/50" />}</div>
+          <div className="min-w-0"><div className="truncate text-sm font-extrabold text-foreground">{getName(entity)}</div><div className="truncate text-[11px] text-muted-foreground">{entity.collectionCode || entity.collection || entity.series || entity.code || title}</div></div>
+        </button>;
+      })}
+    </Section>
   );
 }
