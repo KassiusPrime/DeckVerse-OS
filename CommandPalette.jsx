@@ -11,7 +11,7 @@ const STATIC_COMMANDS = [
   { label: "Personagens", to: "/characters", icon: UserRound },
   { label: "Itens", to: "/items", icon: Package },
   { label: "Bosses", to: "/bosses", icon: Skull },
-  { label: "Minha coleção", to: "/my-collection", icon: ShieldCheck },
+  { label: "Meu acervo", to: "/my-collection", icon: ShieldCheck },
 ];
 
 const normalize = (value) => String(value ?? "").trim().toLowerCase();
@@ -83,16 +83,16 @@ export default function CommandPalette() {
 
   return (
     <div className="fixed inset-0 z-[9998] flex items-start justify-center bg-black/70 px-4 pt-16 backdrop-blur-sm sm:pt-24" onMouseDown={() => setOpen(false)}>
-      <div className="w-full max-w-2xl overflow-hidden rounded-3xl border border-border bg-background shadow-2xl" onMouseDown={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-label="Busca global">
+      <div className="w-full max-w-2xl overflow-hidden rounded-3xl border border-border bg-background shadow-2xl" onMouseDown={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-label="Busca rápida">
         <div className="flex items-center gap-3 border-b border-border bg-card/80 px-4 py-3 sm:px-5">
           <Search className="h-5 w-5 shrink-0 text-primary" />
-          <input ref={inputRef} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar no DeckVerse..." className="min-h-11 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/60" />
+          <input ref={inputRef} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar personagem, item, boss ou página..." className="min-h-11 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/60" />
           <kbd className="hidden rounded-lg border border-border bg-muted/50 px-2 py-1 text-[10px] font-mono text-muted-foreground sm:block">ESC</kbd>
         </div>
 
         <div className="max-h-[70vh] overflow-y-auto p-2 sm:p-3">
           {needle.length < 2 ? (
-            <Section title="Navegação">
+            <Section title="Atalhos">
               {commands.map((command) => <CommandRow key={command.to} command={command} onClick={() => go(command.to)} />)}
             </Section>
           ) : (
@@ -101,8 +101,8 @@ export default function CommandPalette() {
               {matches.characters.length > 0 && <EntitySection title="Personagens" icon={UserRound} entities={matches.characters} onOpen={(entity) => go(entity.id ? `/card/${entity.id}` : `/characters?search=${encodeURIComponent(query)}`)} />}
               {matches.items.length > 0 && <EntitySection title="Itens" icon={Package} entities={matches.items} onOpen={() => go(`/items?search=${encodeURIComponent(query)}`)} />}
               {matches.bosses.length > 0 && <EntitySection title="Bosses" icon={Skull} entities={matches.bosses} onOpen={() => go(`/bosses?search=${encodeURIComponent(query)}`)} />}
-              {commands.length > 0 && <Section title="Navegação">{commands.map((command) => <CommandRow key={command.to} command={command} onClick={() => go(command.to)} />)}</Section>}
-              {matches.collections.length + matches.characters.length + matches.items.length + matches.bosses.length + commands.length === 0 && <div className="px-5 py-12 text-center text-sm text-muted-foreground">Nenhum resultado encontrado.</div>}
+              {commands.length > 0 && <Section title="Atalhos">{commands.map((command) => <CommandRow key={command.to} command={command} onClick={() => go(command.to)} />)}</Section>}
+              {matches.collections.length + matches.characters.length + matches.items.length + matches.bosses.length + commands.length === 0 && <div className="px-5 py-12 text-center text-sm text-muted-foreground">Nada encontrado para esta busca.</div>}
             </>
           )}
         </div>
