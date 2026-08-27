@@ -10,7 +10,7 @@ const NAV_LINKS = [
   { to: "/characters", label: "Personagens", icon: UserRound },
   { to: "/items", label: "Itens", icon: Package },
   { to: "/bosses", label: "Bosses", icon: Skull },
-  { to: "/my-collection", label: "Minha coleção", icon: ShieldCheck },
+  { to: "/my-collection", label: "Meu acervo", icon: ShieldCheck },
 ];
 
 const linkClass = ({ isActive }) =>
@@ -56,7 +56,7 @@ export default function Navbar({ onSearch }) {
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Buscar no DeckVerse..."
+              placeholder="Buscar personagem, item ou boss"
               className="h-10 w-full rounded-xl border border-border bg-card pl-10 pr-3 text-sm text-foreground outline-none transition placeholder:text-muted-foreground/60 focus:border-primary/60 focus:ring-2 focus:ring-primary/15"
             />
           </label>
@@ -98,7 +98,7 @@ export default function Navbar({ onSearch }) {
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Buscar personagem, item ou boss..."
+                placeholder="Buscar personagem, item ou boss"
                 className="h-11 w-full rounded-xl border border-border bg-card pl-10 pr-3 text-sm text-foreground outline-none focus:border-primary/60"
               />
             </label>
