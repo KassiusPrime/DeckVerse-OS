@@ -101,21 +101,21 @@ export default function Home() {
           <div className="pointer-events-none absolute left-1/2 top-0 h-[420px] w-[720px] -translate-x-1/2 rounded-full bg-primary/10 blur-[120px]" />
           <div className="relative mx-auto max-w-5xl text-center">
             <div className="mb-6 flex justify-center"><DeckVerseLogo size="lg" showTagline /></div>
-            <div className="mx-auto mb-4 inline-flex items-center gap-2 rounded-full border border-border bg-card/70 px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-[0.16em] text-muted-foreground backdrop-blur"><Sparkles className="h-3.5 w-3.5 text-accent" /> Arquivo multiversal colecionável</div>
-            <h1 className="mx-auto max-w-4xl text-4xl font-black tracking-[-0.055em] text-foreground sm:text-6xl lg:text-7xl">Explore. Colecione. <span className="text-primary">Desbloqueie.</span></h1>
-            <p className="mx-auto mt-5 max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">Um catálogo único para universos, personagens, itens e bosses. Formas canônicas pertencem à mesma carta quando são etapas reais da identidade, sem duplicar o acervo.</p>
+            <div className="mx-auto mb-4 inline-flex items-center gap-2 rounded-full border border-border bg-card/70 px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-[0.16em] text-muted-foreground backdrop-blur"><Sparkles className="h-3.5 w-3.5 text-accent" /> Acervo multiversal</div>
+            <h1 className="mx-auto max-w-4xl text-4xl font-black tracking-[-0.055em] text-foreground sm:text-6xl lg:text-7xl">Explore universos. <span className="text-primary">Monte seu acervo.</span></h1>
+            <p className="mx-auto mt-5 max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">Encontre personagens, itens e bosses, acompanhe o que você já possui e desbloqueie novas formas na mesma carta.</p>
 
             <form onSubmit={handleSearch} className="mx-auto mt-8 flex max-w-2xl gap-2 rounded-2xl border border-border bg-card/90 p-2 shadow-[0_20px_70px_rgba(0,0,0,.25)] backdrop-blur-xl">
               <label className="relative min-w-0 flex-1">
                 <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar personagem, universo, item ou boss..." className="h-12 w-full rounded-xl bg-transparent pl-10 pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground/60" />
+                <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Busque por personagem, item, boss ou universo" className="h-12 w-full rounded-xl bg-transparent pl-10 pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground/60" />
               </label>
               <button type="submit" className="min-h-12 shrink-0 rounded-xl bg-primary px-4 text-sm font-black text-primary-foreground transition hover:brightness-110 sm:px-6">Buscar</button>
             </form>
 
             <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
-              <Link to="/collections" className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-border bg-card px-4 text-sm font-extrabold text-foreground transition hover:border-primary/45 hover:bg-muted/60"><BookOpen className="h-4 w-4 text-primary" /> Explorar coleções</Link>
-              <Link to="/my-collection" className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-border bg-card px-4 text-sm font-extrabold text-foreground transition hover:border-primary/45 hover:bg-muted/60"><ShieldCheck className="h-4 w-4 text-secondary" /> Minha coleção</Link>
+              <Link to="/collections" className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-border bg-card px-4 text-sm font-extrabold text-foreground transition hover:border-primary/45 hover:bg-muted/60"><BookOpen className="h-4 w-4 text-primary" /> Ver coleções</Link>
+              <Link to="/my-collection" className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-border bg-card px-4 text-sm font-extrabold text-foreground transition hover:border-primary/45 hover:bg-muted/60"><ShieldCheck className="h-4 w-4 text-secondary" /> Abrir meu acervo</Link>
             </div>
           </div>
         </section>
@@ -129,24 +129,24 @@ export default function Home() {
 
         <section className="mt-12">
           <div className="mb-5 flex items-end justify-between gap-4">
-            <div><div className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Universos</div><h2 className="mt-1 text-2xl font-black tracking-tight text-foreground sm:text-3xl">Coleções para explorar</h2></div>
+            <div><div className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Descobrir</div><h2 className="mt-1 text-2xl font-black tracking-tight text-foreground sm:text-3xl">Explore por universo</h2></div>
             <Link to="/collections" className="hidden min-h-11 items-center gap-2 rounded-xl px-3 text-sm font-extrabold text-muted-foreground transition hover:text-primary sm:flex">Ver todas <ArrowRight className="h-4 w-4" /></Link>
           </div>
-          {isLoading ? <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{Array.from({ length: 6 }).map((_, index) => <div key={index} className="min-h-[190px] animate-pulse rounded-2xl border border-border bg-card" />)}</div> : featuredCollections.length > 0 ? <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{featuredCollections.map((collection, index) => <CollectionTile key={collection.id || collection.code || `${getName(collection)}-${index}`} collection={collection} />)}</div> : <EmptyMessage text="Nenhuma coleção disponível ainda." />}
+          {isLoading ? <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{Array.from({ length: 6 }).map((_, index) => <div key={index} className="min-h-[190px] animate-pulse rounded-2xl border border-border bg-card" />)}</div> : featuredCollections.length > 0 ? <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{featuredCollections.map((collection, index) => <CollectionTile key={collection.id || collection.code || `${getName(collection)}-${index}`} collection={collection} />)}</div> : <EmptyMessage text="Nenhuma coleção disponível." />}
         </section>
 
         <section className="mt-12">
           <div className="mb-5 flex items-end justify-between gap-4">
-            <div><div className="text-xs font-extrabold uppercase tracking-[0.16em] text-secondary">Catálogo</div><h2 className="mt-1 text-2xl font-black tracking-tight text-foreground sm:text-3xl">Personagens no arquivo</h2></div>
-            <Link to="/characters" className="hidden min-h-11 items-center gap-2 rounded-xl px-3 text-sm font-extrabold text-muted-foreground transition hover:text-primary sm:flex">Abrir catálogo <ArrowRight className="h-4 w-4" /></Link>
+            <div><div className="text-xs font-extrabold uppercase tracking-[0.16em] text-secondary">Novidades</div><h2 className="mt-1 text-2xl font-black tracking-tight text-foreground sm:text-3xl">Personagens adicionados recentemente</h2></div>
+            <Link to="/characters" className="hidden min-h-11 items-center gap-2 rounded-xl px-3 text-sm font-extrabold text-muted-foreground transition hover:text-primary sm:flex">Ver personagens <ArrowRight className="h-4 w-4" /></Link>
           </div>
-          {isLoading ? <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">{Array.from({ length: 8 }).map((_, index) => <div key={index} className="aspect-[4/5] animate-pulse rounded-2xl border border-border bg-card" />)}</div> : recentCharacters.length > 0 ? <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">{recentCharacters.map((entity, index) => <CharacterTile key={entity.id || entity.entityKey || `${getName(entity)}-${index}`} entity={entity} />)}</div> : <EmptyMessage text="Nenhum personagem disponível ainda." />}
+          {isLoading ? <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">{Array.from({ length: 8 }).map((_, index) => <div key={index} className="aspect-[4/5] animate-pulse rounded-2xl border border-border bg-card" />)}</div> : recentCharacters.length > 0 ? <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">{recentCharacters.map((entity, index) => <CharacterTile key={entity.id || entity.entityKey || `${getName(entity)}-${index}`} entity={entity} />)}</div> : <EmptyMessage text="Nenhum personagem disponível." />}
         </section>
 
         <section className="mt-12 overflow-hidden rounded-3xl border border-border bg-card p-6 sm:p-8">
           <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
-            <div><div className="mb-2 flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.16em] text-accent"><ShieldCheck className="h-4 w-4" /> Seu arquivo</div><h2 className="text-2xl font-black tracking-tight text-foreground sm:text-3xl">Uma coleção para completar, não um painel para administrar.</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">A experiência principal agora prioriza posse, favoritos, raridade e desbloqueio de formas. Recursos administrativos ficam separados do catálogo público.</p></div>
-            <Link to="/my-collection" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-secondary px-5 text-sm font-black text-secondary-foreground transition hover:brightness-110">Abrir minha coleção <ArrowRight className="h-4 w-4" /></Link>
+            <div><div className="mb-2 flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.16em] text-accent"><ShieldCheck className="h-4 w-4" /> Seu acervo</div><h2 className="text-2xl font-black tracking-tight text-foreground sm:text-3xl">Acompanhe tudo o que você já coletou.</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">Veja suas cartas, favoritos, raridades e formas desbloqueadas em um só lugar.</p></div>
+            <Link to="/my-collection" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-secondary px-5 text-sm font-black text-secondary-foreground transition hover:brightness-110">Ver meu acervo <ArrowRight className="h-4 w-4" /></Link>
           </div>
         </section>
       </main>
