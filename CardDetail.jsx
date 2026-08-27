@@ -85,7 +85,7 @@ export default function CardDetail() {
         <main className="mx-auto flex min-h-[65vh] max-w-xl flex-col items-center justify-center px-5 text-center">
           <ImageOff className="h-10 w-10 text-muted-foreground/40" />
           <h1 className="mt-4 text-2xl font-black text-foreground">Personagem não encontrado</h1>
-          <p className="mt-2 text-sm text-muted-foreground">A entrada pode ter sido removida, renomeada ou ainda não ter sido sincronizada.</p>
+          <p className="mt-2 text-sm text-muted-foreground">Ele pode ter sido removido, renomeado ou ainda não estar sincronizado.</p>
           <Link to="/characters" className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-xl border border-border bg-card px-4 text-sm font-extrabold text-foreground hover:border-primary/45"><ArrowLeft className="h-4 w-4" /> Voltar aos personagens</Link>
         </main>
       </div>
@@ -110,7 +110,7 @@ export default function CardDetail() {
                 {activeImage ? <img key={`${selectedFormId}-${activeImage}`} src={activeImage} alt={`${getName(card)} — ${activeLabel}`} className="h-full w-full object-cover" /> : <div className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(circle_at_top,hsl(var(--primary)/.15),transparent_65%)]"><ImageOff className="h-10 w-10 text-muted-foreground/35" /></div>}
                 <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-black/90 via-black/35 to-transparent" />
                 <div className="absolute inset-x-4 bottom-4 flex items-end justify-between gap-3">
-                  <div><div className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-white/55">Visual atual</div><div className="mt-1 text-lg font-black text-white">{activeLabel}</div></div>
+                  <div><div className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-white/55">Aparência selecionada</div><div className="mt-1 text-lg font-black text-white">{activeLabel}</div></div>
                   {rarity && <span className="rounded-full border border-white/15 bg-black/45 px-3 py-1.5 text-xs font-black tracking-[0.12em] text-white backdrop-blur">{rarity}</span>}
                 </div>
               </div>
@@ -118,7 +118,7 @@ export default function CardDetail() {
 
             {forms.length > 0 && (
               <div className="mt-4 rounded-2xl border border-border bg-card p-3">
-                <div className="mb-3 flex items-center gap-2 px-1 text-xs font-extrabold uppercase tracking-[0.14em] text-muted-foreground"><Sparkles className="h-4 w-4 text-primary" /> Formas</div>
+                <div className="mb-3 flex items-center gap-2 px-1 text-xs font-extrabold uppercase tracking-[0.14em] text-muted-foreground"><Sparkles className="h-4 w-4 text-primary" /> Formas disponíveis</div>
                 <div className="flex gap-2 overflow-x-auto pb-1">
                   <FormButton label="Base" active={selectedFormId === "base"} onClick={() => setSelectedFormId("base")} />
                   {forms.map((form) => <FormButton key={form.id} label={form.name} locked={form.locked} active={selectedFormId === form.id} onClick={() => !form.locked && setSelectedFormId(form.id)} />)}
@@ -148,7 +148,7 @@ export default function CardDetail() {
 
             {forms.length > 0 && (
               <div className="mt-5 rounded-2xl border border-border bg-card p-5 sm:p-6">
-                <div className="flex items-center justify-between gap-3"><div><h2 className="text-sm font-black uppercase tracking-[0.14em] text-foreground">Progressão de formas</h2><p className="mt-1 text-xs text-muted-foreground">A carta continua sendo a mesma identidade; somente o visual/etapa muda após o desbloqueio.</p></div><Sparkles className="h-5 w-5 shrink-0 text-primary" /></div>
+                <div className="flex items-center justify-between gap-3"><div><h2 className="text-sm font-black uppercase tracking-[0.14em] text-foreground">Formas da carta</h2><p className="mt-1 text-xs text-muted-foreground">Desbloquear uma forma libera outra aparência para a mesma carta.</p></div><Sparkles className="h-5 w-5 shrink-0 text-primary" /></div>
                 <div className="mt-4 space-y-2">
                   <ProgressRow name="Base" unlocked />
                   {forms.map((form) => <ProgressRow key={form.id} name={form.name} unlocked={!form.locked} />)}
