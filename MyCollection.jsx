@@ -67,14 +67,14 @@ export default function MyCollection() {
         <section className="overflow-hidden rounded-3xl border border-border bg-card p-6 sm:p-8">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <div className="mb-2 flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.16em] text-secondary"><ShieldCheck className="h-4 w-4" /> Minha coleção</div>
-              <h1 className="text-3xl font-black tracking-[-0.04em] text-foreground sm:text-5xl">Seu acervo, sem ruído.</h1>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">Personagens recebidos permanecem uma única carta. Quando uma transformação válida é desbloqueada, ela amplia a mesma identidade em vez de criar outra entrada.</p>
+              <div className="mb-2 flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.16em] text-secondary"><ShieldCheck className="h-4 w-4" /> Meu acervo</div>
+              <h1 className="text-3xl font-black tracking-[-0.04em] text-foreground sm:text-5xl">Tudo o que você já coletou.</h1>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">Filtre suas cartas, acompanhe formas desbloqueadas e encontre seus favoritos.</p>
             </div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              <Summary value={isAuthenticated ? ownedCards.length : "—"} label="personagens" />
+              <Summary value={isAuthenticated ? ownedCards.length : "—"} label="cartas" />
               <Summary value={formsUnlocked} label="formas" />
-              <Summary value={cards.length ? `${Math.round((ownedCards.length / cards.length) * 100)}%` : "0%"} label="completo" />
+              <Summary value={cards.length ? `${Math.round((ownedCards.length / cards.length) * 100)}%` : "0%"} label="concluído" />
             </div>
           </div>
         </section>
@@ -82,9 +82,9 @@ export default function MyCollection() {
         {!isAuthenticated ? (
           <section className="mt-6 flex min-h-[320px] flex-col items-center justify-center rounded-3xl border border-dashed border-border bg-card/60 px-6 text-center">
             <UserRound className="mb-4 h-9 w-9 text-muted-foreground/40" />
-            <h2 className="text-xl font-black text-foreground">Entre para ver sua coleção</h2>
-            <p className="mt-2 max-w-md text-sm text-muted-foreground">O catálogo público continua disponível sem login. Sua posse e seus desbloqueios dependem de uma sessão autenticada.</p>
-            <Link to="/collections" className="mt-5 inline-flex min-h-11 items-center rounded-xl border border-border bg-card px-4 text-sm font-extrabold text-foreground hover:border-primary/45">Explorar catálogo</Link>
+            <h2 className="text-xl font-black text-foreground">Entre para acessar seu acervo</h2>
+            <p className="mt-2 max-w-md text-sm text-muted-foreground">Suas cartas, favoritos e formas desbloqueadas ficam vinculados à sua conta.</p>
+            <Link to="/collections" className="mt-5 inline-flex min-h-11 items-center rounded-xl border border-border bg-card px-4 text-sm font-extrabold text-foreground hover:border-primary/45">Voltar ao catálogo</Link>
           </section>
         ) : (
           <>
@@ -92,7 +92,7 @@ export default function MyCollection() {
               <div className="flex flex-col gap-3 sm:flex-row">
                 <label className="relative flex-1">
                   <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar na minha coleção..." className="h-12 w-full rounded-xl border border-border bg-background pl-10 pr-4 text-sm text-foreground outline-none focus:border-primary/60" />
+                  <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar no acervo..." className="h-12 w-full rounded-xl border border-border bg-background pl-10 pr-4 text-sm text-foreground outline-none focus:border-primary/60" />
                 </label>
                 <select value={rarity} onChange={(event) => setRarity(event.target.value)} className="h-12 rounded-xl border border-border bg-background px-3 text-sm font-semibold text-foreground outline-none">
                   <option value="all">Todas as raridades</option>
@@ -109,7 +109,7 @@ export default function MyCollection() {
                 {filtered.map((card, index) => <OwnedCard key={card.id || card.entityKey || `${getName(card)}-${index}`} card={card} />)}
               </section>
             ) : (
-              <section className="mt-6 flex min-h-[260px] flex-col items-center justify-center rounded-3xl border border-dashed border-border bg-card/50 px-6 text-center"><ImageOff className="mb-3 h-8 w-8 text-muted-foreground/40" /><p className="text-sm text-muted-foreground">Nenhuma carta possuída corresponde aos filtros atuais.</p></section>
+              <section className="mt-6 flex min-h-[260px] flex-col items-center justify-center rounded-3xl border border-dashed border-border bg-card/50 px-6 text-center"><ImageOff className="mb-3 h-8 w-8 text-muted-foreground/40" /><p className="text-sm text-muted-foreground">Nenhuma carta do seu acervo corresponde aos filtros.</p></section>
             )}
           </>
         )}
@@ -131,7 +131,7 @@ function OwnedCard({ card }) {
       <div className="relative aspect-[4/5] overflow-hidden bg-muted">
         {image ? <img src={image} alt={getName(card)} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.025]" /> : <div className="absolute inset-0 flex items-center justify-center"><ImageOff className="h-8 w-8 text-muted-foreground/30" /></div>}
         <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
-        <div className="absolute left-3 top-3 flex items-center gap-1 rounded-full border border-emerald-300/20 bg-emerald-500/15 px-2 py-1 text-[10px] font-bold text-emerald-100 backdrop-blur"><Check className="h-3 w-3" /> Possuído</div>
+        <div className="absolute left-3 top-3 flex items-center gap-1 rounded-full border border-emerald-300/20 bg-emerald-500/15 px-2 py-1 text-[10px] font-bold text-emerald-100 backdrop-blur"><Check className="h-3 w-3" /> Coletado</div>
         <div className="absolute inset-x-3 bottom-3"><h3 className="line-clamp-2 text-sm font-black leading-tight text-white">{getName(card)}</h3><div className="mt-1 flex items-center justify-between gap-2 text-[10px] text-white/60"><span>{getRarity(card) || card.collectionCode || "DeckVerse"}</span>{unlocked > 0 && <span className="flex items-center gap-1"><Sparkles className="h-3 w-3" /> {unlocked} formas</span>}</div></div>
       </div>
     </Link>
