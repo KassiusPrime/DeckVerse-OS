@@ -42,7 +42,7 @@ export const AuthProvider = ({ children }) => {
       console.warn("Auth check warning:", error);
       setUser(null);
       setIsAuthenticated(false);
-      setAuthError({ type: "auth_check_failed", message: error?.message || "Falha ao validar sessão." });
+      setAuthError({ type: "auth_check_failed", message: error?.message || "Não foi possível confirmar sua sessão." });
     } finally {
       setIsLoadingAuth(false);
     }
