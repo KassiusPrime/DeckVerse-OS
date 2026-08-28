@@ -41,16 +41,23 @@ import BackgroundSyncIndicator from "./components/BackgroundSyncIndicator";
 
 const AdminRouteGuard = ({ children }) => {
   const { isAuthenticated, isLoadingAuth, user } = useAuth();
-  if (isLoadingAuth) return <div className="min-h-[40vh]" />;
+  if (isLoadingAuth) {
+    return (
+      <main className="mx-auto flex min-h-[70vh] max-w-xl flex-col items-center justify-center px-5 text-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-primary" aria-hidden="true" />
+        <p className="mt-4 text-sm text-muted-foreground">Verificando sua sessão...</p>
+      </main>
+    );
+  }
 
   const isActiveAdmin = isAuthenticated && user?.role === "admin" && user?.status !== "inactive" && user?.status !== "disabled";
   if (!isActiveAdmin) {
     return (
       <main className="mx-auto flex min-h-[70vh] max-w-xl flex-col items-center justify-center px-5 text-center">
-        <div className="rounded-full border border-destructive/30 bg-destructive/10 px-3 py-1 text-xs font-extrabold uppercase tracking-[0.14em] text-destructive">Acesso restrito</div>
-        <h1 className="mt-4 text-3xl font-black tracking-tight text-foreground">Área administrativa protegida</h1>
-        <p className="mt-3 text-sm leading-6 text-muted-foreground">Entre com uma conta administradora ativa para acessar operações de catálogo, mídia e configuração.</p>
-        <a href="/" className="mt-6 inline-flex min-h-11 items-center rounded-xl bg-primary px-4 text-sm font-extrabold text-primary-foreground">Voltar ao DeckVerse</a>
+        <div className="rounded-full border border-destructive/30 bg-destructive/10 px-3 py-1 text-xs font-extrabold uppercase tracking-[0.14em] text-destructive">Área administrativa</div>
+        <h1 className="mt-4 text-3xl font-black tracking-tight text-foreground">Você não tem acesso a esta área</h1>
+        <p className="mt-3 text-sm leading-6 text-muted-foreground">Entre com uma conta de administrador ativa para continuar.</p>
+        <a href="/" className="mt-6 inline-flex min-h-11 items-center rounded-xl bg-primary px-4 text-sm font-extrabold text-primary-foreground">Voltar ao início</a>
       </main>
     );
   }
@@ -127,8 +134,9 @@ function ProductRuntime() {
 
   if (isLoadingPublicSettings || isLoadingAuth) {
     return (
-      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background">
-        <div className="h-9 w-9 animate-spin rounded-full border-2 border-border border-t-primary" aria-label="Carregando DeckVerse" />
+      <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background">
+        <div className="h-9 w-9 animate-spin rounded-full border-2 border-border border-t-primary" aria-hidden="true" />
+        <p className="mt-4 text-sm font-semibold text-muted-foreground">Carregando DeckVerse...</p>
       </div>
     );
   }
