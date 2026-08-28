@@ -19,15 +19,25 @@ import DeckVerseLogo from "./DeckVerseLogo";
 const getImage = (entity) => entity?.image_url || entity?.imageUrl || entity?.img || entity?.media_url || entity?.mediaUrl || "";
 const getName = (entity) => entity?.name || entity?.canonicalName || entity?.title || "Sem nome";
 
-function StatCard({ icon: Icon, label, value, href }) {
+function CatalogCount({ icon: Icon, label, value, href }) {
   return (
-    <Link to={href} className="group rounded-2xl border border-border bg-card p-4 transition hover:-translate-y-0.5 hover:border-primary/45 hover:shadow-[0_16px_40px_rgba(0,0,0,.22)]">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary"><Icon className="h-5 w-5" /></div>
+    <Link
+      to={href}
+      className="group flex min-h-16 items-center justify-between gap-4 border-b border-border px-4 py-3 transition hover:bg-muted/40 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0"
+    >
+      <div className="flex min-w-0 items-center gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <Icon className="h-4 w-4" />
+        </div>
+        <div className="min-w-0">
+          <div className="text-sm font-extrabold text-foreground">{label}</div>
+          <div className="text-[11px] text-muted-foreground">No catálogo atual</div>
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-xl font-black tracking-tight text-foreground">{value}</span>
         <ArrowRight className="h-4 w-4 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-primary" />
       </div>
-      <div className="mt-4 text-2xl font-black tracking-tight text-foreground">{value}</div>
-      <div className="mt-1 text-xs font-semibold text-muted-foreground">{label}</div>
     </Link>
   );
 }
@@ -120,16 +130,25 @@ export default function Home() {
           </div>
         </section>
 
-        <section aria-label="Resumo do catálogo" className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <StatCard icon={Layers} label="Coleções" value={isLoading ? "—" : collections.length} href="/collections" />
-          <StatCard icon={UserRound} label="Personagens" value={isLoading ? "—" : characters.length} href="/characters" />
-          <StatCard icon={Package} label="Itens" value={isLoading ? "—" : items.length} href="/items" />
-          <StatCard icon={Skull} label="Bosses" value={isLoading ? "—" : bosses.length} href="/bosses" />
+        <section aria-labelledby="catalog-summary-title" className="overflow-hidden rounded-2xl border border-border bg-card/80">
+          <div className="flex flex-col gap-1 border-b border-border px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+            <div>
+              <div className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Catálogo</div>
+              <h2 id="catalog-summary-title" className="mt-1 text-lg font-black tracking-tight text-foreground">Visão geral do acervo</h2>
+            </div>
+            <p className="text-xs text-muted-foreground">Contagem calculada diretamente a partir do catálogo atual.</p>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4">
+            <CatalogCount icon={Layers} label="Coleções" value={isLoading ? "—" : collections.length} href="/collections" />
+            <CatalogCount icon={UserRound} label="Personagens" value={isLoading ? "—" : characters.length} href="/characters" />
+            <CatalogCount icon={Package} label="Itens" value={isLoading ? "—" : items.length} href="/items" />
+            <CatalogCount icon={Skull} label="Bosses" value={isLoading ? "—" : bosses.length} href="/bosses" />
+          </div>
         </section>
 
         <section className="mt-12">
           <div className="mb-5 flex items-end justify-between gap-4">
-            <div><div className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Descobrir</div><h2 className="mt-1 text-2xl font-black tracking-tight text-foreground sm:text-3xl">Explore por universo</h2></div>
+            <div><div className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Coleções</div><h2 className="mt-1 text-2xl font-black tracking-tight text-foreground sm:text-3xl">Explore por universo</h2></div>
             <Link to="/collections" className="hidden min-h-11 items-center gap-2 rounded-xl px-3 text-sm font-extrabold text-muted-foreground transition hover:text-primary sm:flex">Ver todas <ArrowRight className="h-4 w-4" /></Link>
           </div>
           {isLoading ? <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{Array.from({ length: 6 }).map((_, index) => <div key={index} className="min-h-[190px] animate-pulse rounded-2xl border border-border bg-card" />)}</div> : featuredCollections.length > 0 ? <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{featuredCollections.map((collection, index) => <CollectionTile key={collection.id || collection.code || `${getName(collection)}-${index}`} collection={collection} />)}</div> : <EmptyMessage text="Nenhuma coleção disponível." />}
@@ -137,7 +156,7 @@ export default function Home() {
 
         <section className="mt-12">
           <div className="mb-5 flex items-end justify-between gap-4">
-            <div><div className="text-xs font-extrabold uppercase tracking-[0.16em] text-secondary">Novidades</div><h2 className="mt-1 text-2xl font-black tracking-tight text-foreground sm:text-3xl">Personagens adicionados recentemente</h2></div>
+            <div><div className="text-xs font-extrabold uppercase tracking-[0.16em] text-secondary">Personagens</div><h2 className="mt-1 text-2xl font-black tracking-tight text-foreground sm:text-3xl">Adicionados recentemente</h2></div>
             <Link to="/characters" className="hidden min-h-11 items-center gap-2 rounded-xl px-3 text-sm font-extrabold text-muted-foreground transition hover:text-primary sm:flex">Ver personagens <ArrowRight className="h-4 w-4" /></Link>
           </div>
           {isLoading ? <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">{Array.from({ length: 8 }).map((_, index) => <div key={index} className="aspect-[4/5] animate-pulse rounded-2xl border border-border bg-card" />)}</div> : recentCharacters.length > 0 ? <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">{recentCharacters.map((entity, index) => <CharacterTile key={entity.id || entity.entityKey || `${getName(entity)}-${index}`} entity={entity} />)}</div> : <EmptyMessage text="Nenhum personagem disponível." />}
@@ -145,7 +164,7 @@ export default function Home() {
 
         <section className="mt-12 overflow-hidden rounded-3xl border border-border bg-card p-6 sm:p-8">
           <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
-            <div><div className="mb-2 flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.16em] text-accent"><ShieldCheck className="h-4 w-4" /> Seu acervo</div><h2 className="text-2xl font-black tracking-tight text-foreground sm:text-3xl">Acompanhe tudo o que você já coletou.</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">Veja suas cartas, favoritos, raridades e formas desbloqueadas em um só lugar.</p></div>
+            <div><div className="mb-2 flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.16em] text-accent"><ShieldCheck className="h-4 w-4" /> Meu acervo</div><h2 className="text-2xl font-black tracking-tight text-foreground sm:text-3xl">Acompanhe tudo o que você já coletou.</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">Veja suas cartas, favoritos, raridades e formas desbloqueadas em um só lugar.</p></div>
             <Link to="/my-collection" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-secondary px-5 text-sm font-black text-secondary-foreground transition hover:brightness-110">Ver meu acervo <ArrowRight className="h-4 w-4" /></Link>
           </div>
         </section>
