@@ -1,22 +1,20 @@
 // DeckVerse canonical catalog reference.
-// Counts represent TOP-LEVEL collectible cards only: base characters + items + bosses.
-// Collection covers and forms/alternate states never increase the card count.
+// For collections already materialized in Collections_ZIP, counts mirror the
+// audited curated ZIPs: TOP-LEVEL cards only (base characters + items + bosses).
+// Intentional omissions are not treated as missing requirements.
+// Covers, forms and appearances never increase the card count.
 
 const rows = [
   ["AOT", "Attack on Titan", 28, 10, 8],
   ["BER", "Berserk", 34, 9, 7],
   ["BCL", "Black Clover", 42, 8, 4],
-  // Yhwach "Rei Quincy" is a title duplicate of Yhwach, not another card.
   ["BLC", "Bleach", 47, 10, 15],
-  // Aki's Gun Fiend state is a form of Aki Hayakawa, not another Boss card.
   ["CSM", "Chainsaw Man", 21, 5, 1],
   ["DS", "Demon Slayer", 21, 12, 6],
-  // Kid Buu is a named stage/form of Majin Buu.
   ["DBZ", "Dragon Ball", 30, 9, 8],
   ["FATE", "Fate Series", 49, 11, 13],
   ["FMA", "Fullmetal Alchemist", 22, 7, 5],
   ["HXH", "Hunter x Hunter", 34, 3, 3],
-  // DIO and Dio Brando are one identity across eras.
   ["JOJO", "JoJo's Bizarre Adventure", 28, 8, 5],
   ["JJK", "Jujutsu Kaisen", 27, 6, 8],
   ["MHA", "My Hero Academia", 38, 7, 3],
@@ -24,13 +22,19 @@ const rows = [
   ["OP", "One Piece", 81, 23, 16],
   ["OPM", "One Punch Man", 25, 10, 3],
   ["SS", "Saint Seiya", 27, 4, 10],
-  ["SL", "Solo Leveling", 47, 15, 7],
-  ["TG", "Tokyo Ghoul", 50, 7, 6],
-  ["TOG", "Tower of God", 45, 8, 7],
+  // Iron's duplicate Ashborn artwork was removed; no synthetic replacement.
+  ["SL", "Solo Leveling", 46, 14, 7],
+  // Current curated ZIP intentionally contains no cover and a reduced roster.
+  ["TG", "Tokyo Ghoul", 43, 7, 6],
+  ["TOG", "Tower of God", 45, 7, 7],
   ["VS", "Vinland Saga", 38, 3, 6],
-  ["YYH", "Yu Yu Hakusho", 40, 9, 4],
-  // Gehrman — First Hunter and Lady Maria — Astral Clocktower are forms.
-  ["BB", "Bloodborne", 30, 16, 14],
+  // Current curated ZIP intentionally contains no item cards.
+  ["YYH", "Yu Yu Hakusho", 40, 9, 0],
+  // First Hunter / Astral Clocktower are appearances, not extra identities.
+  ["BB", "Bloodborne", 29, 16, 14],
+
+  // Collections below this line are still planning references until their
+  // curated ZIP exists and is audited. Do not use them as proof of media presence.
   ["CP77", "Cyberpunk 2077", 62, 8, 14],
   ["DSG", "Dark Souls", 51, 20, 15],
   ["DMC", "Devil May Cry", 21, 12, 15],
