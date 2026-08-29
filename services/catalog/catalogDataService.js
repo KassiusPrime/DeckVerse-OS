@@ -3,6 +3,7 @@ import { firebasePersistenceAdapter } from "../persistence/firebasePersistenceAd
 import { isFirebaseConfigured } from "../firebase/firebaseClient.js";
 import { parseMediaFilename } from "../media/mediaFilenameParser.js";
 import { applyFallbackRarityPolicy } from "../../src/utils/rarityPolicy.js";
+import { normalizeCatalogSnapshot } from "../../src/utils/catalogIdentityPolicy.js";
 
 const normalize = (value) => String(value ?? "").trim().toLowerCase();
 
@@ -68,14 +69,14 @@ async function loadLocal() {
     localDb.entities.Boss.list(""),
   ]);
 
-  return {
+  return normalizeCatalogSnapshot({
     collections,
     characters: applyFallbackRarityPolicy(charactersRaw),
     items,
     bosses,
     mediaIndex: [],
     source: "LOCAL_FALLBACK",
-  };
+  });
 }
 
 function mergeCollections(cloud = [], local = []) {
@@ -103,16 +104,16 @@ export async function loadCatalogSnapshot() {
     ]);
 
     // Never fill a partially imported Firebase catalog with demo entities.
-    // The local collection registry may still be merged so planned collections
-    // remain navigable, but characters/items/bosses represent cloud truth only.
-    return {
+    // The collection registry may still be merged so planned collections remain
+    // navigable, but characters/items/bosses represent cloud truth only.
+    return normalizeCatalogSnapshot({
       collections: mergeCollections(collections || [], localCollections || []),
       characters: characters || [],
       items: items || [],
       bosses: bosses || [],
       mediaIndex: mediaIndex || [],
       source: "FIREBASE",
-    };
+    });
   } catch (error) {
     console.warn("[CatalogDataService] Firebase indisponível; usando fallback local somente para navegação.", error);
     return loadLocal();
