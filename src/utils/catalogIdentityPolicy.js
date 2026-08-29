@@ -16,13 +16,27 @@ const codeHas = (entity, suffix) => {
   return code === suffix || code.endsWith(`-${suffix}`) || code === `COL-${suffix}`;
 };
 
-// Explicit identity/state corrections. These are intentionally narrow: fuzzy
-// substring merging would incorrectly combine unrelated characters.
+/**
+ * Narrow aliases confirmed by the curated ZIP audit. This is deliberately not
+ * fuzzy: titles/aliases are normalized only when the identity is known.
+ */
+function canonicalIdentitySlug(entity, type) {
+  const slug = entitySlug(entity);
+
+  if (type === "character" && codeHas(entity, "BB") && slug === "skeptical_man") return "narrow_minded_man";
+  if (type === "character" && codeHas(entity, "MHA") && ["all_might", "all_might_normal_form"].includes(slug)) return "toshinori_yagi";
+  if (type === "character" && codeHas(entity, "TG") && slug === "kichimura_washuu") return "furuta_nimura";
+
+  return slug;
+}
+
+// Explicit cross-type identity/state corrections. These are intentionally
+// narrow because fuzzy substring merging would combine unrelated characters.
 function correctionFor(entity, type) {
   const slug = entitySlug(entity);
 
   if (type === "boss" && codeHas(entity, "BLC") && slug === "yhwach_rei_quincy") {
-    return { action: "hide", reason: "TITLE_DUPLICATE", canonicalIdentity: "yhwach" };
+    return { action: "hide", reason: "TITLE_DUPLICATE", canonicalIdentity: "yhwach", mediaRole: "appearance" };
   }
 
   if (type === "boss" && codeHas(entity, "CSM") && slug === "gun_fiend") {
@@ -34,17 +48,29 @@ function correctionFor(entity, type) {
   }
 
   if (type === "boss" && codeHas(entity, "JOJO") && slug === "dio") {
-    return { action: "hide", reason: "ERA_ALIAS_DUPLICATE", canonicalIdentity: "dio_brando" };
+    return { action: "hide", reason: "ERA_ALIAS_DUPLICATE", canonicalIdentity: "dio_brando", mediaRole: "appearance" };
   }
 
-  // Bloodborne v4 already encodes these correctly as character forms. Guard
-  // against older database rows that still carry them as Boss entities.
+  if (type === "boss" && codeHas(entity, "MHA") && slug === "izuku_midoriya") {
+    return { action: "hide", reason: "IDENTITY_DUPLICATE", canonicalIdentity: "izuku_midoriya", canonicalType: "character", mediaRole: "appearance" };
+  }
+
+  if (type === "character" && codeHas(entity, "MHA") && ["all_might", "all_might_normal_form"].includes(slug)) {
+    return { action: "hide", reason: "TITLE_DUPLICATE", canonicalIdentity: "toshinori_yagi", mediaRole: "appearance" };
+  }
+
+  if (type === "character" && codeHas(entity, "TG") && slug === "kichimura_washuu") {
+    return { action: "hide", reason: "ALIAS_DUPLICATE", canonicalIdentity: "furuta_nimura", canonicalType: "boss", mediaRole: "appearance" };
+  }
+
+  // Older database rows may still encode Bloodborne titles/locations as Bosses.
   if (type === "boss" && codeHas(entity, "BB") && ["gehrman_first_hunter", "lady_maria_astral_clocktower"].includes(slug)) {
     return {
       action: "hide",
-      reason: "FORM_DUPLICATE",
+      reason: "TITLE_OR_LOCATION_DUPLICATE",
       canonicalIdentity: slug.startsWith("gehrman") ? "gehrman" : "lady_maria",
-      form: slug.startsWith("gehrman") ? "first_hunter" : "astral_clocktower",
+      canonicalType: "character",
+      mediaRole: "appearance",
     };
   }
 
@@ -55,7 +81,16 @@ export function isTopLevelCatalogEntity(entity, type) {
   if (!entity) return false;
   const slug = entitySlug(entity);
   if (!slug) return false;
-  if (entity.entityType === "form" || entity.isForm === true || entity.formOf || slug.includes("_form_")) return false;
+  if (
+    entity.entityType === "form" ||
+    entity.entityType === "appearance" ||
+    entity.isForm === true ||
+    entity.isAppearance === true ||
+    entity.formOf ||
+    entity.appearanceOf ||
+    slug.includes("_form_") ||
+    slug.includes("_appearance_")
+  ) return false;
   return correctionFor(entity, type)?.action !== "hide";
 }
 
@@ -70,10 +105,18 @@ export function dedupeCatalogEntities(entities = [], type = "character") {
       hidden.push({ entity, ...correction });
       continue;
     }
-    if (!isTopLevelCatalogEntity(entity, type)) continue;
+    if (!isTopLevelCatalogEntity(entity, type)) {
+      hidden.push({
+        entity,
+        action: "hide",
+        reason: entitySlug(entity).includes("_appearance_") ? "APPEARANCE_NOT_CARD" : "FORM_NOT_CARD",
+        canonicalIdentity: canonicalIdentitySlug(entity, type),
+      });
+      continue;
+    }
 
     const code = collectionCode(entity);
-    const slug = entitySlug(entity);
+    const slug = canonicalIdentitySlug(entity, type);
     const key = entity.entityKey
       ? `key:${String(entity.entityKey).toLowerCase()}`
       : `${code}|${type}|${slug}`;
@@ -110,9 +153,14 @@ export function getCatalogEntitySlug(entity) {
   return entitySlug(entity);
 }
 
+export function getCanonicalIdentitySlug(entity, type = "character") {
+  return canonicalIdentitySlug(entity, type);
+}
+
 export default {
   isTopLevelCatalogEntity,
   dedupeCatalogEntities,
   normalizeCatalogSnapshot,
   getCatalogEntitySlug,
+  getCanonicalIdentitySlug,
 };
