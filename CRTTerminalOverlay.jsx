@@ -1,34 +1,20 @@
-// ════════════════════════════════════════════════════════════════════════════
-// DECKVERSE OS — Retro CRT Command Terminal Overlay
-// Features CRT scanline effects, phosphor flicker, retro typography & live user action logging
-// ════════════════════════════════════════════════════════════════════════════
-
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { Terminal as TerminalIcon, Minimize2, Maximize2, Trash2, Cpu, Activity, Power } from "lucide-react";
+import { Activity, Cpu, Maximize2, Minimize2, Power, Terminal as TerminalIcon, Trash2 } from "lucide-react";
 
-// Global listener helper to push logs to the CRT overlay from anywhere
 export function pushCRTLog(message, category = "SYS") {
   if (typeof window !== "undefined") {
-    window.dispatchEvent(
-      new CustomEvent("crt-terminal-log", {
-        detail: { message, category, time: new Date().toLocaleTimeString() }
-      })
-    );
+    window.dispatchEvent(new CustomEvent("crt-terminal-log", {
+      detail: { message, category, time: new Date().toLocaleTimeString() }
+    }));
   }
 }
 
 export default function CRTTerminalOverlay() {
-  const [isDisabled, setIsDisabled] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("deckverse_crt_disabled") === "true";
-    }
-    return false;
-  });
-
+  const [isDisabled, setIsDisabled] = useState(() => typeof window !== "undefined" && localStorage.getItem("deckverse_crt_disabled") === "true");
   const [logs, setLogs] = useState([
-    { id: 1, message: "DECKVERSE OS v2.5 SYSTEM INITIALIZED", category: "BOOT", time: new Date().toLocaleTimeString() },
-    { id: 2, message: "CRITICAL CORE READY — WIKI+IA ENRICHMENT ONLINE", category: "OK", time: new Date().toLocaleTimeString() }
+    { id: 1, message: "DeckVerse inicializado", category: "BOOT", time: new Date().toLocaleTimeString() },
+    { id: 2, message: "Ferramentas administrativas prontas", category: "OK", time: new Date().toLocaleTimeString() }
   ]);
   const [isMinimized, setIsMinimized] = useState(true);
   const location = useLocation();
@@ -38,159 +24,82 @@ export default function CRTTerminalOverlay() {
     const nextState = typeof state === "boolean" ? state : !isDisabled;
     setIsDisabled(nextState);
     if (typeof window !== "undefined") {
-      if (nextState) {
-        localStorage.setItem("deckverse_crt_disabled", "true");
-      } else {
-        localStorage.removeItem("deckverse_crt_disabled");
-      }
+      if (nextState) localStorage.setItem("deckverse_crt_disabled", "true");
+      else localStorage.removeItem("deckverse_crt_disabled");
     }
   };
 
-  // Escuta rota atual para emitir logs automáticos imersivos
   useEffect(() => {
     const routeMap = {
-      "/gacha": "Accessing Gacha Zone & Summoning Matrix...",
-      "/collections": "Loading Card Deck & Multiverse Collections...",
-      "/arena": "Initializing Tactical Battle Arena Subsystem...",
-      "/roster": "Querying Player Roster & Card Affinity Indexes...",
-      "/market": "Connecting to Player Card Exchange & Market...",
-      "/store": "Opening Multiverse Emporium & Item Store...",
-      "/lore": "Retrieving Archives from Fandom Lore Database...",
-      "/fandom": "Launching Fandom AI Importer Pipeline...",
-      "/synergy": "Calculating Deck Synergies & Team Affinities...",
-      "/upgrade": "Opening Cybernetic Card Forge & Upgrader...",
-      "/quests": "Syncing Daily Missions & Multiverse Quests...",
-      "/guilds": "Accessing Guild Hall & Faction Command...",
-      "/admin": "SECURITY OVERRIDE — Accessing OS Terminal..."
+      "/collections": "Catálogo de coleções aberto",
+      "/characters": "Catálogo de personagens aberto",
+      "/items": "Catálogo de itens aberto",
+      "/bosses": "Catálogo de bosses aberto",
+      "/my-collection": "Acervo do usuário aberto",
+      "/admin": "Painel administrativo aberto",
+      "/fandom": "Importador de referências aberto",
     };
-
     const actionText = routeMap[location.pathname];
-    if (actionText) {
-      pushCRTLog(actionText, "NAV");
-    }
+    if (actionText) pushCRTLog(actionText, "NAV");
   }, [location.pathname]);
 
-  // Event listener para logs customizados do sistema
   useEffect(() => {
-    const handleLogEvent = (e) => {
-      const { message, category, time } = e.detail || {};
-      if (message) {
-        setLogs((prev) => [
-          ...prev.slice(-49), // Mantém no máximo 50 logs recentes
-          { id: Date.now() + Math.random(), message, category: category || "SYS", time: time || new Date().toLocaleTimeString() }
-        ]);
-      }
+    const handleLogEvent = (event) => {
+      const { message, category, time } = event.detail || {};
+      if (!message) return;
+      setLogs((prev) => [
+        ...prev.slice(-49),
+        { id: Date.now() + Math.random(), message, category: category || "SYS", time: time || new Date().toLocaleTimeString() }
+      ]);
     };
-
     window.addEventListener("crt-terminal-log", handleLogEvent);
     return () => window.removeEventListener("crt-terminal-log", handleLogEvent);
   }, []);
 
-  // Auto scroll para o final dos logs
   useEffect(() => {
-    if (!isMinimized && logsEndRef.current) {
-      logsEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
+    if (!isMinimized && logsEndRef.current) logsEndRef.current.scrollIntoView({ behavior: "smooth" });
   }, [logs, isMinimized]);
 
+  // The CRT is an administrative desktop utility. Hiding its floating launcher
+  // below the sm breakpoint prevents it from covering BottomNav and catalog cards.
   if (isDisabled) {
     return (
-      <div className="fixed bottom-16 left-3 sm:bottom-3 sm:left-3 z-[9999] font-mono pointer-events-auto">
-        <button
-          onClick={() => togglePower(false)}
-          title="Ligar Terminal CRT"
-          className="p-1.5 bg-black/80 text-emerald-600 hover:text-emerald-400 border border-emerald-900/60 rounded shadow-md hover:border-emerald-500 transition-all backdrop-blur-md flex items-center gap-1.5 text-[10px]"
-        >
-          <Power className="w-3.5 h-3.5 text-emerald-600" />
-          <span className="hidden sm:inline font-bold">Ligar CRT</span>
+      <div className="fixed bottom-3 left-3 z-[9999] hidden font-mono pointer-events-auto sm:block">
+        <button onClick={() => togglePower(false)} title="Ligar terminal CRT" className="flex items-center gap-1.5 rounded border border-emerald-900/60 bg-black/80 p-1.5 text-[10px] text-emerald-600 shadow-md backdrop-blur-md transition-all hover:border-emerald-500 hover:text-emerald-400">
+          <Power className="h-3.5 w-3.5" /><span className="font-bold">Ligar CRT</span>
         </button>
       </div>
     );
   }
 
   return (
-    <div className="fixed bottom-16 left-3 sm:bottom-3 sm:left-3 z-[9999] font-mono pointer-events-auto">
-      {/* Botão Minimizado CRT */}
+    <div className="fixed bottom-3 left-3 z-[9999] hidden font-mono pointer-events-auto sm:block">
       {isMinimized ? (
         <div className="flex items-center gap-1">
-          <button
-            onClick={() => setIsMinimized(false)}
-            className="group relative flex items-center gap-2 px-3 py-1.5 bg-black/90 text-emerald-400 border border-emerald-500/50 rounded shadow-lg hover:border-emerald-400 transition-all backdrop-blur-md"
-          >
-            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <TerminalIcon className="w-3.5 h-3.5" />
-            <span className="text-[10px] font-bold tracking-widest uppercase">
-              CRT TERMINAL [{logs.length}]
-            </span>
-            <Maximize2 className="w-3 h-3 text-emerald-500 group-hover:text-emerald-300" />
+          <button onClick={() => setIsMinimized(false)} className="group relative flex items-center gap-2 rounded border border-emerald-500/50 bg-black/90 px-3 py-1.5 text-emerald-400 shadow-lg backdrop-blur-md transition-all hover:border-emerald-400">
+            <div className="h-2 w-2 rounded-full bg-emerald-400" />
+            <TerminalIcon className="h-3.5 w-3.5" />
+            <span className="text-[10px] font-bold uppercase tracking-widest">CRT [{logs.length}]</span>
+            <Maximize2 className="h-3 w-3 text-emerald-500 group-hover:text-emerald-300" />
           </button>
-          <button
-            onClick={() => togglePower(true)}
-            title="Desligar Terminal CRT"
-            className="p-1.5 bg-black/90 text-red-400 border border-red-800/40 hover:border-red-500 rounded shadow-lg transition-all backdrop-blur-md"
-          >
-            <Power className="w-3.5 h-3.5" />
-          </button>
+          <button onClick={() => togglePower(true)} title="Desligar terminal CRT" className="rounded border border-red-800/40 bg-black/90 p-1.5 text-red-400 shadow-lg backdrop-blur-md transition-all hover:border-red-500"><Power className="h-3.5 w-3.5" /></button>
         </div>
       ) : (
-        /* Janela Expandida CRT Overlay com efeito Scanlines */
-        <div className="w-[320px] sm:w-[420px] bg-black/95 border-2 border-emerald-500/60 rounded-md shadow-[0_0_20px_rgba(16,185,129,0.2)] overflow-hidden flex flex-col backdrop-blur-xl transition-all">
-          {/* Top Bar do Terminal */}
-          <div className="bg-emerald-950/80 border-b border-emerald-500/40 px-3 py-1.5 flex items-center justify-between text-emerald-400 text-[10px] font-bold tracking-wider">
-            <div className="flex items-center gap-2">
-              <Cpu className="w-3.5 h-3.5 animate-pulse text-emerald-400" />
-              <span>DECKVERSE_CRT_MONITOR_v2.5</span>
-            </div>
+        <div className="flex w-[420px] flex-col overflow-hidden rounded-md border-2 border-emerald-500/60 bg-black/95 shadow-[0_0_20px_rgba(16,185,129,0.2)] backdrop-blur-xl">
+          <div className="flex items-center justify-between border-b border-emerald-500/40 bg-emerald-950/80 px-3 py-1.5 text-[10px] font-bold tracking-wider text-emerald-400">
+            <div className="flex items-center gap-2"><Cpu className="h-3.5 w-3.5" /><span>DECKVERSE_CRT_MONITOR</span></div>
             <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => setLogs([])}
-                title="Limpar logs"
-                className="p-1 hover:bg-emerald-900/50 rounded text-emerald-400 transition-colors"
-              >
-                <Trash2 className="w-3 h-3" />
-              </button>
-              <button
-                onClick={() => setIsMinimized(true)}
-                title="Minimizar"
-                className="p-1 hover:bg-emerald-900/50 rounded text-emerald-400 transition-colors"
-              >
-                <Minimize2 className="w-3 h-3" />
-              </button>
-              <button
-                onClick={() => togglePower(true)}
-                title="Desligar Terminal CRT"
-                className="p-1 hover:bg-red-950/80 rounded text-red-400 hover:text-red-300 transition-colors border border-red-800/30 ml-1"
-              >
-                <Power className="w-3 h-3" />
-              </button>
+              <button onClick={() => setLogs([])} title="Limpar logs" className="rounded p-1 text-emerald-400 hover:bg-emerald-900/50"><Trash2 className="h-3 w-3" /></button>
+              <button onClick={() => setIsMinimized(true)} title="Minimizar" className="rounded p-1 text-emerald-400 hover:bg-emerald-900/50"><Minimize2 className="h-3 w-3" /></button>
+              <button onClick={() => togglePower(true)} title="Desligar terminal CRT" className="ml-1 rounded border border-red-800/30 p-1 text-red-400 hover:bg-red-950/80"><Power className="h-3 w-3" /></button>
             </div>
           </div>
-
-          {/* CRT Screen Area com linhas de varredura (Scanlines) e Flicker */}
-          <div className="relative p-3 h-48 overflow-y-auto space-y-1.5 text-[11px] leading-relaxed select-text scrollbar-thin scrollbar-thumb-emerald-800/50">
-            {/* Efeito Visual de Scanlines em sobreposição */}
-            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px] opacity-60 z-10" />
-
-            {logs.length === 0 ? (
-              <div className="text-emerald-700 italic text-[10px]">Aguardando ações do sistema...</div>
-            ) : (
-              logs.map((log) => (
-                <div key={log.id} className="flex items-start gap-1.5 font-mono text-emerald-400 drop-shadow-[0_0_2px_rgba(16,185,129,0.8)]">
-                  <span className="text-emerald-600 text-[9px] shrink-0">[{log.time}]</span>
-                  <span className="text-cyan-400 font-bold shrink-0">[{log.category}]</span>
-                  <span className="break-all">{log.message}</span>
-                </div>
-              ))
-            )}
+          <div className="relative h-48 space-y-1.5 overflow-y-auto p-3 text-[11px] leading-relaxed">
+            <div className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px] opacity-45" />
+            {logs.length === 0 ? <div className="text-[10px] italic text-emerald-700">Aguardando ações...</div> : logs.map((log) => <div key={log.id} className="flex items-start gap-1.5 text-emerald-400"><span className="shrink-0 text-[9px] text-emerald-600">[{log.time}]</span><span className="shrink-0 font-bold text-cyan-400">[{log.category}]</span><span className="break-all">{log.message}</span></div>)}
             <div ref={logsEndRef} />
           </div>
-
-          {/* Prompt de comando de fundo */}
-          <div className="border-t border-emerald-500/30 px-3 py-1 bg-black/90 flex items-center gap-2 text-[10px] text-emerald-500">
-            <Activity className="w-3 h-3 text-emerald-400 animate-pulse" />
-            <span className="font-bold">&gt; EXEC_STATUS: READY</span>
-            <span className="ml-auto text-[9px] text-emerald-600">CRT_MONITOR</span>
-          </div>
+          <div className="flex items-center gap-2 border-t border-emerald-500/30 bg-black/90 px-3 py-1 text-[10px] text-emerald-500"><Activity className="h-3 w-3 text-emerald-400" /><span className="font-bold">STATUS: PRONTO</span><span className="ml-auto text-[9px] text-emerald-600">CRT_MONITOR</span></div>
         </div>
       )}
     </div>
