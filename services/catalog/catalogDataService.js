@@ -74,13 +74,24 @@ async function loadLocal() {
     items,
     bosses,
     mediaIndex: [],
-    source: "LOCAL",
+    source: "LOCAL_FALLBACK",
   };
 }
 
+function mergeCollections(cloud = [], local = []) {
+  const seen = new Set();
+  return [...cloud, ...local].filter((collection) => {
+    const key = normalize(collection?.code || collection?.id || collection?.name);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 export async function loadCatalogSnapshot() {
-  const local = await loadLocal();
-  if (!isFirebaseConfigured()) return local;
+  const localCollections = await localDb.entities.Collection.list("");
+
+  if (!isFirebaseConfigured()) return loadLocal();
 
   try {
     const [collections, characters, items, bosses, mediaIndex] = await Promise.all([
@@ -91,20 +102,20 @@ export async function loadCatalogSnapshot() {
       firebasePersistenceAdapter.getMediaIndex(),
     ]);
 
-    const cloudHasAnyCatalogData = [collections, characters, items, bosses].some((list) => Array.isArray(list) && list.length > 0);
-    if (!cloudHasAnyCatalogData) return local;
-
+    // Never fill a partially imported Firebase catalog with demo entities.
+    // The local collection registry may still be merged so planned collections
+    // remain navigable, but characters/items/bosses represent cloud truth only.
     return {
-      collections: collections?.length ? collections : local.collections,
-      characters: characters?.length ? characters : local.characters,
-      items: items?.length ? items : local.items,
-      bosses: bosses?.length ? bosses : local.bosses,
+      collections: mergeCollections(collections || [], localCollections || []),
+      characters: characters || [],
+      items: items || [],
+      bosses: bosses || [],
       mediaIndex: mediaIndex || [],
       source: "FIREBASE",
     };
   } catch (error) {
-    console.warn("[CatalogDataService] Firebase indisponível; usando catálogo local.", error);
-    return local;
+    console.warn("[CatalogDataService] Firebase indisponível; usando fallback local somente para navegação.", error);
+    return loadLocal();
   }
 }
 
