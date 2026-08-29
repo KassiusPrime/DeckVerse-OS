@@ -3,6 +3,7 @@ import { resolveCollectionCodeStrict } from "../../lib/collectionCodes.js";
 const ALLOWED_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp"]);
 const ALLOWED_ENTITY_TYPES = new Set(["collection", "character", "item", "boss"]);
 const ENTITY_MARKERS = ["collection", "character", "item", "boss", "metadata", "lore"];
+const MEDIA_STATE_MARKERS = ["form", "appearance"];
 
 const STABLE_MEDIA_CODE_ALIASES = {
   DSG: "COL-02-DS",
@@ -18,6 +19,25 @@ function resolveMediaCollectionCode(codeInput) {
   return STABLE_MEDIA_CODE_ALIASES[suffix] || resolveCollectionCodeStrict(suffix);
 }
 
+function parseMediaState(slug = "") {
+  const clean = String(slug || "").trim().toLowerCase();
+  if (!clean) return { baseSlug: "", stateType: null, stateSlug: null };
+
+  for (const marker of MEDIA_STATE_MARKERS) {
+    const token = `_${marker}_`;
+    const index = clean.indexOf(token);
+    if (index > 0) {
+      const baseSlug = clean.slice(0, index);
+      const stateSlug = clean.slice(index + token.length);
+      if (baseSlug && stateSlug) {
+        return { baseSlug, stateType: marker, stateSlug };
+      }
+    }
+  }
+
+  return { baseSlug: clean, stateType: null, stateSlug: null };
+}
+
 function baseResult(rawFilename = "") {
   return {
     valid: false,
@@ -26,6 +46,9 @@ function baseResult(rawFilename = "") {
     collectionCodeCanonical: null,
     entityType: null,
     slug: null,
+    baseSlug: null,
+    stateType: null,
+    stateSlug: null,
     extension: null,
     isLegacyCollectionAlias: false,
     namingStyle: null,
@@ -87,7 +110,18 @@ export function parseMediaFilename(rawFilename = "") {
   if (!parsed) return { ...result, extension, error: "MALFORMED_FILENAME" };
 
   const { codeInput, entityType, slug, namingStyle } = parsed;
-  const partial = { ...result, extension, collectionCodeInput: codeInput, entityType, slug, namingStyle };
+  const mediaState = parseMediaState(slug);
+  const partial = {
+    ...result,
+    extension,
+    collectionCodeInput: codeInput,
+    entityType,
+    slug,
+    baseSlug: mediaState.baseSlug,
+    stateType: mediaState.stateType,
+    stateSlug: mediaState.stateSlug,
+    namingStyle,
+  };
 
   if (entityType === "metadata" || entityType === "lore") {
     return { ...partial, error: "METADATA_NOT_ACCEPTED" };
@@ -106,6 +140,15 @@ export function parseMediaFilename(rawFilename = "") {
     };
   }
 
+  if (entityType === "collection" && mediaState.stateType) {
+    return {
+      ...partial,
+      collectionCodeCanonical: canonicalCode,
+      isLegacyCollectionAlias: codeInput.toUpperCase() !== canonicalCode,
+      error: "COLLECTION_STATE_NOT_ALLOWED",
+    };
+  }
+
   return {
     ...partial,
     valid: true,
@@ -115,4 +158,5 @@ export function parseMediaFilename(rawFilename = "") {
   };
 }
 
-export default { parseMediaFilename };
+export { parseMediaState };
+export default { parseMediaFilename, parseMediaState };
