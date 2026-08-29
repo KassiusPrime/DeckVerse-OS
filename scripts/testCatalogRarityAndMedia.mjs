@@ -9,6 +9,7 @@ import {
 import { normalizeCatalogSnapshot } from "../src/utils/catalogIdentityPolicy.js";
 import { getCatalogReference } from "../src/data/catalogReference.js";
 import { parseMediaFilename } from "../services/media/mediaFilenameParser.js";
+import { matchMediaEntity } from "../services/media/mediaEntityMatcher.js";
 
 let passed = 0;
 const tests = [];
@@ -68,25 +69,39 @@ test("política de identidade remove título duplicado de Yhwach", () => {
   assert.equal(snapshot.identityAudit[0].reason, "TITLE_DUPLICATE");
 });
 
-test("Aki Gun Fiend, Kid Buu e DIO não criam nova carta-base", () => {
+test("aliases, títulos e estados auditados não criam outra carta-base", () => {
   const snapshot = normalizeCatalogSnapshot({
-    characters: [], items: [], bosses: [
+    characters: [
+      { slug: "all_might_normal_form", collection_id: "COL-01-MHA" },
+      { slug: "toshinori_yagi", collection_id: "COL-01-MHA" },
+      { slug: "kichimura_washuu", collection_id: "COL-01-TG" },
+      { slug: "skeptical_man", collection_id: "COL-02-BB" },
+    ],
+    items: [],
+    bosses: [
       { slug: "gun_fiend", collection_id: "COL-01-CSM" },
       { slug: "kid_buu", collection_id: "COL-01-DBZ" },
       { slug: "dio", collection_id: "COL-01-JOJO" },
+      { slug: "izuku_midoriya", collection_id: "COL-01-MHA" },
       { slug: "majin_buu", collection_id: "COL-01-DBZ" },
       { slug: "dio_brando", collection_id: "COL-01-JOJO" },
+      { slug: "furuta_nimura", collection_id: "COL-01-TG" },
     ],
   });
-  assert.deepEqual(snapshot.bosses.map((entity) => entity.slug).sort(), ["dio_brando", "majin_buu"]);
+  assert.deepEqual(snapshot.characters.map((entity) => entity.slug).sort(), ["skeptical_man", "toshinori_yagi"]);
+  assert.deepEqual(snapshot.bosses.map((entity) => entity.slug).sort(), ["dio_brando", "furuta_nimura", "majin_buu"]);
 });
 
-test("referência canônica conta apenas cartas-base", () => {
+test("referência canônica segue a curadoria física atual dos ZIPs", () => {
   assert.equal(getCatalogReference("COL-BLC").cards, 72);
   assert.equal(getCatalogReference("COL-CSM").cards, 27);
   assert.equal(getCatalogReference("COL-DBZ").cards, 47);
   assert.equal(getCatalogReference("COL-JOJO").cards, 41);
-  assert.equal(getCatalogReference("COL-BB").cards, 60);
+  assert.equal(getCatalogReference("COL-BB").cards, 59);
+  assert.equal(getCatalogReference("COL-SL").cards, 67);
+  assert.equal(getCatalogReference("COL-TG").cards, 56);
+  assert.equal(getCatalogReference("COL-TOG").cards, 59);
+  assert.equal(getCatalogReference("COL-YYH").cards, 49);
 });
 
 test("parser aceita filename estável sem numeração de lote", () => {
@@ -94,6 +109,8 @@ test("parser aceita filename estável sem numeração de lote", () => {
   assert.equal(result.valid, true);
   assert.equal(result.collectionCodeCanonical, "COL-02-BB");
   assert.equal(result.entityType, "character");
+  assert.equal(result.baseSlug, "lonely_old_woman");
+  assert.equal(result.stateType, null);
 });
 
 test("parser resolve COL-DSG como Dark Souls sem colidir com Demon Slayer", () => {
@@ -105,11 +122,43 @@ test("parser resolve COL-DSG como Dark Souls sem colidir com Demon Slayer", () =
   assert.equal(demonSlayer.collectionCodeCanonical, "COL-01-DS");
 });
 
-test("parser preserva formas na mesma identidade", () => {
+test("parser extrai forma sem transformar a forma em identidade", () => {
   const result = parseMediaFilename("COL-DBZ_boss_majin_buu_form_kid_buu.jpg");
   assert.equal(result.valid, true);
   assert.equal(result.entityType, "boss");
   assert.equal(result.slug, "majin_buu_form_kid_buu");
+  assert.equal(result.baseSlug, "majin_buu");
+  assert.equal(result.stateType, "form");
+  assert.equal(result.stateSlug, "kid_buu");
+});
+
+test("parser extrai appearance sem criar uma nova carta", () => {
+  const result = parseMediaFilename("COL-JOJO_boss_dio_brando_appearance_dio.jpg");
+  assert.equal(result.valid, true);
+  assert.equal(result.slug, "dio_brando_appearance_dio");
+  assert.equal(result.baseSlug, "dio_brando");
+  assert.equal(result.stateType, "appearance");
+  assert.equal(result.stateSlug, "dio");
+});
+
+test("matcher vincula form e appearance à entidade-base", () => {
+  const catalog = {
+    collections: [],
+    cards: [{ id: "naruto", name: "Naruto Uzumaki", slug: "naruto_uzumaki", collection_id: "COL-01-NRT" }],
+    items: [],
+    bosses: [{ id: "dio", name: "Dio Brando", slug: "dio_brando", collection_id: "COL-01-JOJO" }],
+  };
+
+  const form = matchMediaEntity(parseMediaFilename("COL-NRT_character_naruto_uzumaki_form_sage_mode.jpg"), catalog);
+  const appearance = matchMediaEntity(parseMediaFilename("COL-JOJO_boss_dio_brando_appearance_dio.jpg"), catalog);
+
+  assert.equal(form.matchStatus, "MATCHED");
+  assert.equal(form.matchedEntity.id, "naruto");
+  assert.deepEqual(form.mediaState, { type: "form", slug: "sage_mode", fullSlug: "naruto_uzumaki_form_sage_mode", baseSlug: "naruto_uzumaki" });
+
+  assert.equal(appearance.matchStatus, "MATCHED");
+  assert.equal(appearance.matchedEntity.id, "dio");
+  assert.equal(appearance.mediaState.type, "appearance");
 });
 
 test("parser mantém compatibilidade com os filenames numéricos anteriores", () => {
