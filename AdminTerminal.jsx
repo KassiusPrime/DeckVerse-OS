@@ -31,19 +31,18 @@ export default function AdminTerminal({ onAddCard }) {
       setIsAuthenticated(true);
       if (toast) {
         toast({
-          title: "⚡ ADMIN ACCESS GRANTED",
-          description: "Terminal de Forja Cósmica desbloqueado.",
+          title: "Acesso administrativo liberado",
+          description: "As ações rápidas de administração estão disponíveis.",
         });
       }
     } else {
-      alert("ACESSO NEGADO: PERFIL SEM PERMISSÃO DE ADMIN.");
+      alert("Esta conta não tem permissão de administrador.");
     }
   };
 
   const handleForge = async (e) => {
     e.preventDefault();
     
-    // Mapeamento de raridades PT -> Oficial
     const rarityMap = {
       "Lendário": "UR",
       "Épico": "SSR",
@@ -53,7 +52,6 @@ export default function AdminTerminal({ onAddCard }) {
     const officialRarity = rarityMap[newCard.rarity] || newCard.rarity || "UR";
     const img = newCard.imgUrl || '/assets/placeholders/entity.svg';
 
-    // Save locally following official schema
     const createdCard = await db.entities.Card.create({
       name: newCard.name,
       card_id: `CUSTOM-${Date.now()}`,
@@ -80,7 +78,6 @@ export default function AdminTerminal({ onAddCard }) {
       created_date: new Date().toISOString()
     });
 
-    // Save to Roster so card appears owned in player collection
     await db.entities.Roster.create({
       player_discord_id: 'player_001',
       card_id: createdCard.card_id || createdCard.id,
@@ -96,11 +93,11 @@ export default function AdminTerminal({ onAddCard }) {
 
     if (toast) {
       toast({
-        title: "🔮 ANOMALIA FORJADA!",
-        description: `Carta ${newCard.name} injetada no Multiverso com sucesso.`,
+        title: "Carta criada",
+        description: `${newCard.name} foi adicionada ao catálogo.`,
       });
     } else {
-      alert(`Carta ${newCard.name} forjada no Multiverso com sucesso!`);
+      alert(`${newCard.name} foi adicionada ao catálogo.`);
     }
 
     setNewCard({ name: '', title: '', verse: 'Multiverse', rarity: 'Lendário', hp: 500, atk: 120, def: 100, imgUrl: '' });
@@ -108,44 +105,44 @@ export default function AdminTerminal({ onAddCard }) {
 
   return (
     <div className="fixed bottom-24 sm:bottom-20 right-4 z-[999]">
-      {/* Botão de abrir o terminal (discreto) */}
       {!isOpen && (
         <button 
           onClick={() => setIsOpen(true)} 
           className="p-3 bg-black/90 border border-[#00F0FF] rounded-full shadow-[0_0_15px_#00F0FF] hover:bg-cyan-950 transition-all group flex items-center justify-center cursor-pointer"
-          title="Terminal de Forja Admin"
+          title="Ações rápidas de administração"
+          aria-label="Abrir ações rápidas de administração"
         >
           <Terminal className="text-[#00F0FF] group-hover:scale-110 transition-transform" size={22} />
         </button>
       )}
 
-      {/* Painel do Terminal */}
       {isOpen && (
         <div className="bg-[#030305] border-2 border-[#00F0FF] p-5 rounded-xl shadow-[0_0_30px_rgba(0,240,255,0.4)] w-80 sm:w-96 text-[#00F0FF] font-mono relative backdrop-blur-md">
           <button 
             onClick={() => setIsOpen(false)} 
             className="absolute top-3 right-3 text-red-500 hover:text-red-400 p-1 cursor-pointer font-bold"
+            aria-label="Fechar ações administrativas"
           >
             <X size={18} />
           </button>
           
           <h2 className="text-lg font-bold mb-3 flex items-center justify-between gap-2 text-cyan-400 border-b border-cyan-900 pb-2">
             <span className="flex items-center gap-2">
-              <Terminal size={20} className="text-[#00F0FF] animate-pulse" /> FORJA CÓSMICA [ADMIN]
+              <Terminal size={20} className="text-[#00F0FF]" /> AÇÕES RÁPIDAS [ADMIN]
             </span>
             <a href="/adm" className="text-[10px] text-cyan-400 hover:underline border border-cyan-500/40 px-2 py-0.5 rounded mr-6">
-              IR PARA /ADM
+              ABRIR ADMIN
             </a>
           </h2>
 
           {!isAuthenticated ? (
             <form onSubmit={handleLogin} className="flex flex-col gap-3">
-              <p className="text-xs text-gray-400">Insira a chave de override tático para autorizar a injeção de novas cartas.</p>
+              <p className="text-xs text-gray-400">Use uma conta de administrador ativa ou informe a chave administrativa.</p>
               <div className="flex items-center gap-2 bg-gray-900/90 p-2.5 rounded-lg border border-cyan-800/80">
                 <Lock size={16} className="text-cyan-400" />
                 <input 
                   type="password" 
-                  placeholder="Insira a Chave de Acesso..." 
+                  placeholder="Chave administrativa" 
                   className="bg-transparent outline-none w-full text-white text-xs placeholder-gray-500 font-mono"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -155,32 +152,32 @@ export default function AdminTerminal({ onAddCard }) {
                 type="submit" 
                 className="bg-[#00F0FF] text-black font-bold py-2.5 rounded-lg hover:bg-cyan-300 transition-colors text-xs tracking-wider cursor-pointer shadow-[0_0_10px_#00F0FF]"
               >
-                DESBLOQUEAR SISTEMA
+                AUTORIZAR
               </button>
             </form>
           ) : (
             <form onSubmit={handleForge} className="flex flex-col gap-2 text-xs text-gray-300 max-h-[75vh] overflow-y-auto pr-1">
               <div className="flex items-center gap-2 mb-1 text-green-400 font-semibold text-xs border-b border-green-900/50 pb-1">
-                <Unlock size={14} /> ACESSO CONCEDIDO (MODO DEUS)
+                <Unlock size={14} /> ADMINISTRADOR AUTORIZADO
               </div>
               
               <div>
-                <label className="text-[11px] text-cyan-300">Nome do Personagem</label>
+                <label className="text-[11px] text-cyan-300">Nome do personagem</label>
                 <input 
                   className="bg-black/80 border border-cyan-900 p-2 rounded text-white w-full text-xs focus:border-[#00F0FF] outline-none" 
                   required 
-                  placeholder="Ex: Vegito Blue"
+                  placeholder="Ex.: Vegito Blue"
                   value={newCard.name} 
                   onChange={e => setNewCard({...newCard, name: e.target.value})} 
                 />
               </div>
               
               <div>
-                <label className="text-[11px] text-cyan-300">Título / Lore</label>
+                <label className="text-[11px] text-cyan-300">Título / descrição</label>
                 <input 
                   className="bg-black/80 border border-cyan-900 p-2 rounded text-white w-full text-xs focus:border-[#00F0FF] outline-none" 
                   required 
-                  placeholder="Ex: O Guerreiro Supremo da Fusão Divina"
+                  placeholder="Ex.: Guerreiro da fusão"
                   value={newCard.title} 
                   onChange={e => setNewCard({...newCard, title: e.target.value})} 
                 />
@@ -201,7 +198,7 @@ export default function AdminTerminal({ onAddCard }) {
                   </select>
                 </div>
                 <div>
-                  <label className="text-[11px] text-cyan-300">Universo / Verse</label>
+                  <label className="text-[11px] text-cyan-300">Universo</label>
                   <input 
                     className="bg-black/80 border border-cyan-900 p-2 rounded text-white w-full text-xs focus:border-[#00F0FF] outline-none" 
                     value={newCard.verse} 
@@ -241,7 +238,7 @@ export default function AdminTerminal({ onAddCard }) {
               </div>
 
               <div>
-                <label className="text-[11px] text-cyan-300">URL da Imagem (WebP/PNG)</label>
+                <label className="text-[11px] text-cyan-300">URL da imagem</label>
                 <input 
                   className="bg-black/80 border border-cyan-900 p-2 rounded text-white w-full text-xs focus:border-[#00F0FF] outline-none" 
                   placeholder="https://exemplo.com/imagem.png"
@@ -254,7 +251,7 @@ export default function AdminTerminal({ onAddCard }) {
                 type="submit" 
                 className="mt-3 bg-[#B400FF] text-white font-bold py-2.5 rounded-lg hover:bg-purple-600 transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(180,0,255,0.6)] cursor-pointer text-xs"
               >
-                <PlusCircle size={16} /> INJETAR ANOMALIA
+                <PlusCircle size={16} /> CRIAR CARTA
               </button>
             </form>
           )}

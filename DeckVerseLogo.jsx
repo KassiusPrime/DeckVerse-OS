@@ -1,101 +1,48 @@
-import React from 'react';
+import React from "react";
 
-export default function DeckVerseLogo({ size = "md", showTagline = true, animated = true, className = "" }) {
-  // Dimensions based on size
-  const scaleClass = size === "sm" ? "scale-75 origin-left" : size === "lg" ? "scale-110 sm:scale-125" : "scale-100";
+const SIZE = {
+  sm: { mark: "h-9 w-9", title: "text-sm", tagline: "text-[8px]" },
+  md: { mark: "h-11 w-11", title: "text-base", tagline: "text-[9px]" },
+  lg: { mark: "h-16 w-16", title: "text-2xl sm:text-3xl", tagline: "text-[10px]" },
+};
+
+export default function DeckVerseLogo({ size = "md", showTagline = true, className = "", compact = false }) {
+  const styles = SIZE[size] || SIZE.md;
 
   return (
-    <div className={`flex items-center gap-2.5 select-none ${scaleClass} ${className}`}>
-      {/* ─── GLIFO CENTRAL: CARTA DIGITAL TÁTICA E NEXUS HEXÁGONO ─── */}
-      <div className="relative w-9 h-11 shrink-0 flex items-center justify-center">
-        {/* Glow de fundo Vantablack/Cyber */}
-        <div className="absolute -inset-1 rounded-sm bg-gradient-to-r from-[#00f0ff]/20 via-[#b400ff]/30 to-[#ff003c]/20 blur-sm opacity-75" />
-        
-        {/* SVG da Carta Tática + Circuito + Hexágono Rachado */}
-        <svg 
-          viewBox="0 0 36 44" 
-          fill="none" 
-          xmlns="http://www.w3.org/2000/svg" 
-          className="w-full h-full relative z-10 drop-shadow-[0_0_8px_rgba(0,240,255,0.8)]"
-        >
-          {/* Moldura da Carta Tática em Ciano Neon */}
-          <rect 
-            x="1.5" 
-            y="1.5" 
-            width="33" 
-            height="41" 
-            rx="3" 
-            fill="#030305" 
-            stroke="#00f0ff" 
-            strokeWidth="1.5" 
-          />
-
-          {/* Linhas Geométricas de Circuito */}
-          <path d="M 1.5 8 L 7 8 L 10 11" stroke="#00f0ff" strokeWidth="0.8" opacity="0.8" />
-          <path d="M 34.5 36 L 29 36 L 26 33" stroke="#00f0ff" strokeWidth="0.8" opacity="0.8" />
-          <circle cx="10" cy="11" r="1" fill="#00f0ff" />
-          <circle cx="26" cy="33" r="1" fill="#00f0ff" />
-
-          {/* Hexágono Tático (Nexus) no centro */}
-          <polygon 
-            points="18,12 26,16.5 26,25.5 18,30 10,25.5 10,16.5" 
-            fill="#080810" 
-            stroke="#00f0ff" 
-            strokeWidth="1.2" 
-          />
-
-          {/* Vórtice / Rachadura de Anomalia Dimensional (Roxo Gema #b400ff e Vermelho Alerta #ff003c) */}
-          <g className={animated ? "anomaly-text" : ""}>
-            {/* Vórtex Roxo/Vermelho vazando */}
-            <path 
-              d="M 17 14 L 19 22 L 15 28 L 21 27 L 18 18 Z" 
-              fill="url(#anomaly-gradient)" 
-            />
-            {/* Linhas de Rachadura */}
-            <path d="M 18 12 L 17 17 L 20 22 L 16 28" stroke="#ff003c" strokeWidth="1" strokeLinecap="round" />
-            <path d="M 18 18 L 24 16" stroke="#b400ff" strokeWidth="0.8" />
-            <path d="M 17 23 L 11 25" stroke="#00f0ff" strokeWidth="0.8" />
-          </g>
-
-          {/* Definições de Gradiente Tático */}
+    <div className={`flex items-center gap-3 select-none ${className}`} aria-label="DeckVerse">
+      <div className={`${styles.mark} shrink-0`}>
+        <svg viewBox="0 0 64 64" role="img" aria-hidden="true" className="h-full w-full">
           <defs>
-            <linearGradient id="anomaly-gradient" x1="10" y1="12" x2="26" y2="30" gradientUnits="userSpaceOnUse">
-              <stop stopColor="#b400ff" />
-              <stop offset="0.6" stopColor="#ff003c" />
-              <stop offset="1" stopColor="#00f0ff" />
+            <linearGradient id="deckverse-mark-gradient" x1="8" y1="8" x2="56" y2="56" gradientUnits="userSpaceOnUse">
+              <stop stopColor="#7C5CFF" />
+              <stop offset="1" stopColor="#20D7C7" />
             </linearGradient>
           </defs>
+          <path
+            d="M18 5h28a9 9 0 0 1 9 9v36a9 9 0 0 1-9 9H18a9 9 0 0 1-9-9V14a9 9 0 0 1 9-9Z"
+            fill="#0B111A"
+            stroke="url(#deckverse-mark-gradient)"
+            strokeWidth="3"
+          />
+          <path d="M18 20 32 45 46 20" fill="none" stroke="url(#deckverse-mark-gradient)" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M12 32h8M44 32h8" stroke="#F5F7FA" strokeOpacity=".62" strokeWidth="2.5" strokeLinecap="round" />
+          <circle cx="32" cy="32" r="3.5" fill="#FFB74A" />
         </svg>
-
-        {/* LED de pulso na carta */}
-        <span className="absolute top-1 right-1 w-1 h-1 rounded-full bg-[#00f0ff] animate-ping" />
       </div>
 
-      {/* ─── TIPOGRAFIA DA LOGO ─── */}
-      <div className="flex flex-col justify-center leading-none">
-        <div className="flex items-center gap-1.5">
-          {/* DECKVERSE em Orbitron Ciano Neon */}
-          <span 
-            className="font-['Orbitron'] font-black tracking-wider text-base sm:text-lg text-[#00f0ff] drop-shadow-[0_0_10px_rgba(0,240,255,0.7)]"
-            style={{ fontFamily: "'Orbitron', sans-serif" }}
-          >
-            DECK<span className="text-white">VERSE</span>
-          </span>
-
-          {/* [OS] Tático com quadrado e LED verde 'Power ON' */}
-          <div className="flex items-center gap-1 border border-[#00f0ff]/60 bg-black/90 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold text-[#00f0ff] shadow-[0_0_8px_rgba(0,240,255,0.3)]">
-            <span className="font-['Orbitron'] tracking-tighter">OS</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" title="System Power ON" />
+      {!compact && (
+        <div className="min-w-0 leading-none">
+          <div className={`${styles.title} font-black tracking-[-0.04em] text-foreground`}>
+            DECK<span className="text-primary">VERSE</span>
           </div>
+          {showTagline && (
+            <div className={`${styles.tagline} mt-1 font-mono font-semibold uppercase tracking-[0.2em] text-muted-foreground`}>
+              Multiverse Archive
+            </div>
+          )}
         </div>
-
-        {/* Tagline MULTIVERSE TCG */}
-        {showTagline && (
-          <span className="font-mono text-[9px] font-semibold tracking-[0.25em] text-cyan-400/80 mt-0.5 uppercase">
-            MULTIVERSE TCG
-          </span>
-        )}
-      </div>
+      )}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import assert from "assert";
 import { parseMediaFilename } from "../services/media/mediaFilenameParser.js";
-import { matchMediaEntity, slugifyText } from "../services/media/mediaEntityMatcher.js";
-import { calculateMediaCoverage, preflightFileList, preflightZipImport } from "../services/media/mediaImportService.js";
+import { matchMediaEntity } from "../services/media/mediaEntityMatcher.js";
+import { calculateMediaCoverage, preflightFileList } from "../services/media/mediaImportService.js";
 import { hasUsableMedia } from "../services/ai/dataQualityEngine.js";
 import { entityRepository } from "../core/entityRepository.js";
 
@@ -23,19 +23,17 @@ async function runMediaManagerTests() {
     }
   }
 
-  // 1. Parser: Collection Cover Canônico
-  test("Parser: Collection cover canônico (COL-01-BER__collection__cover.jpg)", () => {
+  test("Parser: collection cover legado continua compatível", () => {
     const res = parseMediaFilename("COL-01-BER__collection__cover.jpg");
     assert.strictEqual(res.valid, true);
     assert.strictEqual(res.collectionCodeCanonical, "COL-01-BER");
     assert.strictEqual(res.entityType, "collection");
     assert.strictEqual(res.slug, "cover");
     assert.strictEqual(res.extension, ".jpg");
-    assert.strictEqual(res.isLegacyCollectionAlias, false);
+    assert.strictEqual(res.namingStyle, "double-underscore-legacy");
   });
 
-  // 2. Parser: Legacy Collection Alias
-  test("Parser: Legacy alias detectado (COL-01-BSK -> COL-01-BER)", () => {
+  test("Parser: legacy collection alias é resolvido", () => {
     const res = parseMediaFilename("COL-01-BSK__character__guts.png");
     assert.strictEqual(res.valid, true);
     assert.strictEqual(res.collectionCodeInput, "COL-01-BSK");
@@ -46,8 +44,7 @@ async function runMediaManagerTests() {
     assert.strictEqual(res.extension, ".png");
   });
 
-  // 3. Parser: Item e Boss
-  test("Parser: Item e Boss em formatos oficiais", () => {
+  test("Parser: item e boss legados permanecem válidos", () => {
     const itemRes = parseMediaFilename("COL-01-FMA__item__philosophers_stone.jpg");
     assert.strictEqual(itemRes.valid, true);
     assert.strictEqual(itemRes.entityType, "item");
@@ -59,19 +56,17 @@ async function runMediaManagerTests() {
     assert.strictEqual(bossRes.slug, "muzan_kibutsuji");
   });
 
-  // 4. Parser: Extensão inválida
-  test("Parser: Extensão não permitida (.gif / .exe) é rejeitada", () => {
-    const gifRes = parseMediaFilename("COL-01-BER__character__guts.gif");
+  test("Parser: extensão não permitida é rejeitada", () => {
+    const gifRes = parseMediaFilename("COL-01-BER_character_guts.gif");
     assert.strictEqual(gifRes.valid, false);
     assert.strictEqual(gifRes.error, "INVALID_EXTENSION");
 
-    const exeRes = parseMediaFilename("COL-01-BER__character__guts.exe");
+    const exeRes = parseMediaFilename("COL-01-BER_character_guts.exe");
     assert.strictEqual(exeRes.valid, false);
     assert.strictEqual(exeRes.error, "INVALID_EXTENSION");
   });
 
-  // 5. Parser: Recusa de Metadata / Lore
-  test("Parser: Formato de entidade 'metadata' ou 'lore' é expressamente recusado", () => {
+  test("Parser: metadata/lore são recusados", () => {
     const metaRes = parseMediaFilename("COL-01-BER__metadata__lore_entry.jpg");
     assert.strictEqual(metaRes.valid, false);
     assert.strictEqual(metaRes.error, "METADATA_NOT_ACCEPTED");
@@ -81,28 +76,34 @@ async function runMediaManagerTests() {
     assert.strictEqual(loreRes.error, "METADATA_NOT_ACCEPTED");
   });
 
-  // 6. Parser: Código de coleção desconhecido
-  test("Parser: Código de coleção desconhecido/inválido retorna COLLECTION_CODE_UNKNOWN", () => {
-    const res = parseMediaFilename("COL-99-INVALID__character__test.jpg");
+  test("Parser: código de coleção desconhecido retorna COLLECTION_CODE_UNKNOWN", () => {
+    const res = parseMediaFilename("COL-99-INVALID_character_test.jpg");
     assert.strictEqual(res.valid, false);
     assert.strictEqual(res.error, "COLLECTION_CODE_UNKNOWN");
   });
 
-  // 7. Parser: Filename malformado
-  test("Parser: Filename sem delimitadores '__' é recusado como MALFORMED_FILENAME", () => {
+  test("Parser: padrão canônico atual de underline simples é aceito", () => {
     const res = parseMediaFilename("COL-01-BER_character_guts.jpg");
-    assert.strictEqual(res.valid, false);
-    assert.strictEqual(res.error, "MALFORMED_FILENAME");
+    assert.strictEqual(res.valid, true);
+    assert.strictEqual(res.collectionCodeCanonical, "COL-01-BER");
+    assert.strictEqual(res.entityType, "character");
+    assert.strictEqual(res.slug, "guts");
+    assert.strictEqual(res.namingStyle, "single-underscore-canonical");
   });
 
-  // 8. Parser: Tentativa de Path Traversal
-  test("Parser: Tentativa de path traversal é bloqueada", () => {
-    const res = parseMediaFilename("../COL-01-BER__character__guts.jpg");
+  test("Parser: capa canônica atual é aceita", () => {
+    const res = parseMediaFilename("COL-01-BER_collection_cover.jpg");
+    assert.strictEqual(res.valid, true);
+    assert.strictEqual(res.entityType, "collection");
+    assert.strictEqual(res.slug, "cover");
+  });
+
+  test("Parser: tentativa de path traversal é bloqueada", () => {
+    const res = parseMediaFilename("../COL-01-BER_character_guts.jpg");
     assert.strictEqual(res.valid, false);
     assert.strictEqual(res.error, "PATH_TRAVERSAL_ATTEMPT");
   });
 
-  // Carregar catálogo mock/real para testes de matcher e preflight
   const mockCatalog = {
     collections: [
       { id: "col-1", code: "COL-01-BER", name: "Berserk" },
@@ -120,27 +121,24 @@ async function runMediaManagerTests() {
     ]
   };
 
-  // 9. Matcher: Entidade encontrada com sucesso
-  test("Matcher: Entidade encontrada com sucesso (MATCHED)", () => {
-    const parsed = parseMediaFilename("COL-01-BER__character__guts.jpg");
+  test("Matcher: entidade encontrada com filename canônico atual", () => {
+    const parsed = parseMediaFilename("COL-01-BER_character_guts.jpg");
     const match = matchMediaEntity(parsed, mockCatalog);
     assert.strictEqual(match.matchStatus, "MATCHED");
     assert.strictEqual(match.matchedEntity?.id, "c1");
   });
 
-  // 10. Matcher: Entidade não encontrada
-  test("Matcher: Entidade não encontrada (NOT_FOUND)", () => {
-    const parsed = parseMediaFilename("COL-01-BER__character__non_existent.jpg");
+  test("Matcher: entidade não encontrada", () => {
+    const parsed = parseMediaFilename("COL-01-BER_character_non_existent.jpg");
     const match = matchMediaEntity(parsed, mockCatalog);
     assert.strictEqual(match.matchStatus, "NOT_FOUND");
     assert.strictEqual(match.matchedEntity, null);
   });
 
-  // 11. Preflight: Detecção de duplicatas (Conflito)
-  test("Preflight: Detecção de conflito por múltiplas imagens para o mesmo alvo", () => {
+  test("Preflight: conflito por múltiplas imagens para o mesmo alvo", () => {
     const files = [
-      "COL-01-BER__character__guts.jpg",
-      "COL-01-BER__character__guts.png"
+      "COL-01-BER_character_guts.jpg",
+      "COL-01-BER_character_guts.png"
     ];
     const report = preflightFileList(files, mockCatalog);
     assert.strictEqual(report.totalFiles, 2);
@@ -148,8 +146,7 @@ async function runMediaManagerTests() {
     assert.strictEqual(report.writesPerformed, 0);
   });
 
-  // 12. Media Safety: Unsplash e Local Placeholders não são considerados mídia utilizável
-  test("Media Safety: Placeholders locais e Unsplash não contam como mídia real", () => {
+  test("Media Safety: placeholders e Unsplash não contam como mídia real", () => {
     const unsplashEntity = { image_url: "https://images.unsplash.com/photo-12345" };
     const placeholderEntity = { image_url: "/assets/placeholders/entity.svg" };
     const realEntity = { image_url: "https://i.imgur.com/real_art.png" };
@@ -159,15 +156,13 @@ async function runMediaManagerTests() {
     assert.strictEqual(hasUsableMedia(realEntity), true);
   });
 
-  // 13. Preflight writes = 0
-  test("Preflight Guarantee: Nenhum preflight realiza escrita (previewWrites = 0)", () => {
-    const files = ["COL-01-BER__collection__cover.jpg", "COL-01-BER__character__guts.png"];
+  test("Preflight Guarantee: nenhum preflight realiza escrita", () => {
+    const files = ["COL-01-BER_collection_cover.jpg", "COL-01-BER_character_guts.png"];
     const report = preflightFileList(files, mockCatalog);
     assert.strictEqual(report.writesPerformed, 0);
   });
 
-  // 14. Cálculo dinâmico de Cobertura de Mídia
-  test("Media Coverage: Cálculo dinâmico não assume contagens estáticas", () => {
+  test("Media Coverage: cálculo dinâmico não assume contagens estáticas", () => {
     const expectedTotal = mockCatalog.collections.length + mockCatalog.cards.length + mockCatalog.items.length + mockCatalog.bosses.length;
     const coverage = calculateMediaCoverage(mockCatalog);
     assert.strictEqual(coverage.totalMediaEligible, expectedTotal);
@@ -179,8 +174,7 @@ async function runMediaManagerTests() {
     assert.strictEqual(coverage.localPlaceholderConsideredUsable, 0);
   });
 
-  // 15. Invariantes com Fonte Real e Exclusão de Metadata/Lore
-  test("Media Coverage Real Repository Invariants: inclui Item, fontes reais, e exclusão de metadata/lore", async () => {
+  test("Media Coverage Real Repository Invariants", async () => {
     const realItems = await entityRepository.getAllItems();
     const realCols = await entityRepository.getAllCollections();
     const realCards = await entityRepository.getAllCards();
@@ -189,29 +183,20 @@ async function runMediaManagerTests() {
     assert.ok(Array.isArray(realItems), "getAllItems() deve retornar um Array");
     assert.ok(realItems.length > 0, "A fonte real de Item deve possuir itens registrados");
 
-    const realCatalog = {
-      collections: realCols,
-      cards: realCards,
-      items: realItems,
-      bosses: realBosses
-    };
-
+    const realCatalog = { collections: realCols, cards: realCards, items: realItems, bosses: realBosses };
     const cov = calculateMediaCoverage(realCatalog);
 
-    assert.strictEqual(cov.itemsTotal, realItems.length, "itemsTotal deve vir da fonte real de itens");
+    assert.strictEqual(cov.itemsTotal, realItems.length);
     assert.strictEqual(cov.collectionsTotal, realCols.length);
     assert.strictEqual(cov.charactersTotal, realCards.length);
     assert.strictEqual(cov.bossesTotal, realBosses.length);
-
     assert.strictEqual(cov.totalMediaEligible, cov.collectionsTotal + cov.charactersTotal + cov.itemsTotal + cov.bossesTotal);
-    assert.strictEqual(cov.coverageAccountingValid, true, "Invariante de soma de mídia elegível válida");
+    assert.strictEqual(cov.coverageAccountingValid, true);
+    assert.ok(cov.itemsMissingMedia > 0);
 
-    assert.ok(cov.itemsMissingMedia > 0, "itemsMissingMedia não pode ser 0 por ausência silenciosa da API");
-
-    // Testar que falta de items na chamada dispara erro explícito
     assert.throws(() => {
       calculateMediaCoverage({ collections: realCols, cards: realCards, bosses: realBosses });
-    }, /MEDIA_COVERAGE_ERROR/, "Ausência de itens na fonte dispara erro de integridade");
+    }, /MEDIA_COVERAGE_ERROR/);
   });
 
   console.log(`\n📊 RESULTADO DOS TESTES DO MEDIA MANAGER: ${passed}/${total} Passaram`);
