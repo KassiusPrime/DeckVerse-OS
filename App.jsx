@@ -11,6 +11,8 @@ import BottomNav from "./BottomNav";
 import CommandPalette from "./CommandPalette";
 import Home from "./Home";
 import Catalog from "./Catalog";
+import CollectionsHub from "./CollectionsHub";
+import FormsCatalog from "./FormsCatalog";
 import CardDetail from "./CardDetail";
 import MyCollection from "./MyCollection";
 import Admin from "./Admin";
@@ -76,10 +78,12 @@ function AnimatedRoutes() {
       <motion.div key={location.pathname} className="min-h-screen pb-24 md:pb-0" {...motionProps}>
         <Routes location={location}>
           <Route path="/" element={<Home />} />
-          <Route path="/collections" element={<Catalog initialType="collections" />} />
+          <Route path="/collections" element={<CollectionsHub />} />
+          <Route path="/collections/:collectionCode" element={<CollectionsHub />} />
           <Route path="/characters" element={<Catalog initialType="characters" />} />
+          <Route path="/forms" element={<FormsCatalog />} />
           <Route path="/items" element={<Catalog initialType="items" />} />
-          <Route path="/bosses" element={<Catalog initialType="bosses" />} />
+          <Route path="/bosses" element={<Navigate to="/forms" replace />} />
           <Route path="/my-collection" element={<MyCollection />} />
           <Route path="/card/:id" element={<CardDetail />} />
           <Route path="/settings" element={<Settings />} />
