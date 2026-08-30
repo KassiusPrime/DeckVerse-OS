@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import { Layers, Menu, Package, Search, ShieldCheck, Skull, UserRound, X } from "lucide-react";
+import { Layers, Menu, Package, Search, ShieldCheck, Sparkles, UserRound, X } from "lucide-react";
 import DeckVerseLogo from "./DeckVerseLogo";
 import NotificationBell from "./NotificationBell";
 import { useAuth } from "./AuthContext";
@@ -8,8 +8,8 @@ import { useAuth } from "./AuthContext";
 const NAV_LINKS = [
   { to: "/collections", label: "Coleções", icon: Layers },
   { to: "/characters", label: "Personagens", icon: UserRound },
+  { to: "/forms", label: "Formas", icon: Sparkles },
   { to: "/items", label: "Itens", icon: Package },
-  { to: "/bosses", label: "Bosses", icon: Skull },
   { to: "/my-collection", label: "Meu acervo", icon: ShieldCheck },
 ];
 
@@ -56,7 +56,7 @@ export default function Navbar({ onSearch }) {
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Buscar personagem, item ou boss"
+              placeholder="Buscar personagem, forma ou item"
               className="h-10 w-full rounded-xl border border-border bg-card pl-10 pr-3 text-sm text-foreground outline-none transition placeholder:text-muted-foreground/60 focus:border-primary/60 focus:ring-2 focus:ring-primary/15"
             />
           </label>
@@ -98,7 +98,7 @@ export default function Navbar({ onSearch }) {
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Buscar personagem, item ou boss"
+                placeholder="Buscar personagem, forma ou item"
                 className="h-11 w-full rounded-xl border border-border bg-card pl-10 pr-3 text-sm text-foreground outline-none focus:border-primary/60"
               />
             </label>
