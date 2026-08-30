@@ -1,22 +1,23 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { BookOpen, Layers, Package, Search, ShieldCheck, Skull, UserRound } from "lucide-react";
-import { db } from "@/deckverseClient";
+import { BookOpen, Layers, Package, Search, ShieldCheck, Sparkles, UserRound } from "lucide-react";
 import { useAuth } from "@/AuthContext";
+import { buildMediaLookup, getEntityCollectionCode, loadCatalogSnapshot, resolveIndexedImage } from "@/services/catalog/catalogDataService";
+import { deriveCatalogForms } from "@/services/catalog/catalogFormsService";
 
 const STATIC_COMMANDS = [
   { label: "Início", to: "/", icon: BookOpen },
   { label: "Coleções", to: "/collections", icon: Layers },
   { label: "Personagens", to: "/characters", icon: UserRound },
+  { label: "Formas", to: "/forms", icon: Sparkles },
   { label: "Itens", to: "/items", icon: Package },
-  { label: "Bosses", to: "/bosses", icon: Skull },
   { label: "Meu acervo", to: "/my-collection", icon: ShieldCheck },
 ];
 
 const normalize = (value) => String(value ?? "").trim().toLowerCase();
 const getName = (entity) => entity?.name || entity?.canonicalName || entity?.title || "Sem nome";
-const getImage = (entity) => entity?.image_url || entity?.imageUrl || entity?.img || entity?.media_url || "";
+const getDirectImage = (entity) => entity?.image_url || entity?.imageUrl || entity?.img || entity?.media_url || entity?.mediaUrl || entity?.img_art || "";
 
 export default function CommandPalette() {
   const [open, setOpen] = useState(false);
@@ -24,48 +25,27 @@ export default function CommandPalette() {
   const inputRef = useRef(null);
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
-
-  const collectionsQuery = useQuery({ queryKey: ["cmd-collections"], queryFn: () => db.entities.Collection.list(), enabled: open });
-  const charactersQuery = useQuery({ queryKey: ["cmd-characters"], queryFn: () => db.entities.Card.list("-created_date", 500), enabled: open });
-  const itemsQuery = useQuery({ queryKey: ["cmd-items"], queryFn: () => db.entities.Item.list(), enabled: open });
-  const bossesQuery = useQuery({ queryKey: ["cmd-bosses"], queryFn: () => db.entities.Boss.list(), enabled: open });
+  const snapshotQuery = useQuery({ queryKey: ["catalog-snapshot-canonical"], queryFn: loadCatalogSnapshot, staleTime: 30_000, enabled: open });
+  const snapshot = snapshotQuery.data || { collections: [], characters: [], items: [], bosses: [], mediaIndex: [] };
+  const forms = useMemo(() => deriveCatalogForms(snapshot), [snapshot]);
+  const mediaLookup = useMemo(() => buildMediaLookup(snapshot.mediaIndex || []), [snapshot.mediaIndex]);
 
   useEffect(() => {
     const onKeyDown = (event) => {
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
-        event.preventDefault();
-        setOpen((value) => !value);
-      } else if (event.key === "Escape") {
-        setOpen(false);
-      }
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") { event.preventDefault(); setOpen((value) => !value); }
+      else if (event.key === "Escape") setOpen(false);
     };
-    const onCustomOpen = (event) => {
-      setOpen(true);
-      if (event.detail?.query) setQuery(event.detail.query);
-    };
+    const onCustomOpen = (event) => { setOpen(true); if (event.detail?.query) setQuery(event.detail.query); };
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("open-global-search", onCustomOpen);
-    return () => {
-      window.removeEventListener("keydown", onKeyDown);
-      window.removeEventListener("open-global-search", onCustomOpen);
-    };
+    return () => { window.removeEventListener("keydown", onKeyDown); window.removeEventListener("open-global-search", onCustomOpen); };
   }, []);
 
-  useEffect(() => {
-    if (open) requestAnimationFrame(() => inputRef.current?.focus());
-    else setQuery("");
-  }, [open]);
+  useEffect(() => { if (open) requestAnimationFrame(() => inputRef.current?.focus()); else setQuery(""); }, [open]);
 
   const needle = normalize(query);
-  const matches = useMemo(() => {
-    const filter = (list) => !needle ? [] : (list || []).filter((entity) => [getName(entity), entity?.collectionCode, entity?.collection, entity?.series, entity?.code].some((value) => normalize(value).includes(needle))).slice(0, 5);
-    return {
-      collections: filter(collectionsQuery.data),
-      characters: filter(charactersQuery.data),
-      items: filter(itemsQuery.data),
-      bosses: filter(bossesQuery.data),
-    };
-  }, [needle, collectionsQuery.data, charactersQuery.data, itemsQuery.data, bossesQuery.data]);
+  const filter = (list) => !needle ? [] : (list || []).filter((entity) => [getName(entity), entity?.baseName, entity?.collectionCode, entity?.collection, entity?.series, entity?.code].some((value) => normalize(value).includes(needle))).slice(0, 5);
+  const matches = useMemo(() => ({ collections: filter(snapshot.collections), characters: filter(snapshot.characters), forms: filter(forms), items: filter(snapshot.items) }), [needle, snapshot.collections, snapshot.characters, snapshot.items, forms]);
 
   const commands = useMemo(() => {
     const base = [...STATIC_COMMANDS];
@@ -74,62 +54,36 @@ export default function CommandPalette() {
     return base.filter((command) => !needle || normalize(command.label).includes(needle));
   }, [needle, isAuthenticated, user]);
 
-  const go = (to) => {
-    setOpen(false);
-    navigate(to);
+  const resolveImage = (entity, type) => {
+    if (getDirectImage(entity)) return getDirectImage(entity);
+    const code = getEntityCollectionCode(entity) || String(entity?.code || entity?.collectionCode || "").trim().toUpperCase();
+    const enriched = { ...entity, collectionCode: code, slug: entity?.mediaSlug || entity?.slug };
+    if (type === "collection") enriched.slug = "cover";
+    return resolveIndexedImage(enriched, type, mediaLookup) || "";
   };
 
+  const go = (to) => { setOpen(false); navigate(to); };
   if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-[9998] flex items-start justify-center bg-black/70 px-4 pt-16 backdrop-blur-sm sm:pt-24" onMouseDown={() => setOpen(false)}>
       <div className="w-full max-w-2xl overflow-hidden rounded-3xl border border-border bg-background shadow-2xl" onMouseDown={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-label="Busca rápida">
-        <div className="flex items-center gap-3 border-b border-border bg-card/80 px-4 py-3 sm:px-5">
-          <Search className="h-5 w-5 shrink-0 text-primary" />
-          <input ref={inputRef} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar personagem, item, boss ou página..." className="min-h-11 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/60" />
-          <kbd className="hidden rounded-lg border border-border bg-muted/50 px-2 py-1 text-[10px] font-mono text-muted-foreground sm:block">ESC</kbd>
-        </div>
-
+        <div className="flex items-center gap-3 border-b border-border bg-card/80 px-4 py-3 sm:px-5"><Search className="h-5 w-5 shrink-0 text-primary" /><input ref={inputRef} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar personagem, forma, item ou coleção..." className="min-h-11 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/60" /><kbd className="hidden rounded-lg border border-border bg-muted/50 px-2 py-1 text-[10px] font-mono text-muted-foreground sm:block">ESC</kbd></div>
         <div className="max-h-[70vh] overflow-y-auto p-2 sm:p-3">
-          {needle.length < 2 ? (
-            <Section title="Atalhos">
-              {commands.map((command) => <CommandRow key={command.to} command={command} onClick={() => go(command.to)} />)}
-            </Section>
-          ) : (
-            <>
-              {matches.collections.length > 0 && <EntitySection title="Coleções" icon={Layers} entities={matches.collections} onOpen={() => go(`/collections?search=${encodeURIComponent(query)}`)} />}
-              {matches.characters.length > 0 && <EntitySection title="Personagens" icon={UserRound} entities={matches.characters} onOpen={(entity) => go(entity.id ? `/card/${entity.id}` : `/characters?search=${encodeURIComponent(query)}`)} />}
-              {matches.items.length > 0 && <EntitySection title="Itens" icon={Package} entities={matches.items} onOpen={() => go(`/items?search=${encodeURIComponent(query)}`)} />}
-              {matches.bosses.length > 0 && <EntitySection title="Bosses" icon={Skull} entities={matches.bosses} onOpen={() => go(`/bosses?search=${encodeURIComponent(query)}`)} />}
-              {commands.length > 0 && <Section title="Atalhos">{commands.map((command) => <CommandRow key={command.to} command={command} onClick={() => go(command.to)} />)}</Section>}
-              {matches.collections.length + matches.characters.length + matches.items.length + matches.bosses.length + commands.length === 0 && <div className="px-5 py-12 text-center text-sm text-muted-foreground">Nada encontrado para esta busca.</div>}
-            </>
-          )}
+          {needle.length < 2 ? <Section title="Atalhos">{commands.map((command) => <CommandRow key={command.to} command={command} onClick={() => go(command.to)} />)}</Section> : <>
+            {matches.collections.length > 0 && <EntitySection title="Coleções" icon={Layers} entities={matches.collections} resolveImage={(entity) => resolveImage(entity, "collection")} onOpen={(entity) => go(`/collections/${encodeURIComponent(entity.code || entity.collectionCode || entity.id || getName(entity))}`)} />}
+            {matches.characters.length > 0 && <EntitySection title="Personagens" icon={UserRound} entities={matches.characters} resolveImage={(entity) => resolveImage(entity, "character")} onOpen={(entity) => go(entity.id ? `/card/${encodeURIComponent(entity.id)}` : `/characters?search=${encodeURIComponent(query)}`)} />}
+            {matches.forms.length > 0 && <EntitySection title="Formas" icon={Sparkles} entities={matches.forms} resolveImage={(entity) => resolveImage(entity, entity.entityType || "character")} onOpen={(entity) => go(entity.baseCharacterId ? `/card/${encodeURIComponent(entity.baseCharacterId)}` : `/forms?search=${encodeURIComponent(query)}`)} />}
+            {matches.items.length > 0 && <EntitySection title="Itens" icon={Package} entities={matches.items} resolveImage={(entity) => resolveImage(entity, "item")} onOpen={() => go(`/items?search=${encodeURIComponent(query)}`)} />}
+            {commands.length > 0 && <Section title="Atalhos">{commands.map((command) => <CommandRow key={command.to} command={command} onClick={() => go(command.to)} />)}</Section>}
+            {matches.collections.length + matches.characters.length + matches.forms.length + matches.items.length + commands.length === 0 && <div className="px-5 py-12 text-center text-sm text-muted-foreground">Nada encontrado para esta busca.</div>}
+          </>}
         </div>
       </div>
     </div>
   );
 }
 
-function Section({ title, children }) {
-  return <section className="mb-2"><div className="px-3 pb-1 pt-2 text-[10px] font-extrabold uppercase tracking-[0.16em] text-muted-foreground">{title}</div>{children}</section>;
-}
-
-function CommandRow({ command, onClick }) {
-  const Icon = command.icon;
-  return <button type="button" onClick={onClick} className="flex w-full min-h-12 items-center gap-3 rounded-xl px-3 text-left text-sm font-bold text-foreground transition hover:bg-muted/70"><Icon className="h-4 w-4 text-primary" />{command.label}</button>;
-}
-
-function EntitySection({ title, icon: Icon, entities, onOpen }) {
-  return (
-    <Section title={title}>
-      {entities.map((entity, index) => {
-        const image = getImage(entity);
-        return <button type="button" key={entity.id || entity.entityKey || `${getName(entity)}-${index}`} onClick={() => onOpen(entity)} className="flex w-full min-h-14 items-center gap-3 rounded-xl px-3 py-2 text-left transition hover:bg-muted/70">
-          <div className="flex h-10 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted">{image ? <img src={image} alt="" className="h-full w-full object-cover" /> : <Icon className="h-4 w-4 text-muted-foreground/50" />}</div>
-          <div className="min-w-0"><div className="truncate text-sm font-extrabold text-foreground">{getName(entity)}</div><div className="truncate text-[11px] text-muted-foreground">{entity.collectionCode || entity.collection || entity.series || entity.code || title}</div></div>
-        </button>;
-      })}
-    </Section>
-  );
-}
+function Section({ title, children }) { return <section className="mb-2"><div className="px-3 pb-1 pt-2 text-[10px] font-extrabold uppercase tracking-[0.16em] text-muted-foreground">{title}</div>{children}</section>; }
+function CommandRow({ command, onClick }) { const Icon = command.icon; return <button type="button" onClick={onClick} className="flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-bold text-foreground transition hover:bg-muted/70"><Icon className="h-4 w-4 text-primary" />{command.label}</button>; }
+function EntitySection({ title, icon: Icon, entities, onOpen, resolveImage }) { return <Section title={title}>{entities.map((entity, index) => { const image = resolveImage(entity); return <button type="button" key={entity.id || entity.entityKey || `${getName(entity)}-${index}`} onClick={() => onOpen(entity)} className="flex min-h-14 w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition hover:bg-muted/70"><div className="flex h-10 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted">{image ? <img src={image} alt="" className="h-full w-full object-cover" /> : <Icon className="h-4 w-4 text-muted-foreground/50" />}</div><div className="min-w-0"><div className="truncate text-sm font-extrabold text-foreground">{getName(entity)}</div><div className="truncate text-[11px] text-muted-foreground">{entity.baseName || entity.collectionCode || entity.collection || entity.series || entity.code || title}</div></div></button>; })}</Section>; }
