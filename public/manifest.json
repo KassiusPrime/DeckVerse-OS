@@ -1,7 +1,7 @@
 {
   "name": "DeckVerse — Multiverse Archive",
   "short_name": "DeckVerse",
-  "description": "Arquivo multiversal colecionável de universos, personagens, itens, bosses e formas desbloqueáveis.",
+  "description": "Arquivo multiversal colecionável de universos, personagens, formas e itens.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
