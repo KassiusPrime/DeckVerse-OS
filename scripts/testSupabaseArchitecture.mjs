@@ -29,7 +29,7 @@ const botSql = read('supabase/discord_bot.sql');
 const seed = read('scripts/seedSupabaseLegacy.mjs');
 const discordApi = read('api/discord/interactions.js');
 const mediaSql = read('supabase/media_storage.sql');
-const publicUi = ['Catalog.jsx', 'CollectionsHub.jsx', 'FormsCatalog.jsx', 'CardDetail.jsx', 'Navbar.jsx', 'MyCollection.jsx'].map(read).join('\n');
+const publicUi = ['Home.jsx', 'Catalog.jsx', 'CollectionsHub.jsx', 'FormsCatalog.jsx', 'CardDetail.jsx', 'Navbar.jsx', 'MyCollection.jsx'].map(read).join('\n');
 
 console.log('\nDeckVerse v11 — Supabase architecture certification\n');
 
