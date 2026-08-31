@@ -17,7 +17,9 @@ function adminClient() {
 }
 
 function response(res, body, status = 200) {
-  res.status(status).setHeader('Content-Type', 'application/json; charset=utf-8').send(JSON.stringify(body));
+  res.statusCode = status;
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.end(JSON.stringify(body));
 }
 
 function message(content, embeds = [], components = [], ephemeral = false) {
