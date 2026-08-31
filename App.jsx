@@ -17,8 +17,9 @@ import MyCollection from "./MyCollection";
 import Admin from "./Admin";
 import OwnerConsole from "./OwnerConsole";
 import Login from "./Login";
+import Account from "./Account";
 import Settings from "./Settings";
-import Profile from "./Profile";
+import LegacyProfile from "./Profile";
 import LoreArchive from "./pages/LoreArchive";
 import FandomImporter from "./pages/FandomImporter";
 import Roster from "./Roster";
@@ -75,7 +76,8 @@ function AnimatedRoutes() {
           <Route path="/my-collection" element={<MyCollection />} />
           <Route path="/card/:id" element={<CardDetail />} />
           <Route path="/settings" element={<Settings />} />
-          <Route path="/profile" element={<Profile />} />
+          <Route path="/profile" element={<Account />} />
+          <Route path="/profile/stats" element={<LegacyProfile />} />
           <Route path="/lore" element={<LoreArchive />} />
 
           <Route path="/owner" element={<OwnerRouteGuard><OwnerConsole /></OwnerRouteGuard>} />
