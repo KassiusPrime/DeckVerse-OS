@@ -41,6 +41,7 @@ export function matchMediaEntity(parsedResult, catalog = {}) {
   const collections = catalog.collections || [];
   const cards = catalog.cards || catalog.characters || [];
   const items = catalog.items || [];
+  const bosses = catalog.bosses || [];
   const mediaState = stateType ? { type: stateType, slug: stateSlug, fullSlug: slug, baseSlug } : null;
 
   if (entityType === "collection") {
@@ -48,6 +49,27 @@ export function matchMediaEntity(parsedResult, catalog = {}) {
     if (matchingCols.length === 1) return { matchStatus: "MATCHED", matchedEntity: matchingCols[0], candidatesCount: 1, reason: "Coleção encontrada com sucesso.", mediaState: null };
     if (matchingCols.length > 1) return { matchStatus: "AMBIGUOUS", matchedEntity: null, candidatesCount: matchingCols.length, reason: `Múltiplas coleções cadastradas com o código ${collectionCodeCanonical}.`, mediaState: null };
     return { matchStatus: "NOT_FOUND", matchedEntity: null, candidatesCount: 0, reason: `Coleção ${collectionCodeCanonical} não encontrada no catálogo.`, mediaState: null };
+  }
+
+  // Compatibility for old stateful Boss assets during preflight/testing. This
+  // branch only resolves the legacy base record; the Owner import runs the Boss
+  // migration first and therefore never persists new Boss media from this path.
+  if (entityType === "boss" && stateType) {
+    const legacyBases = bosses.filter((entity) => collectionCodeOf(entity) === collectionCodeCanonical && isSlugMatch(baseSlug, entity.name || entity.title, entity.slug, entity.id));
+    if (legacyBases.length === 1) {
+      return {
+        matchStatus: "MATCHED",
+        matchedEntity: legacyBases[0],
+        candidatesCount: 1,
+        reason: `${stateType === "form" ? "Forma" : "Aparência"} legada vinculada ao Boss-base para compatibilidade pré-migração.`,
+        mediaState,
+        canonicalEntityType: "boss",
+        canonicalSlug: slug,
+      };
+    }
+    if (legacyBases.length > 1) {
+      return { matchStatus: "AMBIGUOUS", matchedEntity: null, candidatesCount: legacyBases.length, reason: `Múltiplos Bosses-base encontrados para ${collectionCodeCanonical}::${baseSlug}.`, mediaState };
+    }
   }
 
   // Current audited ZIPs still contain legacy `boss` filenames. Boss is no
