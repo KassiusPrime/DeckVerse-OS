@@ -1,199 +1,187 @@
 // ════════════════════════════════════════════════════════════════════════════
-// DECKVERSE OS — Auth Provider Abstraction (Phase 4A)
-// Standardized Auth layer supporting Local and Firebase Auth with Admin Role verification.
-// No hardcoded emails or passwords. Uses users/{uid} document for role verification.
+// DECKVERSE OS — Firebase Auth Provider
+// Per-user Firebase sessions + a single owner identity for critical tools.
 // ════════════════════════════════════════════════════════════════════════════
 
 import { db as localDb } from "../../deckverseClient.js";
 import { getStorageMode, isFirebaseConfigured, getFirebaseAuth, getFirestoreDb } from "./firebaseClient.js";
 import {
+  createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
   onAuthStateChanged,
   GoogleAuthProvider,
-  signInWithPopup
+  signInWithPopup,
+  updateProfile,
 } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
+
+export const DECKVERSE_OWNER_EMAIL = "cassianokaique9@gmail.com";
+const DRIVE_READ_SCOPE = "https://www.googleapis.com/auth/drive.readonly";
+const normalizeEmail = (value) => String(value || "").trim().toLowerCase();
 
 class AuthProvider {
   constructor() {
     this.currentUser = null;
+    this.googleAccessToken = null;
     this.authListeners = new Set();
+    this.unsubscribeFirebase = null;
+    this.initializeListener();
+  }
 
-    if (getStorageMode() === "firebase" && isFirebaseConfigured()) {
-      try {
-        const auth = getFirebaseAuth();
-        onAuthStateChanged(auth, async (user) => {
-          if (user) {
-            const adminStatus = await this.checkAdminRoleInFirestore(user.uid);
-            this.currentUser = {
-              uid: user.uid,
-              id: user.uid,
-              email: user.email,
-              name: user.displayName || user.email?.split("@")[0] || "User",
-              photoURL: user.photoURL,
-              role: adminStatus ? "admin" : "user",
-              isAdmin: adminStatus
-            };
-          } else {
-            this.currentUser = null;
-          }
-          this.notifyListeners();
-        });
-      } catch (err) {
-        console.warn("[AuthProvider] Firebase auth listener setup skipped:", err.message);
-      }
+  initializeListener() {
+    if (getStorageMode() !== "firebase" || !isFirebaseConfigured() || this.unsubscribeFirebase) return;
+    try {
+      const auth = getFirebaseAuth();
+      this.unsubscribeFirebase = onAuthStateChanged(auth, async (firebaseUser) => {
+        this.currentUser = firebaseUser ? await this.buildUser(firebaseUser, { ensureProfile: true }) : null;
+        this.notifyListeners();
+      });
+    } catch (error) {
+      console.warn("[AuthProvider] Firebase auth listener setup skipped:", error?.message || error);
     }
   }
 
   notifyListeners() {
-    this.authListeners.forEach(listener => listener(this.currentUser));
+    this.authListeners.forEach((listener) => listener(this.currentUser));
   }
 
   onAuthChange(callback) {
     this.authListeners.add(callback);
+    callback(this.currentUser);
     return () => this.authListeners.delete(callback);
   }
 
-  async checkAdminRoleInFirestore(uid) {
-    if (!uid) return false;
+  isOwnerEmail(email) {
+    return normalizeEmail(email) === DECKVERSE_OWNER_EMAIL;
+  }
+
+  async readUserProfile(uid) {
+    if (!uid || !isFirebaseConfigured()) return null;
     try {
-      const firestore = getFirestoreDb();
-      const userRef = doc(firestore, "users", uid);
-      const userSnap = await getDoc(userRef);
-      if (userSnap.exists()) {
-        const data = userSnap.data();
-        return data.role === "admin" && data.status === "active";
-      }
-    } catch (err) {
-      console.warn("[AuthProvider] Error checking admin role in Firestore:", err);
+      const snap = await getDoc(doc(getFirestoreDb(), "users", uid));
+      return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+    } catch (error) {
+      console.warn("[AuthProvider] User profile read failed:", error?.message || error);
+      return null;
     }
-    return false;
+  }
+
+  async ensureUserProfile(firebaseUser, preferredName = "") {
+    if (!firebaseUser?.uid || !isFirebaseConfigured()) return null;
+    const existing = await this.readUserProfile(firebaseUser.uid);
+    const owner = this.isOwnerEmail(firebaseUser.email);
+    const now = new Date().toISOString();
+    const payload = {
+      uid: firebaseUser.uid,
+      email: firebaseUser.email || "",
+      name: preferredName || firebaseUser.displayName || existing?.name || firebaseUser.email?.split("@")[0] || "Usuário",
+      photoURL: firebaseUser.photoURL || existing?.photoURL || null,
+      role: owner ? "owner" : (existing?.role === "admin" ? "admin" : "user"),
+      status: existing?.status || "active",
+      createdAt: existing?.createdAt || now,
+      updatedAt: now,
+    };
+    try {
+      await setDoc(doc(getFirestoreDb(), "users", firebaseUser.uid), payload, { merge: true });
+      return payload;
+    } catch (error) {
+      // Authentication remains valid even if an old deployment has not received the new rules yet.
+      console.warn("[AuthProvider] User profile sync failed:", error?.message || error);
+      return existing || payload;
+    }
+  }
+
+  async buildUser(firebaseUser, { ensureProfile = false, preferredName = "" } = {}) {
+    if (!firebaseUser) return null;
+    const profile = ensureProfile
+      ? await this.ensureUserProfile(firebaseUser, preferredName)
+      : await this.readUserProfile(firebaseUser.uid);
+    const owner = this.isOwnerEmail(firebaseUser.email);
+    const role = owner ? "owner" : (profile?.role === "admin" ? "admin" : "user");
+    const status = profile?.status || "active";
+    return {
+      uid: firebaseUser.uid,
+      id: firebaseUser.uid,
+      email: firebaseUser.email,
+      name: preferredName || firebaseUser.displayName || profile?.name || firebaseUser.email?.split("@")[0] || "Usuário",
+      photoURL: firebaseUser.photoURL || profile?.photoURL || null,
+      role,
+      status,
+      isAdmin: role === "admin" || role === "owner",
+      isOwner: owner,
+    };
   }
 
   async getCurrentUser() {
     const mode = getStorageMode();
     if (mode === "local") {
       const localMe = await localDb.auth.me();
-      return {
-        uid: localMe.id,
-        id: localMe.id,
-        name: localMe.name,
-        email: localMe.email,
-        role: localMe.role || "admin",
-        isAdmin: (localMe.role || "admin") === "admin"
-      };
+      return { ...localMe, uid: localMe.id, isOwner: false, isAdmin: false, role: "user", status: "active" };
     }
-
+    this.initializeListener();
     if (this.currentUser) return this.currentUser;
-
-    if (isFirebaseConfigured()) {
-      const auth = getFirebaseAuth();
-      const user = auth.currentUser;
-      if (user) {
-        const adminStatus = await this.checkAdminRoleInFirestore(user.uid);
-        this.currentUser = {
-          uid: user.uid,
-          id: user.uid,
-          email: user.email,
-          name: user.displayName || user.email?.split("@")[0] || "User",
-          photoURL: user.photoURL,
-          role: adminStatus ? "admin" : "user",
-          isAdmin: adminStatus
-        };
-        return this.currentUser;
-      }
-    }
-
-    return null;
+    if (!isFirebaseConfigured()) return null;
+    const firebaseUser = getFirebaseAuth().currentUser;
+    if (!firebaseUser) return null;
+    this.currentUser = await this.buildUser(firebaseUser, { ensureProfile: true });
+    return this.currentUser;
   }
 
   async isAuthenticated() {
-    const user = await this.getCurrentUser();
-    return Boolean(user);
+    return Boolean(await this.getCurrentUser());
   }
 
   async isAdmin() {
     const user = await this.getCurrentUser();
-    return Boolean(user && (user.role === "admin" || user.isAdmin === true));
+    return Boolean(user?.isAdmin && user?.status === "active");
+  }
+
+  async isOwner() {
+    const user = await this.getCurrentUser();
+    return Boolean(user?.isOwner && user?.status === "active");
   }
 
   async signIn(email, password) {
-    const mode = getStorageMode();
-    if (mode === "local") {
-      const user = await this.getCurrentUser();
-      return { success: true, user };
-    }
-
-    if (!isFirebaseConfigured()) {
-      throw new Error("Firebase não está configurado. Verifique as variáveis de ambiente.");
-    }
-
-    const auth = getFirebaseAuth();
-    const cred = await signInWithEmailAndPassword(auth, email, password);
-    const adminStatus = await this.checkAdminRoleInFirestore(cred.user.uid);
-    this.currentUser = {
-      uid: cred.user.uid,
-      id: cred.user.uid,
-      email: cred.user.email,
-      name: cred.user.displayName || cred.user.email?.split("@")[0] || "User",
-      role: adminStatus ? "admin" : "user",
-      isAdmin: adminStatus
-    };
+    if (getStorageMode() !== "firebase") throw new Error("Login real requer modo Firebase.");
+    const credential = await signInWithEmailAndPassword(getFirebaseAuth(), email, password);
+    this.currentUser = await this.buildUser(credential.user, { ensureProfile: true });
+    this.notifyListeners();
     return { success: true, user: this.currentUser };
   }
 
-  async signInWithGoogle() {
-    const mode = getStorageMode();
-    if (mode === "local") {
-      const user = await this.getCurrentUser();
-      return { success: true, user };
-    }
-
-    if (!isFirebaseConfigured()) {
-      throw new Error("Firebase não está configurado.");
-    }
-
-    const auth = getFirebaseAuth();
-    const provider = new GoogleAuthProvider();
-    const cred = await signInWithPopup(auth, provider);
-    const adminStatus = await this.checkAdminRoleInFirestore(cred.user.uid);
-
-    this.currentUser = {
-      uid: cred.user.uid,
-      id: cred.user.uid,
-      email: cred.user.email,
-      name: cred.user.displayName || cred.user.email?.split("@")[0] || "User",
-      role: adminStatus ? "admin" : "user",
-      isAdmin: adminStatus
-    };
-
+  async signUp(name, email, password) {
+    if (getStorageMode() !== "firebase") throw new Error("Cadastro real requer modo Firebase.");
+    const credential = await createUserWithEmailAndPassword(getFirebaseAuth(), email, password);
+    if (name?.trim()) await updateProfile(credential.user, { displayName: name.trim() });
+    this.currentUser = await this.buildUser(credential.user, { ensureProfile: true, preferredName: name?.trim() || "" });
+    this.notifyListeners();
     return { success: true, user: this.currentUser };
+  }
+
+  async signInWithGoogle({ requestDriveAccess = false } = {}) {
+    if (getStorageMode() !== "firebase") throw new Error("Login Google requer modo Firebase.");
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: requestDriveAccess ? "consent" : "select_account" });
+    if (requestDriveAccess) provider.addScope(DRIVE_READ_SCOPE);
+    const credential = await signInWithPopup(getFirebaseAuth(), provider);
+    const oauthCredential = GoogleAuthProvider.credentialFromResult(credential);
+    if (requestDriveAccess && oauthCredential?.accessToken) this.googleAccessToken = oauthCredential.accessToken;
+    this.currentUser = await this.buildUser(credential.user, { ensureProfile: true });
+    this.notifyListeners();
+    return { success: true, user: this.currentUser, hasDriveAccess: Boolean(this.googleAccessToken) };
+  }
+
+  getGoogleAccessToken() {
+    return this.googleAccessToken;
   }
 
   async signOut() {
-    const mode = getStorageMode();
-    if (mode === "local") {
-      this.currentUser = null;
-      return { success: true };
-    }
-
-    if (isFirebaseConfigured()) {
-      const auth = getFirebaseAuth();
-      await firebaseSignOut(auth);
-      this.currentUser = null;
-    }
+    this.googleAccessToken = null;
+    if (getStorageMode() === "firebase" && isFirebaseConfigured()) await firebaseSignOut(getFirebaseAuth());
+    this.currentUser = null;
+    this.notifyListeners();
     return { success: true };
-  }
-
-  async setAdminRole(uid, status = "active") {
-    if (getStorageMode() === "local") {
-      return { success: true, uid, role: "admin" };
-    }
-    const firestore = getFirestoreDb();
-    const userRef = doc(firestore, "users", uid);
-    await setDoc(userRef, { role: "admin", status, updatedAt: new Date().toISOString() }, { merge: true });
-    return { success: true, uid, role: "admin" };
   }
 }
 
