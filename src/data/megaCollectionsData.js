@@ -109,7 +109,7 @@ export const MEGA_ITEMS = [
   // COL-02 Jogos
   { id: "item_bb_1", item_code: "BB-ITM-001", name: "Chicote-Rosca de Caçador", rarity: "SR", type: "Equipment", effect: "Ataques de alcance estendido contra feras.", series: "Bloodborne", collection_id: "COL-02-BB", image_url: "" },
   { id: "item_cp77_1", item_code: "CP77-ITM-001", name: "Cyberware Sandevistan", rarity: "UR", type: "Equipment", effect: "Desacelera o tempo aumentando VEL em +100%.", series: "Cyberpunk 2077", collection_id: "COL-02-CP77", image_url: "" },
-  { id: "item_ds_1", item_code: "DS-ITM-001", name: "Frasco de Estus", rarity: "R", type: "Consumable", effect: "Recupera HP durante a batalha.", series: "Dark Souls", collection_id: "COL-02-DS", image_url: "" },
+  { id: "item_dark_souls_1", item_code: "DARKSOULS-ITM-001", name: "Frasco de Estus", rarity: "R", type: "Consumable", effect: "Recupera HP durante a batalha.", series: "Dark Souls", collection_id: "COL-02-DS", image_url: "" },
   { id: "item_dmc_1", item_code: "DMC-ITM-001", name: "Yamato (Espada Dimensional)", rarity: "UR", type: "Equipment", effect: "Corta a estrutura do espaço abrindo portais.", series: "Devil May Cry", collection_id: "COL-02-DMC", image_url: "" },
   { id: "item_er_1", item_code: "ER-ITM-001", name: "Lágrima Mimetizadora", rarity: "UR", type: "Artifact", effect: "Invoca um clone idêntico do herói.", series: "Elden Ring", collection_id: "COL-02-ER", image_url: "" },
   { id: "item_ff_1", item_code: "FF-ITM-001", name: "Buster Sword", rarity: "SR", type: "Equipment", effect: "+60 ATQ e acerto devastador.", series: "Final Fantasy", collection_id: "COL-02-FF", image_url: "" },
