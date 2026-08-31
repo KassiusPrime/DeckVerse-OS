@@ -19,26 +19,25 @@ async function driveJson(url, accessToken) {
   return response.json();
 }
 
+function canonicalActiveMedia(mediaIndex = []) {
+  // Migrated legacy boss records remain readable until a canonical ZIP replaces
+  // them, but they must not suppress the new upload via ALREADY_EXISTS.
+  return (mediaIndex || []).filter((record) => record?.legacySourceEntityType !== "boss");
+}
+
 export async function listCanonicalCollectionZips(accessToken) {
   const files = [];
   let pageToken = "";
   do {
     const query = `'${CANONICAL_DRIVE_FOLDER_ID}' in parents and trashed = false`;
-    const params = new URLSearchParams({
-      q: query,
-      fields: "nextPageToken,files(id,name,mimeType,size,modifiedTime)",
-      orderBy: "name",
-      pageSize: "100",
-    });
+    const params = new URLSearchParams({ q: query, fields: "nextPageToken,files(id,name,mimeType,size,modifiedTime)", orderBy: "name", pageSize: "100" });
     if (pageToken) params.set("pageToken", pageToken);
     const data = await driveJson(`https://www.googleapis.com/drive/v3/files?${params.toString()}`, accessToken);
     files.push(...(data.files || []));
     pageToken = data.nextPageToken || "";
   } while (pageToken);
 
-  return files
-    .filter((file) => file.mimeType === "application/zip" && /^COL-[A-Z0-9]+_.+\.zip$/i.test(file.name || ""))
-    .sort((a, b) => String(a.name).localeCompare(String(b.name), "pt-BR"));
+  return files.filter((file) => file.mimeType === "application/zip" && /^COL-[A-Z0-9]+_.+\.zip$/i.test(file.name || "")).sort((a, b) => String(a.name).localeCompare(String(b.name), "pt-BR"));
 }
 
 export async function downloadDriveZip(fileId, accessToken) {
@@ -49,9 +48,7 @@ export async function downloadDriveZip(fileId, accessToken) {
 
 export async function importCanonicalDrivePackages(accessToken, { onProgress } = {}) {
   const zips = await listCanonicalCollectionZips(accessToken);
-  if (zips.length !== AUDITED_COLLECTION_ZIP_COUNT) {
-    throw new Error(`DRIVE_AUDIT_MISMATCH: esperados ${AUDITED_COLLECTION_ZIP_COUNT} ZIPs canônicos, encontrados ${zips.length}. A importação foi bloqueada para não misturar backup/quarentena.`);
-  }
+  if (zips.length !== AUDITED_COLLECTION_ZIP_COUNT) throw new Error(`DRIVE_AUDIT_MISMATCH: esperados ${AUDITED_COLLECTION_ZIP_COUNT} ZIPs canônicos, encontrados ${zips.length}. A importação foi bloqueada para não misturar backup/quarentena.`);
 
   const summary = {
     expectedZips: AUDITED_COLLECTION_ZIP_COUNT,
@@ -69,7 +66,7 @@ export async function importCanonicalDrivePackages(accessToken, { onProgress } =
   };
 
   let snapshot = await loadCatalogSnapshot();
-  let existingMediaIndex = snapshot.mediaIndex || [];
+  let existingMediaIndex = canonicalActiveMedia(snapshot.mediaIndex);
 
   for (let index = 0; index < zips.length; index += 1) {
     const zip = zips[index];
@@ -99,10 +96,8 @@ export async function importCanonicalDrivePackages(accessToken, { onProgress } =
     summary.processedZips += 1;
     summary.packages.push({ filename: zip.name, counts: report.counts, commit: { committedCount: commit.committedCount, failedCount: commit.failedCount, success: commit.success } });
 
-    // Refresh the media index between packages so duplicate/replacement detection
-    // remains accurate for the whole 23-ZIP run without retaining all image bytes.
     snapshot = await loadCatalogSnapshot();
-    existingMediaIndex = snapshot.mediaIndex || [];
+    existingMediaIndex = canonicalActiveMedia(snapshot.mediaIndex);
     onProgress?.({ phase: "package-complete", index: index + 1, total: zips.length, filename: zip.name, summary: { ...summary } });
   }
 
