@@ -15,6 +15,11 @@ const supabase = createClient(url, serviceKey, {
 
 const retired = (code = '') => /^COL-(05|06)(-|$)/i.test(String(code));
 const cleanInt = (value) => Number.isFinite(Number(value)) ? Math.trunc(Number(value)) : 0;
+const cleanId = (...values) => {
+  const found = values.find((value) => value !== undefined && value !== null && String(value).trim());
+  return found === undefined ? null : String(found).trim();
+};
+const normalizeKey = (value) => String(value || '').trim().toLowerCase();
 const rarityMap = new Map([
   ['COMMON', 'R'], ['COMUM', 'R'], ['UNCOMMON', 'SR'], ['INCOMUM', 'SR'], ['RARE', 'SR'], ['RARO', 'SR'],
   ['EPIC', 'SSR'], ['EPICO', 'SSR'], ['ÉPICO', 'SSR'], ['LEGENDARY', 'UR'], ['LENDARIO', 'UR'], ['LENDÁRIO', 'UR'],
@@ -39,8 +44,32 @@ async function loadLegacy() {
   };
 }
 
+function buildCollectionResolver(rawCollections) {
+  const map = new Map();
+  for (const collection of rawCollections) {
+    const canonical = cleanId(collection.code, collection.collection_code, collection.id);
+    if (!canonical) continue;
+    const candidates = [
+      canonical,
+      collection.id,
+      collection.code,
+      collection.collection_code,
+      collection.collection_id,
+      collection.slug,
+      ...(Array.isArray(collection.aliases) ? collection.aliases : []),
+    ];
+    for (const candidate of candidates.filter(Boolean)) map.set(normalizeKey(candidate), canonical);
+  }
+  return (value) => {
+    const raw = cleanId(value);
+    if (!raw) return null;
+    return map.get(normalizeKey(raw)) || raw;
+  };
+}
+
 function formatCollection(c) {
-  const id = c.code || c.collection_code || c.id;
+  const id = cleanId(c.code, c.collection_code, c.id);
+  if (!id) return null;
   return {
     id,
     name: c.name || c.title || id,
@@ -52,10 +81,13 @@ function formatCollection(c) {
   };
 }
 
-function formatCard(c, entityType = 'character') {
-  const collectionId = c.collection_id || c.collection_code || c.collectionCode || c.collection || null;
+function formatCard(c, entityType, resolveCollection) {
+  const id = cleanId(c.id, c.card_id, c.item_id, c.boss_id);
+  if (!id) return null;
+  const rawCollection = cleanId(c.collection_id, c.collection_code, c.collectionCode, c.collection);
+  const collectionId = resolveCollection(rawCollection);
   return {
-    id: String(c.id || c.card_id || c.item_id || c.boss_id),
+    id,
     collection_id: collectionId,
     name: c.name || c.title || 'Sem nome',
     entity_type: c.entity_type || entityType,
@@ -74,9 +106,12 @@ function formatCard(c, entityType = 'character') {
 }
 
 function formatForm(f) {
+  const id = cleanId(f.id, f.form_id);
+  const cardId = cleanId(f.card_id, f.base_card_id, f.character_id);
+  if (!id || !cardId) return null;
   return {
-    id: String(f.id || f.form_id),
-    card_id: String(f.card_id || f.base_card_id || f.character_id),
+    id,
+    card_id: cardId,
     name: f.name || f.title || 'Forma',
     rarity: f.rarity ? normalizeRarity(f.rarity) : null,
     image_url: f.image_url || null,
@@ -87,7 +122,7 @@ function formatForm(f) {
 }
 
 async function insertChunks(table, rows, chunkSize = 300) {
-  const clean = rows.filter((row) => row?.id && (table !== 'card_forms' || row.card_id));
+  const clean = rows.filter(Boolean);
   let inserted = 0;
   for (let start = 0; start < clean.length; start += chunkSize) {
     const chunk = clean.slice(start, start + chunkSize);
@@ -102,29 +137,34 @@ async function insertChunks(table, rows, chunkSize = 300) {
 async function main() {
   console.log('DeckVerse → Supabase: non-destructive seed starting.');
   const legacy = await loadLegacy();
-  const collections = legacy.collections.map(formatCollection);
+  const resolveCollection = buildCollectionResolver(legacy.collections);
+  const collections = legacy.collections.map(formatCollection).filter(Boolean);
   const cards = [
-    ...legacy.cards.map((row) => formatCard(row, 'character')),
-    ...legacy.items.map((row) => formatCard(row, 'item')),
-    ...legacy.bosses.map((row) => formatCard(row, 'boss')),
-  ];
-  const forms = legacy.forms.map(formatForm);
+    ...legacy.cards.map((row) => formatCard(row, 'character', resolveCollection)),
+    ...legacy.items.map((row) => formatCard(row, 'item', resolveCollection)),
+    ...legacy.bosses.map((row) => formatCard(row, 'boss', resolveCollection)),
+  ].filter(Boolean);
+  const forms = legacy.forms.map(formatForm).filter(Boolean);
 
   const collectionIds = new Set(collections.map((row) => row.id));
   const orphanRefs = [...new Set(cards.map((row) => row.collection_id).filter((id) => id && !collectionIds.has(id)))];
-  if (orphanRefs.length) {
-    console.warn(`Warning: ${orphanRefs.length} collection references are not present in the legacy collection seed. They will be skipped to preserve FK integrity.`);
-  }
+  if (orphanRefs.length) console.warn(`Warning: unresolved collection references: ${orphanRefs.join(', ')}`);
   const safeCards = cards.filter((row) => !row.collection_id || collectionIds.has(row.collection_id));
+  const cardIds = new Set(safeCards.map((row) => row.id));
+  const safeForms = forms.filter((row) => cardIds.has(row.card_id));
 
   const totals = {};
   totals.collections = await insertChunks('collections', collections);
   totals.cards = await insertChunks('cards', safeCards);
-  if (forms.length) totals.forms = await insertChunks('card_forms', forms);
-  else totals.forms = 0;
+  totals.forms = await insertChunks('card_forms', safeForms);
 
   console.log('Seed completed without overwrite.');
-  console.log(JSON.stringify({ ...totals, skippedOrphanCards: cards.length - safeCards.length, retiredCollections: collections.filter((row) => !row.is_active).length }, null, 2));
+  console.log(JSON.stringify({
+    ...totals,
+    skippedOrphanCards: cards.length - safeCards.length,
+    skippedOrphanForms: forms.length - safeForms.length,
+    retiredCollections: collections.filter((row) => !row.is_active).length,
+  }, null, 2));
 }
 
 main().catch((error) => {
