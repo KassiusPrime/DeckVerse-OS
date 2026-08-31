@@ -4,7 +4,8 @@
 // ════════════════════════════════════════════════════════════════════════════
 
 import { db as localDb } from "../../deckverseClient.js";
-import { getStorageMode, isFirebaseConfigured, getFirebaseAuth, getFirestoreDb } from "./firebaseClient.js";
+import { isFirebaseConfigured, getFirebaseAuth, getFirestoreDb } from "./firebaseClient.js";
+import { persistenceProvider } from "../persistence/persistenceProvider.js";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -19,6 +20,7 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 export const DECKVERSE_OWNER_EMAIL = "cassianokaique9@gmail.com";
 const DRIVE_READ_SCOPE = "https://www.googleapis.com/auth/drive.readonly";
 const normalizeEmail = (value) => String(value || "").trim().toLowerCase();
+const executionMode = () => persistenceProvider.getStorageMode();
 
 class AuthProvider {
   constructor() {
@@ -30,7 +32,7 @@ class AuthProvider {
   }
 
   initializeListener() {
-    if (getStorageMode() !== "firebase" || !isFirebaseConfigured() || this.unsubscribeFirebase) return;
+    if (executionMode() !== "firebase" || !isFirebaseConfigured() || this.unsubscribeFirebase) return;
     try {
       const auth = getFirebaseAuth();
       this.unsubscribeFirebase = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -71,7 +73,7 @@ class AuthProvider {
     if (!firebaseUser?.uid || !isFirebaseConfigured()) return null;
     const existing = await this.readUserProfile(firebaseUser.uid);
     const owner = this.isOwnerEmail(firebaseUser.email);
-    const now = new Date().toISOString();
+    const timestamp = new Date().toISOString();
     const payload = {
       uid: firebaseUser.uid,
       email: firebaseUser.email || "",
@@ -79,8 +81,8 @@ class AuthProvider {
       photoURL: firebaseUser.photoURL || existing?.photoURL || null,
       role: owner ? "owner" : (existing?.role === "admin" ? "admin" : "user"),
       status: existing?.status || "active",
-      createdAt: existing?.createdAt || now,
-      updatedAt: now,
+      createdAt: existing?.createdAt || timestamp,
+      updatedAt: timestamp,
     };
     try {
       await setDoc(doc(getFirestoreDb(), "users", firebaseUser.uid), payload, { merge: true });
@@ -113,7 +115,7 @@ class AuthProvider {
   }
 
   async getCurrentUser() {
-    const mode = getStorageMode();
+    const mode = executionMode();
     if (mode === "local") {
       // Explicit local mode is a developer/test tool only. Production defaults
       // to Firebase whenever the project is configured.
@@ -144,7 +146,7 @@ class AuthProvider {
   }
 
   async signIn(email, password) {
-    if (getStorageMode() !== "firebase") throw new Error("Login real requer modo Firebase.");
+    if (executionMode() !== "firebase") throw new Error("Login real requer modo Firebase.");
     const credential = await signInWithEmailAndPassword(getFirebaseAuth(), email, password);
     this.currentUser = await this.buildUser(credential.user, { ensureProfile: true });
     this.notifyListeners();
@@ -152,7 +154,7 @@ class AuthProvider {
   }
 
   async signUp(name, email, password) {
-    if (getStorageMode() !== "firebase") throw new Error("Cadastro real requer modo Firebase.");
+    if (executionMode() !== "firebase") throw new Error("Cadastro real requer modo Firebase.");
     const credential = await createUserWithEmailAndPassword(getFirebaseAuth(), email, password);
     if (name?.trim()) await updateProfile(credential.user, { displayName: name.trim() });
     this.currentUser = await this.buildUser(credential.user, { ensureProfile: true, preferredName: name?.trim() || "" });
@@ -161,7 +163,7 @@ class AuthProvider {
   }
 
   async signInWithGoogle({ requestDriveAccess = false } = {}) {
-    if (getStorageMode() !== "firebase") throw new Error("Login Google requer modo Firebase.");
+    if (executionMode() !== "firebase") throw new Error("Login Google requer modo Firebase.");
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: requestDriveAccess ? "consent" : "select_account" });
     if (requestDriveAccess) provider.addScope(DRIVE_READ_SCOPE);
@@ -179,7 +181,7 @@ class AuthProvider {
 
   async signOut() {
     this.googleAccessToken = null;
-    if (getStorageMode() === "firebase" && isFirebaseConfigured()) await firebaseSignOut(getFirebaseAuth());
+    if (executionMode() === "firebase" && isFirebaseConfigured()) await firebaseSignOut(getFirebaseAuth());
     this.currentUser = null;
     this.notifyListeners();
     return { success: true };
