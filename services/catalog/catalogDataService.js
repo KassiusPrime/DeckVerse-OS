@@ -51,6 +51,26 @@ export async function loadCatalogSnapshot() {
     image_url: entry.coverUrl,
     cover_url: entry.coverUrl,
   }));
+
+  const formsByCard = new Map();
+  for (const form of catalog.forms || []) {
+    if (!form.cardId) continue;
+    const list = formsByCard.get(String(form.cardId)) || [];
+    list.push({
+      id: form.id,
+      formId: form.id,
+      name: form.name,
+      rarity: form.rarity,
+      image_url: form.imageUrl,
+      imageUrl: form.imageUrl,
+      description: form.description,
+      order: form.order,
+      collectionCode: form.collectionId,
+      baseName: form.baseName,
+    });
+    formsByCard.set(String(form.cardId), list);
+  }
+
   const cards = (catalog.cards || []).map((entry) => ({
     id: entry.id,
     card_id: entry.id,
@@ -73,6 +93,7 @@ export async function loadCatalogSnapshot() {
     imageUrl: entry.imageUrl,
     lore: entry.description,
     description: entry.description,
+    forms: formsByCard.get(String(entry.id)) || [],
   }));
 
   return {
@@ -80,6 +101,7 @@ export async function loadCatalogSnapshot() {
     characters: cards.filter((entry) => entry.entity_type === 'character'),
     items: cards.filter((entry) => entry.entity_type === 'item'),
     bosses: cards.filter((entry) => entry.entity_type === 'boss'),
+    forms: catalog.forms || [],
     mediaIndex: [],
     source: catalog.source,
   };
