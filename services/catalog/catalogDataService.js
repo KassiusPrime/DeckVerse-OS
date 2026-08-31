@@ -1,146 +1,95 @@
-import { db as localDb } from "../../deckverseClient.js";
-import { firebasePersistenceAdapter } from "../persistence/firebasePersistenceAdapter.js";
-import { isFirebaseConfigured } from "../firebase/firebaseClient.js";
-import { parseMediaFilename } from "../media/mediaFilenameParser.js";
-import { applyFallbackRarityPolicy } from "../../src/utils/rarityPolicy.js";
-import { normalizeCatalogSnapshot } from "../../src/utils/catalogIdentityPolicy.js";
+import { loadPublicCatalog } from '../supabase/catalogService.js';
 
-const normalize = (value) => String(value ?? "").trim().toLowerCase();
+const normalize = (value) => String(value ?? '').trim().toLowerCase();
 
 export function slugifyCatalogName(value) {
-  return String(value || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
-    .replace(/&/g, " and ")
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "");
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
 }
 
 export function getEntityCollectionCode(entity) {
-  return String(
-    entity?.collectionCode ||
-    entity?.collection_code ||
-    entity?.collection_id ||
-    entity?.collectionId ||
-    ""
-  ).trim().toUpperCase();
+  return String(entity?.collectionCode || entity?.collection_code || entity?.collection_id || entity?.collectionId || '').trim().toUpperCase();
 }
 
 export function buildMediaLookup(mediaIndex = []) {
   const byEntityKey = new Map();
   const byFilenameKey = new Map();
-
-  mediaIndex.forEach((record) => {
-    if (!record || record.status === "deleted" || !record.downloadURL) return;
-    if (record.entityKey) byEntityKey.set(String(record.entityKey), record.downloadURL);
-
-    const filename = record.canonicalFilename || record.originalFilename || record.filename;
-    if (!filename) return;
-    const parsed = parseMediaFilename(filename);
-    if (!parsed.valid) return;
-    const key = `${parsed.collectionCodeCanonical}|${parsed.entityType}|${parsed.slug}`;
-    byFilenameKey.set(key, record.downloadURL);
-  });
-
+  for (const record of mediaIndex || []) {
+    if (!record || record.status === 'deleted') continue;
+    const url = record.downloadURL || record.download_url || record.image_url || '';
+    if (record.entityKey && url) byEntityKey.set(String(record.entityKey), url);
+    if (record.collection_id && record.entity_type && record.slug && url) byFilenameKey.set(`${record.collection_id}|${record.entity_type}|${record.slug}`, url);
+  }
   return { byEntityKey, byFilenameKey };
 }
 
 export function resolveIndexedImage(entity, entityType, mediaLookup) {
-  if (!entity || !mediaLookup) return "";
-  if (entity.entityKey && mediaLookup.byEntityKey.has(String(entity.entityKey))) {
-    return mediaLookup.byEntityKey.get(String(entity.entityKey));
-  }
-
+  if (!entity) return '';
+  const direct = entity.image_url || entity.imageUrl || entity.cover_url || entity.coverUrl || '';
+  if (direct) return direct;
+  if (!mediaLookup) return '';
+  if (entity.entityKey && mediaLookup.byEntityKey.has(String(entity.entityKey))) return mediaLookup.byEntityKey.get(String(entity.entityKey));
   const collectionCode = getEntityCollectionCode(entity);
-  if (!collectionCode) return "";
-  const slug = entityType === "collection"
-    ? "cover"
-    : String(entity.slug || slugifyCatalogName(entity.name || entity.canonicalName || entity.title));
-  if (!slug) return "";
-  return mediaLookup.byFilenameKey.get(`${collectionCode}|${entityType}|${slug}`) || "";
-}
-
-async function loadLocal() {
-  const [collections, charactersRaw, items, bosses] = await Promise.all([
-    localDb.entities.Collection.list(""),
-    localDb.entities.Card.list(""),
-    localDb.entities.Item.list(""),
-    localDb.entities.Boss.list(""),
-  ]);
-
-  return normalizeCatalogSnapshot({
-    collections,
-    characters: applyFallbackRarityPolicy(charactersRaw),
-    items,
-    bosses,
-    mediaIndex: [],
-    source: "LOCAL_FALLBACK",
-  });
-}
-
-function mergeCollections(cloud = [], local = []) {
-  const seen = new Set();
-  return [...cloud, ...local].filter((collection) => {
-    const key = normalize(collection?.code || collection?.id || collection?.name);
-    if (!key || seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+  const slug = entityType === 'collection' ? 'cover' : String(entity.slug || slugifyCatalogName(entity.name || entity.title));
+  return mediaLookup.byFilenameKey.get(`${collectionCode}|${entityType}|${slug}`) || '';
 }
 
 export async function loadCatalogSnapshot() {
-  const localCollections = await localDb.entities.Collection.list("");
+  const catalog = await loadPublicCatalog();
+  const collections = (catalog.collections || []).map((entry) => ({
+    id: entry.id,
+    code: entry.id,
+    collectionCode: entry.id,
+    name: entry.name,
+    description: entry.description,
+    category: entry.category,
+    image_url: entry.coverUrl,
+    cover_url: entry.coverUrl,
+  }));
+  const cards = (catalog.cards || []).map((entry) => ({
+    id: entry.id,
+    card_id: entry.id,
+    name: entry.name,
+    entity_type: entry.entityType,
+    collection_id: entry.collectionId,
+    collectionCode: entry.collectionId,
+    collection: entry.collectionName,
+    series: entry.collectionName,
+    rarity: entry.rarity,
+    role: entry.role,
+    atk: entry.atk,
+    attack: entry.atk,
+    def: entry.def,
+    defense: entry.def,
+    mag: entry.mag,
+    speed: entry.speed,
+    hp: entry.hp,
+    image_url: entry.imageUrl,
+    imageUrl: entry.imageUrl,
+    lore: entry.description,
+    description: entry.description,
+  }));
 
-  if (!isFirebaseConfigured()) return loadLocal();
-
-  try {
-    const [collections, characters, items, bosses, mediaIndex] = await Promise.all([
-      firebasePersistenceAdapter.getCollections(),
-      firebasePersistenceAdapter.getCharacters(),
-      firebasePersistenceAdapter.getItems(),
-      firebasePersistenceAdapter.getBosses(),
-      firebasePersistenceAdapter.getMediaIndex(),
-    ]);
-
-    // Never fill a partially imported Firebase catalog with demo entities.
-    // The collection registry may still be merged so planned collections remain
-    // navigable, but characters/items/bosses represent cloud truth only.
-    return normalizeCatalogSnapshot({
-      collections: mergeCollections(collections || [], localCollections || []),
-      characters: characters || [],
-      items: items || [],
-      bosses: bosses || [],
-      mediaIndex: mediaIndex || [],
-      source: "FIREBASE",
-    });
-  } catch (error) {
-    console.warn("[CatalogDataService] Firebase indisponível; usando fallback local somente para navegação.", error);
-    return loadLocal();
-  }
+  return {
+    collections,
+    characters: cards.filter((entry) => entry.entity_type === 'character'),
+    items: cards.filter((entry) => entry.entity_type === 'item'),
+    bosses: cards.filter((entry) => entry.entity_type === 'boss'),
+    mediaIndex: [],
+    source: catalog.source,
+  };
 }
 
 export function collectionMatches(entity, collection) {
   if (!entity || !collection) return false;
-  const refs = [
-    entity.collectionCode,
-    entity.collection_code,
-    entity.collection_id,
-    entity.collectionId,
-    entity.collection,
-    entity.series,
-  ].filter(Boolean).map(normalize);
-  const candidates = [collection.code, collection.id, collection.name, collection.slug]
-    .filter(Boolean)
-    .map(normalize);
+  const refs = [entity.collectionCode, entity.collection_code, entity.collection_id, entity.collectionId, entity.collection, entity.series].filter(Boolean).map(normalize);
+  const candidates = [collection.code, collection.id, collection.name, collection.slug].filter(Boolean).map(normalize);
   return candidates.some((candidate) => refs.includes(candidate));
 }
 
-export default {
-  loadCatalogSnapshot,
-  buildMediaLookup,
-  resolveIndexedImage,
-  slugifyCatalogName,
-  getEntityCollectionCode,
-  collectionMatches,
-};
+export default { loadCatalogSnapshot, buildMediaLookup, resolveIndexedImage, slugifyCatalogName, getEntityCollectionCode, collectionMatches };
