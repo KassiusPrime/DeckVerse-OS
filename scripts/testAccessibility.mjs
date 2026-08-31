@@ -22,6 +22,12 @@ if (!css.includes('--primary: 252 100% 72%;')) failures.push('Primary token does
 const logo = fs.readFileSync('DeckVerseLogo.jsx', 'utf8');
 if (!logo.includes('uppercase tracking-[0.2em] text-foreground/80')) failures.push('DeckVerse tagline contrast regression');
 
+const collections = fs.readFileSync('CollectionsHub.jsx', 'utf8');
+if (!collections.includes('function CollectionCover')) failures.push('Collection cover fallback component missing');
+if (!collections.includes('/assets/brand/deckverse-mark.svg')) failures.push('Collection cover fallback must use the DeckVerse brand mark');
+if (!collections.includes('Capa em preparação')) failures.push('Collection cover fallback must communicate non-canonical cover state');
+if (!collections.includes('aria-label={`${name} — capa em preparação`}')) failures.push('Collection cover fallback lacks an accessible description');
+
 const vercel = JSON.parse(fs.readFileSync('vercel.json', 'utf8'));
 const routes = Array.isArray(vercel.routes) ? vercel.routes : [];
 if (!routes.some((route) => route.handle === 'filesystem')) failures.push('vercel.json must preserve filesystem/API routes before SPA fallback');
