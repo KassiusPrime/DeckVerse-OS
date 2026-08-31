@@ -67,6 +67,7 @@ export async function loadCatalogSnapshot() {
       order: form.order,
       collectionCode: form.collectionId,
       baseName: form.baseName,
+      baseEntityType: form.baseEntityType || 'character',
     });
     formsByCard.set(String(form.cardId), list);
   }
@@ -81,6 +82,7 @@ export async function loadCatalogSnapshot() {
     collection: entry.collectionName,
     series: entry.collectionName,
     rarity: entry.rarity,
+    rarityReviewed: entry.rarityReviewed,
     role: entry.role,
     atk: entry.atk,
     attack: entry.atk,
