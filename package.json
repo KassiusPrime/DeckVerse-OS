@@ -9,10 +9,11 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 3000",
     "build": "vite build",
-    "test": "node scripts/testCatalogUniqueIds.mjs && node scripts/testProductRoutes.mjs && node scripts/testRepository.mjs && node scripts/testMediaManager.mjs && node scripts/testCatalogRarityAndMedia.mjs && node scripts/testAdminCatalog.mjs && node scripts/testDynamicCollectionRegistry.mjs && node scripts/testSupabaseArchitecture.mjs && node scripts/testAccessibility.mjs",
+    "test": "node scripts/testCatalogUniqueIds.mjs && node scripts/testProductRoutes.mjs && node scripts/testRepository.mjs && node scripts/testMediaManager.mjs && node scripts/testCatalogRarityAndMedia.mjs && node scripts/testAdminCatalog.mjs && node scripts/testDynamicCollectionRegistry.mjs && node scripts/testSupabaseArchitecture.mjs && node scripts/testPublicationReadiness.mjs && node scripts/testAccessibility.mjs",
     "test:routes": "node scripts/testProductRoutes.mjs",
     "test:catalog-ui": "node scripts/testCatalogRarityAndMedia.mjs",
     "test:supabase": "node scripts/testSupabaseArchitecture.mjs",
+    "test:publication": "node scripts/testPublicationReadiness.mjs",
     "audit:catalog": "node scripts/auditCatalog.mjs",
     "test:repo": "node scripts/testRepository.mjs",
     "validate:codes": "node scripts/validateCollectionCodes.mjs",
