@@ -20,7 +20,7 @@ export default function DeckVerseLogo({ size = 'md', showTagline = true, classNa
 
       {!compact && (
         <div className="min-w-0 leading-none">
-          <div className={`${styles.title} whitespace-nowrap font-display font-extrabold uppercase tracking-[.16em] text-[#16eef4] [text-shadow:0_0_16px_rgba(22,238,244,.18)]`}>
+          <div className={`${styles.title} whitespace-nowrap font-orbitron font-extrabold uppercase tracking-[.16em] text-[#16eef4] [text-shadow:0_0_16px_rgba(22,238,244,.18)]`}>
             DECKVERSE <span className="text-foreground">OS</span>
           </div>
           {showTagline && (
