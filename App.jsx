@@ -30,7 +30,7 @@ function AdminRouteGuard({ children }) {
 }
 
 function RouteLoading() {
-  return <main className="flex min-h-[70vh] items-center justify-center bg-background"><div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-primary" /></main>;
+  return <main className="flex min-h-[70vh] items-center justify-center bg-background"><div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-primary" aria-label="Carregando" /></main>;
 }
 
 function AnimatedRoutes() {
@@ -68,8 +68,10 @@ function AnimatedRoutes() {
 }
 
 function ProductRuntime() {
+  const location = useLocation();
   const { isLoadingAuth } = useAuth();
-  if (isLoadingAuth) return <RouteLoading />;
+  const isAuthCallback = location.pathname === '/auth/callback';
+  if (isLoadingAuth && !isAuthCallback) return <RouteLoading />;
   return <><AnimatedRoutes /><BottomNav /><CommandPalette /></>;
 }
 
