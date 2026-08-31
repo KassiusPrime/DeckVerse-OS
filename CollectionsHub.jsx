@@ -22,11 +22,33 @@ function Media({ src, alt, className = '' }) {
   return <img src={src} alt={alt} loading="lazy" className={className} onError={() => setFailed(true)} />;
 }
 
+function CollectionCover({ src, name, className = '' }) {
+  const [failed, setFailed] = useState(false);
+  React.useEffect(() => setFailed(false), [src]);
+  if (src && !failed) return <img src={src} alt={name} loading="lazy" className={className} onError={() => setFailed(true)} />;
+
+  return (
+    <div role="img" aria-label={`${name} — capa em preparação`} className="absolute inset-0 overflow-hidden bg-[#031017]">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_10%,rgba(22,238,244,.24),transparent_38%),radial-gradient(circle_at_82%_14%,rgba(124,92,255,.22),transparent_34%),linear-gradient(135deg,#031017,#09111f_55%,#07121a)]" />
+      <div className="archive-grid absolute inset-0 opacity-30" />
+      <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full border border-cyan-300/10" />
+      <div className="absolute -right-6 -top-10 h-40 w-40 rounded-full border border-violet-300/10" />
+      <div className="absolute inset-0 flex items-center justify-center px-6 pb-14">
+        <div className="flex flex-col items-center text-center">
+          <img src="/assets/brand/deckverse-mark.svg" alt="" aria-hidden="true" className="h-16 w-16 rounded-[22%] opacity-90 drop-shadow-[0_0_24px_rgba(22,238,244,.28)] sm:h-20 sm:w-20" />
+          <div className="mt-3 font-orbitron text-[10px] font-extrabold uppercase tracking-[.24em] text-cyan-100/90">DeckVerse OS</div>
+          <div className="mt-1 text-[9px] font-bold uppercase tracking-[.16em] text-white/50">Capa em preparação</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CollectionGridCard({ collection, counts }) {
   const image = collection.image_url || collection.cover_url || '';
   return (
     <Link to={collectionPath(collection)} className="group relative min-h-[230px] overflow-hidden rounded-3xl border border-border bg-card shadow-sm transition duration-200 hover:-translate-y-1 hover:border-primary/50 hover:shadow-[0_24px_60px_rgba(0,0,0,.3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70">
-      <Media src={image} alt={getName(collection)} className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.035]" />
+      <CollectionCover src={image} name={getName(collection)} className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.035]" />
       <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/42 to-black/8" />
       <div className="absolute inset-x-5 bottom-5">
         <div className="text-[10px] font-extrabold uppercase tracking-[.17em] text-white/50">{collection.category || 'Coleção'}</div>
@@ -130,7 +152,7 @@ export default function CollectionsHub() {
       <Navbar />
       <main className="mx-auto w-full max-w-[1480px] px-4 pb-28 pt-5 sm:px-6 lg:px-8">
         <button type="button" onClick={() => navigate('/collections')} className="mb-4 inline-flex min-h-10 items-center gap-2 rounded-xl px-2 text-sm font-extrabold text-muted-foreground hover:bg-muted/60 hover:text-foreground"><ArrowLeft className="h-4 w-4" /> Todas as coleções</button>
-        <section className="relative min-h-[310px] overflow-hidden rounded-3xl border border-border bg-card sm:min-h-[360px]"><Media src={cover} alt={getName(selectedCollection)} className="absolute inset-0 h-full w-full object-cover" /><div className="absolute inset-0 bg-gradient-to-r from-black/94 via-black/58 to-black/18" /><div className="relative flex min-h-[310px] max-w-3xl flex-col justify-end p-6 sm:min-h-[360px] sm:p-9"><div className="text-[10px] font-black uppercase tracking-[.2em] text-primary">{selectedCollection.category || 'Coleção'}</div><h1 className="mt-2 text-3xl font-black tracking-[-.045em] text-white sm:text-5xl">{getName(selectedCollection)}</h1>{selectedCollection.description && <p className="mt-3 max-w-2xl text-sm leading-6 text-white/65">{selectedCollection.description}</p>}</div></section>
+        <section className="relative min-h-[310px] overflow-hidden rounded-3xl border border-border bg-card sm:min-h-[360px]"><CollectionCover src={cover} name={getName(selectedCollection)} className="absolute inset-0 h-full w-full object-cover" /><div className="absolute inset-0 bg-gradient-to-r from-black/94 via-black/58 to-black/18" /><div className="relative flex min-h-[310px] max-w-3xl flex-col justify-end p-6 sm:min-h-[360px] sm:p-9"><div className="text-[10px] font-black uppercase tracking-[.2em] text-primary">{selectedCollection.category || 'Coleção'}</div><h1 className="mt-2 text-3xl font-black tracking-[-.045em] text-white sm:text-5xl">{getName(selectedCollection)}</h1>{selectedCollection.description && <p className="mt-3 max-w-2xl text-sm leading-6 text-white/65">{selectedCollection.description}</p>}</div></section>
 
         <section className="mt-5 rounded-2xl border border-border bg-card p-3 sm:p-4"><div className="flex gap-2 overflow-x-auto">{tabs.map(({ id, label, icon: Icon, count }) => <button key={id} type="button" onClick={() => chooseTab(id)} className={`flex min-h-11 shrink-0 items-center gap-2 rounded-xl px-3.5 text-sm font-extrabold ${activeTab === id ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'}`}><Icon className="h-4 w-4" />{label}<span className="rounded-full bg-black/10 px-1.5 text-[10px]">{count}</span></button>)}</div><label className="relative mt-3 block"><Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><input aria-label={`Buscar em ${getName(selectedCollection)}`} value={detailQuery} onChange={(event) => setDetailQuery(event.target.value)} placeholder={`Buscar em ${getName(selectedCollection)}...`} className="h-11 w-full rounded-xl border border-border bg-background pl-10 pr-4 text-sm outline-none focus:border-primary/60" /></label></section>
 
