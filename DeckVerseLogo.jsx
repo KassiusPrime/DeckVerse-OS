@@ -24,7 +24,7 @@ export default function DeckVerseLogo({ size = 'md', showTagline = true, classNa
             DECKVERSE <span className="text-foreground">OS</span>
           </div>
           {showTagline && (
-            <div className={`${styles.tagline} mt-1.5 whitespace-nowrap font-mono font-semibold uppercase tracking-[.28em] text-foreground/65`}>
+            <div className={`${styles.tagline} mt-1.5 whitespace-nowrap font-mono font-semibold uppercase tracking-[0.2em] text-foreground/80`}>
               Multiverse Archive
             </div>
           )}
