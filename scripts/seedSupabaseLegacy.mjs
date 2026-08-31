@@ -20,6 +20,9 @@ const cleanId = (...values) => {
   return found === undefined ? null : String(found).trim();
 };
 const normalizeKey = (value) => String(value || '').trim().toLowerCase();
+const slugify = (value) => String(value || '')
+  .normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+  .replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
 const rarityMap = new Map([
   ['COMMON', 'R'], ['COMUM', 'R'], ['UNCOMMON', 'SR'], ['INCOMUM', 'SR'], ['RARE', 'SR'], ['RARO', 'SR'],
   ['EPIC', 'SSR'], ['EPICO', 'SSR'], ['ÉPICO', 'SSR'], ['LEGENDARY', 'UR'], ['LENDARIO', 'UR'], ['LENDÁRIO', 'UR'],
@@ -49,15 +52,7 @@ function buildCollectionResolver(rawCollections) {
   for (const collection of rawCollections) {
     const canonical = cleanId(collection.code, collection.collection_code, collection.id);
     if (!canonical) continue;
-    const candidates = [
-      canonical,
-      collection.id,
-      collection.code,
-      collection.collection_code,
-      collection.collection_id,
-      collection.slug,
-      ...(Array.isArray(collection.aliases) ? collection.aliases : []),
-    ];
+    const candidates = [canonical, collection.id, collection.code, collection.collection_code, collection.collection_id, collection.slug, ...(Array.isArray(collection.aliases) ? collection.aliases : [])];
     for (const candidate of candidates.filter(Boolean)) map.set(normalizeKey(candidate), canonical);
   }
   return (value) => {
@@ -86,10 +81,12 @@ function formatCard(c, entityType, resolveCollection) {
   if (!id) return null;
   const rawCollection = cleanId(c.collection_id, c.collection_code, c.collectionCode, c.collection);
   const collectionId = resolveCollection(rawCollection);
+  const name = c.name || c.title || 'Sem nome';
   return {
     id,
     collection_id: collectionId,
-    name: c.name || c.title || 'Sem nome',
+    name,
+    slug: slugify(c.slug || c.canonical_slug || name),
     entity_type: c.entity_type || entityType,
     rarity: normalizeRarity(c.rarity),
     role: c.role || null,
@@ -105,20 +102,36 @@ function formatCard(c, entityType, resolveCollection) {
   };
 }
 
-function formatForm(f) {
-  const id = cleanId(f.id, f.form_id);
-  const cardId = cleanId(f.card_id, f.base_card_id, f.character_id);
-  if (!id || !cardId) return null;
+function formatForm(f, fallbackCardId = null, fallbackIndex = 1) {
+  const cardId = cleanId(f.card_id, f.base_card_id, f.character_id, fallbackCardId);
+  if (!cardId) return null;
+  const name = typeof f === 'string' ? f : (f.name || f.title || f.version_name || 'Forma');
+  const formSlug = slugify(typeof f === 'string' ? f : (f.slug || f.stateSlug || name));
+  const id = cleanId(typeof f === 'object' ? f.id : null, typeof f === 'object' ? f.form_id : null, `${cardId}::form::${formSlug}`);
   return {
     id,
     card_id: cardId,
-    name: f.name || f.title || 'Forma',
-    rarity: f.rarity ? normalizeRarity(f.rarity) : null,
-    image_url: f.image_url || null,
-    description: f.description || f.lore || null,
-    order_index: cleanInt(f.order_index || f.order || 1) || 1,
-    is_active: f.is_active !== false,
+    name,
+    slug: formSlug,
+    rarity: typeof f === 'object' && f.rarity ? normalizeRarity(f.rarity) : null,
+    image_url: typeof f === 'object' ? (f.image_url || f.imageUrl || null) : null,
+    description: typeof f === 'object' ? (f.description || f.lore || null) : null,
+    order_index: typeof f === 'object' ? (cleanInt(f.order_index || f.order || fallbackIndex) || fallbackIndex) : fallbackIndex,
+    is_active: typeof f === 'object' ? f.is_active !== false : true,
   };
+}
+
+function nestedFormsFromCards(rawCards) {
+  const rows = [];
+  for (const card of rawCards) {
+    const cardId = cleanId(card.id, card.card_id);
+    if (!cardId || !Array.isArray(card.forms)) continue;
+    card.forms.forEach((form, index) => {
+      const row = formatForm(form, cardId, index + 1);
+      if (row) rows.push(row);
+    });
+  }
+  return rows;
 }
 
 async function insertChunks(table, rows, chunkSize = 300) {
@@ -144,7 +157,7 @@ async function main() {
     ...legacy.items.map((row) => formatCard(row, 'item', resolveCollection)),
     ...legacy.bosses.map((row) => formatCard(row, 'boss', resolveCollection)),
   ].filter(Boolean);
-  const forms = legacy.forms.map(formatForm).filter(Boolean);
+  const forms = [...legacy.forms.map((row) => formatForm(row)), ...nestedFormsFromCards(legacy.cards)].filter(Boolean);
 
   const collectionIds = new Set(collections.map((row) => row.id));
   const orphanRefs = [...new Set(cards.map((row) => row.collection_id).filter((id) => id && !collectionIds.has(id)))];
