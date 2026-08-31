@@ -13,28 +13,14 @@ const LINKS = [
 
 export default function BottomNav() {
   const location = useLocation();
-  if (location.pathname.startsWith("/admin") || location.pathname.startsWith("/adm")) return null;
+  if (["/admin", "/adm", "/owner", "/login"].some((prefix) => location.pathname.startsWith(prefix))) return null;
 
   return (
-    <nav
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-border/80 bg-background/92 backdrop-blur-xl md:hidden"
-      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
-      aria-label="Navegação móvel"
-    >
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border/80 bg-background/92 backdrop-blur-xl md:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom)" }} aria-label="Navegação móvel">
       <div className="mx-auto grid max-w-xl grid-cols-6 gap-0.5 px-1.5 py-1.5">
         {LINKS.map(({ to, label, icon: Icon }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={to === "/"}
-            className={({ isActive }) =>
-              `flex min-h-[54px] min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-0.5 text-[9px] font-bold transition ${
-                isActive ? "bg-primary/12 text-primary" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
-              }`
-            }
-          >
-            <Icon className="h-[18px] w-[18px]" />
-            <span className="max-w-full truncate">{label}</span>
+          <NavLink key={to} to={to} end={to === "/"} className={({ isActive }) => `flex min-h-[54px] min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-0.5 text-[9px] font-bold transition ${isActive ? "bg-primary/12 text-primary" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"}`}>
+            <Icon className="h-[18px] w-[18px]" /><span className="max-w-full truncate">{label}</span>
           </NavLink>
         ))}
       </div>
