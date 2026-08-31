@@ -27,5 +27,10 @@ jobs:
       - name: Install dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
 
+      # Repository certification uses deterministic local persistence/mocks.
+      # Production builds do not receive this variable and therefore default to
+      # Firebase whenever firebase-applet-config.json is configured.
       - name: Full repository certification
+        env:
+          VITE_DECKVERSE_STORAGE_MODE: local
         run: npm run ci
