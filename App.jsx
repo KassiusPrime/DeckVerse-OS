@@ -15,7 +15,6 @@ import FormsCatalog from './FormsCatalog';
 import CardDetail from './CardDetail';
 import MyCollection from './MyCollection';
 import Profile from './Profile';
-import Settings from './Settings';
 import Login from './Login';
 import AuthCallback from './AuthCallback';
 import Support from './Support';
@@ -58,7 +57,6 @@ function AnimatedRoutes() {
           <Route path="/my-collection" element={<MyCollection />} />
           <Route path="/card/:id" element={<CardDetail />} />
           <Route path="/profile" element={<Profile />} />
-          <Route path="/settings" element={<Settings />} />
           <Route path="/support" element={<Support />} />
           <Route path="/admin" element={<AdminRouteGuard><AdminSupabase /></AdminRouteGuard>} />
           <Route path="/adm" element={<Navigate to="/admin" replace />} />
