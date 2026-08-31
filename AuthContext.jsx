@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { db } from "./deckverseClient";
+import { authProvider } from "./services/firebase/authProvider.js";
 
 const AuthContext = createContext(null);
 
@@ -11,91 +11,101 @@ export const AuthProvider = ({ children }) => {
   const [authError, setAuthError] = useState(null);
   const [appPublicSettings, setAppPublicSettings] = useState({});
 
+  const applyUser = useCallback((nextUser) => {
+    setUser(nextUser || null);
+    setIsAuthenticated(Boolean(nextUser));
+  }, []);
+
   const checkAppState = useCallback(async () => {
     setIsLoadingAuth(true);
     setAuthError(null);
-
     try {
-      if (!db?.auth) {
-        setUser(null);
-        setIsAuthenticated(false);
-        return;
-      }
-
-      const authed = await db.auth.isAuthenticated().catch(() => false);
-      if (!authed) {
-        setUser(null);
-        setIsAuthenticated(false);
-        return;
-      }
-
-      const me = await db.auth.me().catch(() => null);
-      if (!me) {
-        setUser(null);
-        setIsAuthenticated(false);
-        return;
-      }
-
-      setUser(me);
-      setIsAuthenticated(true);
+      applyUser(await authProvider.getCurrentUser());
     } catch (error) {
       console.warn("Auth check warning:", error);
-      setUser(null);
-      setIsAuthenticated(false);
+      applyUser(null);
       setAuthError({ type: "auth_check_failed", message: error?.message || "Não foi possível confirmar sua sessão." });
     } finally {
       setIsLoadingAuth(false);
     }
-  }, []);
+  }, [applyUser]);
 
   useEffect(() => {
+    const unsubscribe = authProvider.onAuthChange((nextUser) => {
+      applyUser(nextUser);
+      setIsLoadingAuth(false);
+    });
     checkAppState();
-  }, [checkAppState]);
+    return unsubscribe;
+  }, [applyUser, checkAppState]);
 
-  const navigateToLogin = useCallback(() => {
-    window.dispatchEvent(new CustomEvent("deckverse-auth-required"));
-  }, []);
+  const signIn = useCallback(async (email, password) => {
+    setAuthError(null);
+    const result = await authProvider.signIn(email, password);
+    applyUser(result.user);
+    return result;
+  }, [applyUser]);
+
+  const signUp = useCallback(async (name, email, password) => {
+    setAuthError(null);
+    const result = await authProvider.signUp(name, email, password);
+    applyUser(result.user);
+    return result;
+  }, [applyUser]);
+
+  const signInWithGoogle = useCallback(async (options = {}) => {
+    setAuthError(null);
+    const result = await authProvider.signInWithGoogle(options);
+    applyUser(result.user);
+    return result;
+  }, [applyUser]);
 
   const logout = useCallback(async () => {
     try {
-      if (db?.auth?.logout) await db.auth.logout();
-    } catch (error) {
-      console.warn("Logout warning:", error);
+      await authProvider.signOut();
     } finally {
-      setUser(null);
-      setIsAuthenticated(false);
+      applyUser(null);
     }
+  }, [applyUser]);
+
+  const navigateToLogin = useCallback(() => {
+    window.location.assign(`/login?returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}`);
   }, []);
 
-  const value = useMemo(
-    () => ({
-      user,
-      setUser,
-      isAuthenticated,
-      setIsAuthenticated,
-      isLoadingAuth,
-      isLoadingPublicSettings,
-      setIsLoadingPublicSettings,
-      authError,
-      setAuthError,
-      appPublicSettings,
-      setAppPublicSettings,
-      navigateToLogin,
-      logout,
-      checkAppState,
-    }),
-    [
-      user,
-      isAuthenticated,
-      isLoadingAuth,
-      isLoadingPublicSettings,
-      authError,
-      appPublicSettings,
-      navigateToLogin,
-      logout,
-      checkAppState,
-    ]
-  );
+  const value = useMemo(() => ({
+    user,
+    setUser,
+    isAuthenticated,
+    setIsAuthenticated,
+    isOwner: Boolean(user?.isOwner && user?.status === "active"),
+    isAdmin: Boolean(user?.isAdmin && user?.status === "active"),
+    isLoadingAuth,
+    isLoadingPublicSettings,
+    setIsLoadingPublicSettings,
+    authError,
+    setAuthError,
+    appPublicSettings,
+    setAppPublicSettings,
+    navigateToLogin,
+    logout,
+    signIn,
+    signUp,
+    signInWithGoogle,
+    checkAppState,
+  }), [
+    user,
+    isAuthenticated,
+    isLoadingAuth,
+    isLoadingPublicSettings,
+    authError,
+    appPublicSettings,
+    navigateToLogin,
+    logout,
+    signIn,
+    signUp,
+    signInWithGoogle,
+    checkAppState,
+  ]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
@@ -103,22 +113,19 @@ export const AuthProvider = ({ children }) => {
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context) return context;
-
-  // Fail closed when a component is rendered outside the provider.
   return {
     user: null,
-    setUser: () => {},
     isAuthenticated: false,
-    setIsAuthenticated: () => {},
+    isOwner: false,
+    isAdmin: false,
     isLoadingAuth: true,
     isLoadingPublicSettings: false,
-    setIsLoadingPublicSettings: () => {},
     authError: null,
-    setAuthError: () => {},
-    appPublicSettings: {},
-    setAppPublicSettings: () => {},
     navigateToLogin: () => {},
     logout: async () => {},
+    signIn: async () => {},
+    signUp: async () => {},
+    signInWithGoogle: async () => {},
     checkAppState: async () => {},
   };
 };
