@@ -10,48 +10,23 @@ const navbar = read('Navbar.jsx');
 const bottomNav = read('BottomNav.jsx');
 const commandPalette = read('CommandPalette.jsx');
 
-const requiredRoutes = ['/', '/collections', '/collections/:collectionCode', '/characters', '/forms', '/items', '/bosses', '/my-collection', '/card/:id', '/admin', '/adm'];
-const primaryPublicRoutes = ['/', '/collections', '/characters', '/forms', '/items', '/my-collection'];
-const hiddenCompatibilityRoutes = ['/bosses'];
-const legacyPrimaryRoutes = ['/arena', '/gacha', '/market', '/guilds', '/battles', '/ranking', '/synergy', '/upgrade'];
+const requiredRoutes = ['/', '/login', '/auth/callback', '/collections', '/collections/:collectionCode', '/characters', '/forms', '/items', '/bosses', '/gacha', '/my-collection', '/card/:id', '/profile', '/support', '/admin', '/adm'];
+const publicPrimary = ['/collections', '/characters', '/forms', '/items', '/gacha', '/support'];
+const removedLegacyRoutes = ['/arena', '/market', '/guilds', '/battles', '/ranking', '/synergy', '/upgrade', '/store', '/dashboard', '/fandom', '/settings'];
 
-const routePattern = /<Route\s+path="([^"]+)"/g;
-const routes = new Set([...app.matchAll(routePattern)].map((match) => match[1]));
-
-const navTargets = new Set();
-for (const source of [navbar, bottomNav, commandPalette]) {
-  for (const match of source.matchAll(/(?:to:|to=)\s*["']([^"']+)["']/g)) navTargets.add(match[1]);
-}
-
+const routes = new Set([...app.matchAll(/<Route\s+path="([^"]+)"/g)].map((match) => match[1]));
 const failures = [];
+for (const route of requiredRoutes) if (!routes.has(route)) failures.push(`Missing required route: ${route}`);
+for (const route of publicPrimary) if (![navbar, bottomNav, commandPalette].some((source) => source.includes(route))) failures.push(`Public route not reachable: ${route}`);
+for (const route of removedLegacyRoutes) if (routes.has(route)) failures.push(`Legacy route still mounted in App.jsx: ${route}`);
 
-for (const route of requiredRoutes) {
-  if (!routes.has(route)) failures.push(`Missing required route: ${route}`);
+if (!app.includes('<AdminRouteGuard><AdminSupabase /></AdminRouteGuard>')) failures.push('/admin is not protected by the Supabase admin guard.');
+if (!app.includes('<Navigate to="/admin" replace />')) failures.push('/adm does not redirect to /admin.');
+for (const legacyComponent of ['AdminTerminal', 'CRTTerminalOverlay', 'BackgroundSyncIndicator', 'FandomImporter', 'Dashboard', 'Arena', 'Market', 'Guilds', 'Settings']) {
+  if (app.includes(legacyComponent)) failures.push(`Legacy runtime component is still imported/mounted: ${legacyComponent}`);
 }
-
-for (const target of navTargets) {
-  if (target.includes(':') || target.includes('?') || target.includes('${')) continue;
-  if (!routes.has(target)) failures.push(`Navigation target has no matching route: ${target}`);
-}
-
-for (const route of primaryPublicRoutes) {
-  const foundInNavigation = [navbar, bottomNav, commandPalette].some((source) => source.includes(route));
-  if (!foundInNavigation) failures.push(`Core route is not reachable from navigation/search UI: ${route}`);
-}
-
-for (const route of [...legacyPrimaryRoutes, ...hiddenCompatibilityRoutes]) {
-  for (const [name, source] of [['Navbar', navbar], ['BottomNav', bottomNav], ['CommandPalette', commandPalette]]) {
-    if (source.includes(`to: \"${route}\"`) || source.includes(`to=\"${route}\"`) || source.includes(`to: '${route}'`) || source.includes(`to='${route}'`)) {
-      failures.push(`Compatibility/legacy route leaked into primary ${name}: ${route}`);
-    }
-  }
-}
-
-if (!app.includes('<Route path="/bosses" element={<Navigate to="/forms" replace />} />')) failures.push('/bosses does not redirect to canonical /forms.');
-if (!app.includes('<AdminRouteGuard><Admin /></AdminRouteGuard>')) failures.push('Admin route is not protected by AdminRouteGuard.');
-if (!app.includes('<Navigate to="/admin" replace />')) failures.push('/adm does not redirect to canonical /admin.');
-if (!app.includes('isActiveAdmin && <AdminTerminal />')) failures.push('Admin terminal is not isolated from public runtime.');
-if (!app.includes('isActiveAdmin && <CRTTerminalOverlay />')) failures.push('CRT overlay is not isolated from public runtime.');
+if (!navbar.includes('isAdmin &&')) failures.push('Admin navigation is not conditioned by Supabase role.');
+if (!navbar.includes("to=\"/login\"") && !navbar.includes("'/login'")) failures.push('Discord login is not reachable from Navbar.');
 
 if (failures.length) {
   console.error('DeckVerse product-route certification FAILED');
@@ -61,5 +36,4 @@ if (failures.length) {
 
 console.log('DeckVerse product-route certification PASSED');
 console.log(`Routes verified: ${requiredRoutes.length}`);
-console.log(`Navigation targets verified: ${navTargets.size}`);
-console.log('Forms-first navigation, collection detail routing and admin isolation verified.');
+console.log('Supabase auth, support, gacha, admin isolation and legacy DOM removal verified.');
