@@ -83,7 +83,7 @@ export async function loadPublicCatalog() {
           order: Number(normalized.order || normalized.order_index || 1),
           collectionId: card.collection_id || card.collectionCode || '',
           baseName: card.name || '',
-          baseEntityType: card.entity_type || (bosses || []).includes(card) ? 'boss' : 'character',
+          baseEntityType: card.entity_type || ((bosses || []).includes(card) ? 'boss' : 'character'),
         });
       }
     }
