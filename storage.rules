@@ -2,26 +2,30 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
-    function isSignedIn() {
-      return request.auth != null;
+    function isOwner() {
+      return request.auth != null && request.auth.token.email == 'cassianokaique9@gmail.com';
     }
 
-    function isAdmin() {
-      return isSignedIn() &&
-        firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
-        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin' &&
-        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.status == 'active';
+    function isCatalogMediaType(entityType) {
+      // boss is accepted only so the owner migration can clean up legacy paths.
+      // New audited imports are canonicalized to character/form before upload.
+      return entityType == 'collection' || entityType == 'character' || entityType == 'item' || entityType == 'boss';
     }
 
-    // Default Deny
+    function isSupportedImage() {
+      return request.resource != null &&
+        request.resource.size < 25 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/(jpeg|png|webp)');
+    }
+
     match /{allPaths=**} {
       allow read, write: if false;
     }
 
-    // Canonical DeckVerse Media Storage Path
     match /deckverse-media/{collectionCode}/{entityType}/{filename} {
       allow read: if true;
-      allow write: if isAdmin() && (entityType == 'collection' || entityType == 'character' || entityType == 'item' || entityType == 'boss');
+      allow create, update: if isOwner() && isCatalogMediaType(entityType) && isSupportedImage();
+      allow delete: if isOwner() && isCatalogMediaType(entityType);
     }
   }
 }
