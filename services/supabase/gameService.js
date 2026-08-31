@@ -24,7 +24,7 @@ export async function getMyRoster() {
   const supabase = getSupabaseBrowserClient();
   const { data, error } = await supabase
     .from('rosters')
-    .select('id, card_id, copies, is_equipped, acquired_at, cards(name, rarity, entity_type, image_url, collection_id, atk, def, mag, speed, hp)')
+    .select('id, card_id, copies, is_equipped, acquired_at, cards(name, rarity, entity_type, image_url, collection_id, atk, def, mag, speed, hp, collections(name))')
     .order('acquired_at', { ascending: false });
   if (error) throw error;
   return data || [];
@@ -32,15 +32,12 @@ export async function getMyRoster() {
 
 export async function setEquipped(cardId, isEquipped) {
   const supabase = getSupabaseBrowserClient();
-  const { data: authData, error: authError } = await supabase.auth.getUser();
-  if (authError) throw authError;
-  if (!authData?.user) throw new Error('AUTH_REQUIRED');
-  const { error } = await supabase
-    .from('rosters')
-    .update({ is_equipped: Boolean(isEquipped) })
-    .eq('profile_id', authData.user.id)
-    .eq('card_id', cardId);
+  const { data, error } = await supabase.rpc('set_equipped_card', {
+    p_card_id: cardId,
+    p_equipped: Boolean(isEquipped),
+  });
   if (error) throw error;
+  return data;
 }
 
 export async function adminAdjustBalance(profileId, currency, amount, reason) {
