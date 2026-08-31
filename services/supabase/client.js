@@ -1,5 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 
+// These are public project coordinates, not secrets. Keeping safe defaults avoids
+// a broken production build when Vercel's public VITE_* variables are absent.
+const DEFAULT_SUPABASE_URL = 'https://rrujnjraonckjdtpsfol.supabase.co';
+const DEFAULT_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_NRJVDNSi3raoHNaN3fcG8Q_cBlw5ZXn';
+
 const readEnv = (key) => {
   if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key] !== undefined) return import.meta.env[key];
   if (typeof process !== 'undefined' && process.env && process.env[key] !== undefined) return process.env[key];
@@ -7,17 +12,18 @@ const readEnv = (key) => {
 };
 
 export function getSupabaseUrl() {
-  return readEnv('VITE_SUPABASE_URL') || readEnv('SUPABASE_URL') || '';
+  return readEnv('VITE_SUPABASE_URL') || readEnv('SUPABASE_URL') || DEFAULT_SUPABASE_URL;
 }
 
 export function getSupabasePublishableKey() {
-  return readEnv('VITE_SUPABASE_PUBLISHABLE_KEY') || readEnv('VITE_SUPABASE_ANON_KEY') || '';
+  return readEnv('VITE_SUPABASE_PUBLISHABLE_KEY') || readEnv('VITE_SUPABASE_ANON_KEY') || DEFAULT_SUPABASE_PUBLISHABLE_KEY;
 }
 
 export function isSupabaseConfigured() {
-  const url = getSupabaseUrl();
-  const key = getSupabasePublishableKey();
-  return Boolean(url && key && !url.includes('example.supabase.co') && !key.includes('test_only'));
+  const explicitUrl = readEnv('VITE_SUPABASE_URL') || readEnv('SUPABASE_URL');
+  const explicitKey = readEnv('VITE_SUPABASE_PUBLISHABLE_KEY') || readEnv('VITE_SUPABASE_ANON_KEY');
+  if (explicitUrl?.includes('example.supabase.co') || explicitKey?.includes('test_only')) return false;
+  return Boolean(getSupabaseUrl() && getSupabasePublishableKey());
 }
 
 let browserClient = null;
