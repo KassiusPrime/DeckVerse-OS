@@ -79,7 +79,10 @@ class AuthProvider {
       email: firebaseUser.email || "",
       name: preferredName || firebaseUser.displayName || existing?.name || firebaseUser.email?.split("@")[0] || "Usuário",
       photoURL: firebaseUser.photoURL || existing?.photoURL || null,
-      role: owner ? "owner" : (existing?.role === "admin" ? "admin" : "user"),
+      // The existing media pipeline still verifies the persisted admin role.
+      // Owner exclusivity is decided from the authenticated email token, not
+      // from this role value, so regular admins can never become Owner.
+      role: owner ? "admin" : (existing?.role === "admin" ? "admin" : "user"),
       status: existing?.status || "active",
       createdAt: existing?.createdAt || timestamp,
       updatedAt: timestamp,
