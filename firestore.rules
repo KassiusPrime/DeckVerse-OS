@@ -2,65 +2,88 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ── HELPER FUNCTIONS ──────────────────────────────────────────────────
     function isSignedIn() {
       return request.auth != null;
     }
 
-    function isAdmin() {
+    function isOwner() {
+      return isSignedIn() && request.auth.token.email == 'cassianokaique9@gmail.com';
+    }
+
+    function isActiveAdmin() {
       return isSignedIn() &&
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.status == 'active';
     }
 
-    // Default Deny
+    function canManageCatalog() {
+      return isOwner() || isActiveAdmin();
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // ── USERS ─────────────────────────────────────────────────────────────
+    // Each authenticated person owns a profile document. They may create their
+    // own user profile and edit only non-privileged fields. Role/status changes
+    // stay restricted to the owner/admin control plane.
     match /users/{userId} {
-      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
-      allow write: if isAdmin();
+      allow read: if isSignedIn() && (request.auth.uid == userId || canManageCatalog());
+      allow create: if isSignedIn() && request.auth.uid == userId &&
+        request.resource.data.status == 'active' &&
+        (
+          (isOwner() && request.resource.data.role == 'owner') ||
+          (!isOwner() && request.resource.data.role == 'user')
+        );
+      allow update: if canManageCatalog() || (
+        isSignedIn() && request.auth.uid == userId &&
+        request.resource.data.role == resource.data.role &&
+        request.resource.data.status == resource.data.status &&
+        request.resource.data.email == resource.data.email
+      );
+      allow delete: if canManageCatalog();
     }
 
-    // ── COLLECTIONS & DYNAMIC REGISTRY ─────────────────────────────────────
     match /collections/{collectionCode} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if canManageCatalog();
     }
 
     match /dynamicRegistry/{canonicalCode} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if canManageCatalog();
     }
 
-    // ── PLAYABLE CATALOG ENTITIES ──────────────────────────────────────────
     match /characters/{characterId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if canManageCatalog();
     }
 
     match /items/{itemId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if canManageCatalog();
     }
 
+    // Legacy-only during migration. New public media/catalog paths no longer
+    // create Boss entities, but owner migration must be allowed to delete them.
     match /bosses/{bossId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if canManageCatalog();
     }
 
     match /lore/{loreId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if canManageCatalog();
     }
 
-    // ── MEDIA INDEX ────────────────────────────────────────────────────────
     match /mediaIndex/{mediaId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if canManageCatalog();
+    }
+
+    match /systemMigrations/{migrationId} {
+      allow read, write: if isOwner();
     }
   }
 }
