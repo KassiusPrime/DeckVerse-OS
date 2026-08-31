@@ -1,0 +1,21 @@
+{
+  "attemptedRows": 651,
+  "uniqueIds": 650,
+  "duplicates": [
+    {
+      "id": "item_ds_1",
+      "list": [
+        {
+          "source": "item",
+          "name": "Lâmina Nichirin Vermelha",
+          "collection": "COL-01-DS"
+        },
+        {
+          "source": "item",
+          "name": "Frasco de Estus",
+          "collection": "COL-02-DS"
+        }
+      ]
+    }
+  ]
+}
