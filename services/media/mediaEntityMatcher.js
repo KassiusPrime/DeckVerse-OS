@@ -22,6 +22,16 @@ function collectionCodeOf(entity) {
   return resolveCollectionCodeStrict(entity?.collection_id || entity?.collection || entity?.collectionCode || entity?.collection_code);
 }
 
+function canonicalizeLegacyParsed(parsedResult, { targetSlug, baseSlug = targetSlug, formStateSlug = null }) {
+  parsedResult.legacySourceEntityType = "boss";
+  parsedResult.entityType = "character";
+  parsedResult.slug = targetSlug;
+  parsedResult.baseSlug = baseSlug;
+  parsedResult.stateType = formStateSlug ? "form" : null;
+  parsedResult.stateSlug = formStateSlug;
+  return parsedResult;
+}
+
 export function matchMediaEntity(parsedResult, catalog = {}) {
   if (!parsedResult?.valid) {
     return { matchStatus: "INVALID", matchedEntity: null, candidatesCount: 0, reason: parsedResult?.error || "INVALID_PARSED_INPUT", mediaState: null };
@@ -40,14 +50,15 @@ export function matchMediaEntity(parsedResult, catalog = {}) {
     return { matchStatus: "NOT_FOUND", matchedEntity: null, candidatesCount: 0, reason: `Coleção ${collectionCodeCanonical} não encontrada no catálogo.`, mediaState: null };
   }
 
-  // Current ZIPs still contain legacy `boss` filenames. Boss is no longer a
-  // collectible entity: after the owner migration those filenames must resolve
-  // to a Character or to a Character Form before Storage is written.
+  // Current audited ZIPs still contain legacy `boss` filenames. Boss is no
+  // longer a collectible entity, so mutate the parsed target before the commit
+  // service builds entityKey/storagePath/canonicalFilename.
   if (entityType === "boss") {
     const sameCollection = cards.filter((entry) => collectionCodeOf(entry) === collectionCodeCanonical);
     const classification = classifyLegacyBossSlug({ collectionCode: collectionCodeCanonical, bossSlug: slug }, sameCollection);
     if (classification.kind === "merge-character") {
       const targetSlug = slugifyMigrationName(classification.baseCharacter?.slug || classification.baseCharacter?.name || slug);
+      canonicalizeLegacyParsed(parsedResult, { targetSlug });
       return {
         matchStatus: "MATCHED",
         matchedEntity: classification.baseCharacter,
@@ -62,14 +73,16 @@ export function matchMediaEntity(parsedResult, catalog = {}) {
     if (classification.kind === "form") {
       const base = classification.baseCharacter;
       const targetBase = slugifyMigrationName(base?.slug || base?.name || base?.canonicalName || base?.title);
+      const targetSlug = `${targetBase}_form_${slug}`;
+      canonicalizeLegacyParsed(parsedResult, { targetSlug, baseSlug: targetBase, formStateSlug: slug });
       return {
         matchStatus: "MATCHED",
         matchedEntity: base,
         candidatesCount: 1,
         reason: "Boss legado corresponde a uma forma/estado de um personagem.",
-        mediaState: { type: "form", slug, baseSlug: targetBase, fullSlug: `${targetBase}_form_${slug}` },
+        mediaState: { type: "form", slug, baseSlug: targetBase, fullSlug: targetSlug },
         canonicalEntityType: "character",
-        canonicalSlug: `${targetBase}_form_${slug}`,
+        canonicalSlug: targetSlug,
         legacyBossProjection: "form",
       };
     }
