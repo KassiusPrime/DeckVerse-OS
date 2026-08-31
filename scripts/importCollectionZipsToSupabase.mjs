@@ -7,7 +7,7 @@ import { parseMediaFilename } from '../services/media/mediaFilenameParser.js';
 
 const EXPECTED_ZIPS = Number(process.env.EXPECTED_COLLECTION_ZIPS || 23);
 const EXPECTED_ASSETS = Number(process.env.EXPECTED_COLLECTION_ASSETS || 1402);
-const BUCKET = 'deckverse-media';
+const BUCKET = 'cards';
 const localDir = process.env.COLLECTION_ZIP_DIR || '';
 const driveToken = process.env.GOOGLE_DRIVE_ACCESS_TOKEN || '';
 const driveFolderId = process.env.GOOGLE_DRIVE_COLLECTIONS_FOLDER_ID || '';
@@ -125,14 +125,14 @@ async function analyzePackages(packages, indexes) {
         invalid.push({ package: pkg.name, file: entryName, reason: 'APPEARANCE_NOT_CANONICAL_IN_V11' });
         continue;
       } else if (parsed.stateType === 'form') {
-        if (parsed.entityType !== 'character') {
-          invalid.push({ package: pkg.name, file: entryName, reason: 'FORM_MUST_BELONG_TO_CHARACTER' });
+        if (!['character', 'boss'].includes(parsed.entityType)) {
+          invalid.push({ package: pkg.name, file: entryName, reason: 'FORM_BASE_TYPE_UNSUPPORTED' });
           continue;
         }
-        const baseCard = indexes.cardsByKey.get(`${parsed.collectionCodeCanonical}|character|${parsed.baseSlug}`);
+        const baseCard = indexes.cardsByKey.get(`${parsed.collectionCodeCanonical}|${parsed.entityType}|${parsed.baseSlug}`);
         const form = baseCard ? indexes.formsByKey.get(`${baseCard.id}|${parsed.stateSlug}`) : null;
         if (!baseCard || !form) {
-          invalid.push({ package: pkg.name, file: entryName, reason: `FORM_TARGET_NOT_FOUND:${parsed.baseSlug}:${parsed.stateSlug}` });
+          invalid.push({ package: pkg.name, file: entryName, reason: `FORM_TARGET_NOT_FOUND:${parsed.entityType}:${parsed.baseSlug}:${parsed.stateSlug}` });
           continue;
         }
         target = { kind: 'form', collection, card: baseCard, form };
@@ -182,7 +182,8 @@ async function commitFile(file) {
   if (!mime) return { status: 'invalid', file: file.entryName, reason: 'UNSUPPORTED_MAGIC_BYTES' };
   const sha256 = crypto.createHash('sha256').update(bytes).digest('hex');
   const safeFilename = cleanName(file.entryName);
-  const storagePath = `${file.parsed.collectionCodeCanonical}/${file.parsed.entityType}/${safeFilename}`;
+  const storageFolder = file.parsed.stateType === 'form' ? 'form' : file.parsed.entityType;
+  const storagePath = `${file.parsed.collectionCodeCanonical}/${storageFolder}/${safeFilename}`;
 
   const upload = await supabase.storage.from(BUCKET).upload(storagePath, bytes, { contentType: mime, upsert: false, cacheControl: '31536000' });
   let existed = false;
