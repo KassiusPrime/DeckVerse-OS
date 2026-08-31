@@ -32,30 +32,32 @@ create policy media_assets_admin_read on public.media_assets for select to authe
 create policy media_assets_admin_write on public.media_assets for all to authenticated using (app_private.is_admin()) with check (app_private.is_admin());
 grant select, insert, update, delete on public.media_assets to authenticated;
 
--- Public artwork bucket. Public means the image bytes can be rendered in cards;
--- upload/delete still require an authenticated admin or service-role backend.
+-- Public artwork bucket. Public downloads are intentional; writes remain admin-only.
 insert into storage.buckets(id, name, public, file_size_limit, allowed_mime_types)
-values ('deckverse-media', 'deckverse-media', true, 26214400, array['image/jpeg','image/png','image/webp'])
-on conflict (id) do nothing;
+values ('cards', 'cards', true, 26214400, array['image/jpeg','image/png','image/webp'])
+on conflict (id) do update set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
 
-drop policy if exists deckverse_media_admin_insert on storage.objects;
-drop policy if exists deckverse_media_admin_update on storage.objects;
-drop policy if exists deckverse_media_admin_delete on storage.objects;
-drop policy if exists deckverse_media_admin_select on storage.objects;
+drop policy if exists deckverse_cards_admin_insert on storage.objects;
+drop policy if exists deckverse_cards_admin_update on storage.objects;
+drop policy if exists deckverse_cards_admin_delete on storage.objects;
+drop policy if exists deckverse_cards_admin_select on storage.objects;
 
-create policy deckverse_media_admin_insert on storage.objects
+create policy deckverse_cards_admin_insert on storage.objects
 for insert to authenticated
-with check (bucket_id = 'deckverse-media' and app_private.is_admin());
+with check (bucket_id = 'cards' and app_private.is_admin());
 
-create policy deckverse_media_admin_update on storage.objects
+create policy deckverse_cards_admin_update on storage.objects
 for update to authenticated
-using (bucket_id = 'deckverse-media' and app_private.is_admin())
-with check (bucket_id = 'deckverse-media' and app_private.is_admin());
+using (bucket_id = 'cards' and app_private.is_admin())
+with check (bucket_id = 'cards' and app_private.is_admin());
 
-create policy deckverse_media_admin_delete on storage.objects
+create policy deckverse_cards_admin_delete on storage.objects
 for delete to authenticated
-using (bucket_id = 'deckverse-media' and app_private.is_admin());
+using (bucket_id = 'cards' and app_private.is_admin());
 
-create policy deckverse_media_admin_select on storage.objects
+create policy deckverse_cards_admin_select on storage.objects
 for select to authenticated
-using (bucket_id = 'deckverse-media' and app_private.is_admin());
+using (bucket_id = 'cards' and app_private.is_admin());
