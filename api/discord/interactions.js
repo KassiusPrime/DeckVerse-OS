@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { InteractionResponseType, InteractionType, verifyKey } from 'discord-interactions';
 
 const PAGE_SIZE = 5;
+const DEFAULT_SUPABASE_URL = 'https://rrujnjraonckjdtpsfol.supabase.co';
 
 async function readRawBody(req) {
   const chunks = [];
@@ -10,9 +11,9 @@ async function readRawBody(req) {
 }
 
 function adminClient() {
-  const url = process.env.SUPABASE_URL;
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) throw new Error('SUPABASE_SERVER_CONFIG_MISSING');
+  if (!key) throw new Error('SUPABASE_SERVER_CONFIG_MISSING');
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
