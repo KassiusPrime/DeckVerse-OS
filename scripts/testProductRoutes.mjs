@@ -12,7 +12,7 @@ const commandPalette = read('CommandPalette.jsx');
 
 const requiredRoutes = ['/', '/login', '/auth/callback', '/collections', '/collections/:collectionCode', '/characters', '/forms', '/items', '/bosses', '/gacha', '/my-collection', '/card/:id', '/profile', '/support', '/admin', '/adm'];
 const publicPrimary = ['/collections', '/characters', '/forms', '/items', '/gacha', '/support'];
-const removedLegacyRoutes = ['/arena', '/market', '/guilds', '/battles', '/ranking', '/synergy', '/upgrade', '/store', '/dashboard', '/fandom'];
+const removedLegacyRoutes = ['/arena', '/market', '/guilds', '/battles', '/ranking', '/synergy', '/upgrade', '/store', '/dashboard', '/fandom', '/settings'];
 
 const routes = new Set([...app.matchAll(/<Route\s+path="([^"]+)"/g)].map((match) => match[1]));
 const failures = [];
@@ -22,7 +22,7 @@ for (const route of removedLegacyRoutes) if (routes.has(route)) failures.push(`L
 
 if (!app.includes('<AdminRouteGuard><AdminSupabase /></AdminRouteGuard>')) failures.push('/admin is not protected by the Supabase admin guard.');
 if (!app.includes('<Navigate to="/admin" replace />')) failures.push('/adm does not redirect to /admin.');
-for (const legacyComponent of ['AdminTerminal', 'CRTTerminalOverlay', 'BackgroundSyncIndicator', 'FandomImporter', 'Dashboard', 'Arena', 'Market', 'Guilds']) {
+for (const legacyComponent of ['AdminTerminal', 'CRTTerminalOverlay', 'BackgroundSyncIndicator', 'FandomImporter', 'Dashboard', 'Arena', 'Market', 'Guilds', 'Settings']) {
   if (app.includes(legacyComponent)) failures.push(`Legacy runtime component is still imported/mounted: ${legacyComponent}`);
 }
 if (!navbar.includes('isAdmin &&')) failures.push('Admin navigation is not conditioned by Supabase role.');
