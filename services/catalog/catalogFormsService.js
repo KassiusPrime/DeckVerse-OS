@@ -1,15 +1,11 @@
 import { parseMediaFilename } from "../media/mediaFilenameParser.js";
 import { collectionMatches, getEntityCollectionCode, slugifyCatalogName } from "./catalogDataService.js";
+import { classifyLegacyBoss } from "../migration/bossMigrationPolicy.js";
 
 const normalize = (value) => String(value ?? "").trim().toLowerCase();
 
 export function prettifyFormName(value = "") {
-  return String(value || "")
-    .replace(/^form[_\s-]*/i, "")
-    .replace(/[_-]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+  return String(value || "").replace(/^form[_\s-]*/i, "").replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim().replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function directImage(entity) {
@@ -27,9 +23,7 @@ function makeCharacterIndex(characters = []) {
     if (!code) continue;
     const nameSlug = slugifyCatalogName(character?.name || character?.canonicalName || character?.title || "");
     const explicitSlug = slugifyCatalogName(character?.slug || "");
-    for (const slug of [nameSlug, explicitSlug].filter(Boolean)) {
-      byCodeAndSlug.set(`${code}|${slug}`, character);
-    }
+    for (const slug of [nameSlug, explicitSlug].filter(Boolean)) byCodeAndSlug.set(`${code}|${slug}`, character);
   }
   return byCodeAndSlug;
 }
@@ -43,7 +37,7 @@ function findLongestBaseCharacter(characters = [], collectionCode, formSlug = ""
     if (getCollectionCode(character) !== collectionCode) continue;
     const slug = slugifyCatalogName(character?.slug || character?.name || character?.canonicalName || character?.title || "");
     if (!slug) continue;
-    if ((target === slug || target.startsWith(`${slug}_`) || target.includes(`_${slug}_`)) && slug.length > bestLength) {
+    if ((target === slug || target.startsWith(`${slug}_`) || target.endsWith(`_${slug}`) || target.includes(`_${slug}_`)) && slug.length > bestLength) {
       best = character;
       bestLength = slug.length;
     }
@@ -84,7 +78,7 @@ export function deriveCatalogForms(snapshot = {}) {
 
   for (const record of mediaIndex) {
     if (!record || record.status === "deleted" || !record.downloadURL) continue;
-    const filename = record.originalFilename || record.canonicalFilename || record.filename || "";
+    const filename = record.canonicalFilename || record.originalFilename || record.filename || "";
     const parsed = parseMediaFilename(filename);
     if (!parsed.valid || parsed.entityType !== "character" || parsed.stateType !== "form") continue;
     const collectionCode = parsed.collectionCodeCanonical;
@@ -103,22 +97,25 @@ export function deriveCatalogForms(snapshot = {}) {
     });
   }
 
-  // Boss remains a compatibility-only backend entity. In the public product it is
-  // projected as a combat form/state until the catalog migration links every
-  // legacy boss record to CharacterVersion or a canonical character.
+  // Compatibility window only: an unmigrated legacy Boss is shown as a Form
+  // *only* when the semantic migration policy can identify a real base character.
+  // Independent bosses disappear from this surface until they are migrated into Character.
   for (const boss of bosses) {
-    const collectionCode = getCollectionCode(boss);
-    const bossSlug = slugifyCatalogName(boss?.slug || boss?.name || boss?.canonicalName || boss?.title || "");
-    const baseCharacter = findLongestBaseCharacter(characters, collectionCode, bossSlug);
+    const classification = classifyLegacyBoss(boss, characters);
+    if (classification.kind !== "form" || !classification.baseCharacter) continue;
+    const collectionCode = classification.collectionCode;
+    const baseCharacter = classification.baseCharacter;
+    const bossSlug = classification.bossSlug;
+    const baseSlug = slugifyCatalogName(baseCharacter?.slug || baseCharacter?.name || baseCharacter?.canonicalName || baseCharacter?.title || "");
     forms.push({
       ...boss,
       id: `legacy-boss-form:${boss?.id || collectionCode}:${bossSlug}`,
       name: boss?.name || boss?.canonicalName || boss?.title || prettifyFormName(bossSlug),
-      baseName: baseCharacter?.name || baseCharacter?.canonicalName || boss?.baseName || boss?.character_name || "Estado de combate",
+      baseName: baseCharacter?.name || baseCharacter?.canonicalName || "Personagem",
       baseCharacterId: baseCharacter?.id || baseCharacter?.card_id || null,
       collectionCode,
-      mediaSlug: bossSlug,
-      entityType: "boss",
+      mediaSlug: `${baseSlug}_form_${bossSlug}`,
+      entityType: "character",
       sourceType: "legacy-boss-form",
       legacyBoss: true,
       image_url: directImage(boss),
@@ -146,10 +143,7 @@ export function formMatchesCollection(form, collection) {
   if (!form || !collection) return false;
   if (collectionMatches(form, collection)) return true;
   const code = normalize(form.collectionCode);
-  return [collection.code, collection.collectionCode, collection.id]
-    .filter(Boolean)
-    .map(normalize)
-    .includes(code);
+  return [collection.code, collection.collectionCode, collection.id].filter(Boolean).map(normalize).includes(code);
 }
 
 export default { deriveCatalogForms, formMatchesCollection, prettifyFormName };
