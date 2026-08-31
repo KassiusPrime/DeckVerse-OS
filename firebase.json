@@ -1,0 +1,21 @@
+{
+  "$schema": "https://raw.githubusercontent.com/firebase/firebase-tools/master/schema/firebase-config.json",
+  "firestore": [
+    {
+      "database": "ai-studio-deckverseos-a5ef7c07-be10-4019-8076-6306dc380d8a",
+      "rules": "firestore.rules"
+    }
+  ],
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "auth": {
+    "providers": {
+      "emailPassword": true,
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "DeckVerse",
+        "supportEmail": "cassianokaique9@gmail.com"
+      }
+    }
+  }
+}
