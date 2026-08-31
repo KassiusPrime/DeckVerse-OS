@@ -93,7 +93,7 @@ export async function loadPublicCatalog() {
   const supabase = getSupabaseBrowserClient();
   const [collectionsResult, cardsResult, formsResult] = await Promise.all([
     supabase.from('collections').select('id, name, description, category, cover_url').eq('is_active', true).order('name'),
-    supabase.from('cards').select('id, collection_id, name, entity_type, rarity, role, atk, def, mag, speed, hp, image_url, description, collections(name)').eq('is_active', true).order('name'),
+    supabase.from('cards').select('id, collection_id, name, entity_type, rarity, role, atk, def, mag, speed, hp, image_url, description, collections!inner(name, is_active)').eq('is_active', true).eq('collections.is_active', true).order('name'),
     supabase.from('card_forms').select('id, card_id, name, rarity, image_url, description, order_index, cards!inner(name, entity_type, collection_id, is_active, collections!inner(is_active))').eq('is_active', true).eq('cards.is_active', true).eq('cards.collections.is_active', true).order('order_index'),
   ]);
   if (collectionsResult.error) throw collectionsResult.error;
