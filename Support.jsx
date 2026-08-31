@@ -6,16 +6,17 @@ const ENTRIES = [
   { group: 'Começando', title: 'Como entro no DeckVerse?', body: 'Use Entrar com Discord. O Discord identifica sua conta; depois você pode definir um Display Name próprio no perfil.' },
   { group: 'Conta', title: 'Posso trocar meu apelido?', body: 'Sim. O Display Name do DeckVerse é independente do username/tag do Discord e pode ser alterado pelo perfil.' },
   { group: 'Gacha', title: 'O que é Sorte Cósmica?', body: 'É o pity adaptativo. A cada giro sem um drop de tier alto, seu contador aumenta e melhora progressivamente a chance de raridades superiores dentro dos limites definidos pela configuração do jogo.' },
-  { group: 'Gacha', title: 'Como funcionam rolls em lote?', body: 'Você pode usar o botão de múltiplos giros ou o comando $rolls. O limite do lote cresce com o Nível da Conta e é validado no servidor.' },
+  { group: 'Gacha', title: 'Como funcionam rolls em lote?', body: 'Você pode usar o botão de múltiplos giros no site ou o comando /rolls no Discord. O limite do lote cresce com o Nível da Conta e é validado no servidor.' },
   { group: 'Economia', title: 'Fragmentos Astrais', body: 'Moeda comum obtida em atividade, reciclagem e recompensas de jogo. É a moeda padrão de giros comuns.' },
   { group: 'Economia', title: 'Núcleos de Éter', body: 'Moeda premium obtida em eventos, vitórias e marcos. O uso e os custos são configurados pelo sistema de jogo.' },
   { group: 'Progressão', title: 'Como o PWR é calculado?', body: 'O Poder Total considera atributos das cartas equipadas e bônus de coleção. O cálculo oficial é feito no backend para evitar manipulação no navegador.' },
-  { group: 'Coleções', title: 'Por que não vejo códigos como COL-01-JJK?', body: 'Códigos internos e UUIDs são detalhes técnicos. A interface pública mostra apenas nomes, arte, raridade e atributos relevantes.' },
-  { group: 'Comandos', title: '$roll', body: 'Executa um giro individual usando a moeda padrão configurada.' },
-  { group: 'Comandos', title: '$rolls 10', body: 'Executa até 10 giros de uma vez, respeitando o limite do seu nível e o saldo disponível.' },
-  { group: 'Comandos', title: '$inventory', body: 'Mostra seu inventário no Discord com paginação por botões.' },
-  { group: 'Comandos', title: '$profile', body: 'Mostra nível, PWR, moedas e Sorte Cósmica.' },
-  { group: 'Segurança', title: 'Administradores conseguem alterar economia?', body: 'Sim, mas ajustes passam por funções protegidas, RLS e ledger de auditoria. O navegador não recebe a chave service_role.' },
+  { group: 'Coleções', title: 'Por que não vejo códigos internos?', body: 'Códigos de coleção, chaves do banco e UUIDs são detalhes técnicos. A interface pública mostra nomes, arte, raridade e atributos relevantes.' },
+  { group: 'Comandos', title: '/roll', body: 'Executa um giro individual usando a moeda selecionada ou a moeda padrão.' },
+  { group: 'Comandos', title: '/rolls quantidade:10', body: 'Executa giros em lote, respeitando o limite do seu nível e o saldo disponível.' },
+  { group: 'Comandos', title: '/inventory', body: 'Mostra seu inventário no Discord com paginação por botões interativos.' },
+  { group: 'Comandos', title: '/profile', body: 'Mostra nível, PWR, moedas, Sorte Cósmica e pity.' },
+  { group: 'Comandos', title: 'E os comandos antigos com $?', body: 'No site e na documentação antiga você pode encontrar exemplos como $rolls. Na arquitetura hospedada na Vercel o bot usa slash commands do Discord, como /rolls, porque eles funcionam por Interactions HTTP sem exigir um processo Gateway permanente.' },
+  { group: 'Segurança', title: 'Administradores conseguem alterar economia?', body: 'Sim, mas ajustes passam por funções protegidas, RLS e ledger de auditoria. O navegador nunca recebe a chave service_role.' },
 ];
 
 export default function Support() {
@@ -35,7 +36,7 @@ export default function Support() {
           <p className="mt-4 max-w-3xl text-sm leading-7 text-muted-foreground">Pesquise por gacha, pity, inventário, moedas, comandos ou progressão.</p>
           <label className="relative mt-7 block max-w-3xl">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Ex.: $rolls, Sorte Cósmica, Fragmentos Astrais…" className="h-14 w-full rounded-2xl border border-border bg-background pl-12 pr-4 text-sm outline-none transition focus:border-primary/60 focus:ring-2 focus:ring-primary/15" />
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Ex.: /rolls, Sorte Cósmica, Fragmentos Astrais…" className="h-14 w-full rounded-2xl border border-border bg-background pl-12 pr-4 text-sm outline-none transition focus:border-primary/60 focus:ring-2 focus:ring-primary/15" />
           </label>
         </section>
 
