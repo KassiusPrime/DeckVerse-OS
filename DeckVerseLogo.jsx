@@ -37,7 +37,7 @@ export default function DeckVerseLogo({ size = "md", showTagline = true, classNa
             DECK<span className="text-primary">VERSE</span>
           </div>
           {showTagline && (
-            <div className={`${styles.tagline} mt-1 font-mono font-semibold uppercase tracking-[0.2em] text-muted-foreground`}>
+            <div className={`${styles.tagline} mt-1 font-mono font-semibold uppercase tracking-[0.2em] text-foreground/80`}>
               Multiverse Archive
             </div>
           )}
