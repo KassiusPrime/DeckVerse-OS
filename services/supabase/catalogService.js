@@ -33,6 +33,20 @@ export function toPublicCard(row) {
   };
 }
 
+export function toPublicForm(row) {
+  return {
+    id: row.id,
+    cardId: row.card_id,
+    name: row.name,
+    rarity: row.rarity || '',
+    imageUrl: row.image_url || '',
+    description: row.description || '',
+    order: Number(row.order_index || 1),
+    collectionId: row.cards?.collection_id || '',
+    baseName: row.cards?.name || '',
+  };
+}
+
 export async function loadPublicCatalog() {
   if (!isSupabaseConfigured()) {
     const { db } = await import('../../deckverseClient.js');
@@ -51,21 +65,43 @@ export async function loadPublicCatalog() {
     ]
       .filter((entry) => !isRetired(entry.collection_id || entry.collectionCode))
       .map((entry) => toPublicCard({ ...entry, atk: entry.atk ?? entry.attack, def: entry.def ?? entry.defense, collections: { name: namesById.get(entry.collection_id || entry.collectionCode) || '' } }));
-    return { source: 'LEGACY_READ_ONLY', collections: visibleCollections.map(toPublicCollection), cards: mappedCards };
+
+    const legacyForms = [];
+    for (const card of cards || []) {
+      for (const form of Array.isArray(card.forms) ? card.forms : []) {
+        const normalized = typeof form === 'string' ? { name: form } : form || {};
+        legacyForms.push({
+          id: normalized.id || `${card.id || card.card_id}:${normalized.name || normalized.title || 'form'}`,
+          cardId: card.id || card.card_id,
+          name: normalized.name || normalized.title || 'Forma',
+          rarity: normalized.rarity || '',
+          imageUrl: normalized.image_url || normalized.imageUrl || '',
+          description: normalized.description || normalized.lore || '',
+          order: Number(normalized.order || normalized.order_index || 1),
+          collectionId: card.collection_id || card.collectionCode || '',
+          baseName: card.name || '',
+        });
+      }
+    }
+    return { source: 'LEGACY_READ_ONLY', collections: visibleCollections.map(toPublicCollection), cards: mappedCards, forms: legacyForms };
   }
 
   const supabase = getSupabaseBrowserClient();
-  const [{ data: collections, error: collectionsError }, { data: cards, error: cardsError }] = await Promise.all([
+  const [collectionsResult, cardsResult, formsResult] = await Promise.all([
     supabase.from('collections').select('id, name, description, category, cover_url').eq('is_active', true).order('name'),
     supabase.from('cards').select('id, collection_id, name, entity_type, rarity, role, atk, def, mag, speed, hp, image_url, description, collections(name)').eq('is_active', true).order('name'),
+    supabase.from('card_forms').select('id, card_id, name, rarity, image_url, description, order_index, cards!inner(name, collection_id, is_active, collections!inner(is_active))').eq('is_active', true).eq('cards.is_active', true).eq('cards.collections.is_active', true).order('order_index'),
   ]);
-  if (collectionsError) throw collectionsError;
-  if (cardsError) throw cardsError;
+  if (collectionsResult.error) throw collectionsResult.error;
+  if (cardsResult.error) throw cardsResult.error;
+  if (formsResult.error) throw formsResult.error;
+
   return {
     source: 'SUPABASE',
-    collections: (collections || []).filter((entry) => !isRetired(entry.id)).map(toPublicCollection),
-    cards: (cards || []).filter((entry) => !isRetired(entry.collection_id)).map(toPublicCard),
+    collections: (collectionsResult.data || []).filter((entry) => !isRetired(entry.id)).map(toPublicCollection),
+    cards: (cardsResult.data || []).filter((entry) => !isRetired(entry.collection_id)).map(toPublicCard),
+    forms: (formsResult.data || []).filter((entry) => !isRetired(entry.cards?.collection_id)).map(toPublicForm),
   };
 }
 
-export default { loadPublicCatalog, toPublicCollection, toPublicCard };
+export default { loadPublicCatalog, toPublicCollection, toPublicCard, toPublicForm };
