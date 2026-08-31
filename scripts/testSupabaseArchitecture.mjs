@@ -28,6 +28,7 @@ const bootstrap = read('supabase/bootstrap.sql');
 const botSql = read('supabase/discord_bot.sql');
 const seed = read('scripts/seedSupabaseLegacy.mjs');
 const discordApi = read('api/discord/interactions.js');
+const mediaSql = read('supabase/media_storage.sql');
 const publicUi = ['Catalog.jsx', 'CollectionsHub.jsx', 'FormsCatalog.jsx', 'CardDetail.jsx', 'Navbar.jsx', 'MyCollection.jsx'].map(read).join('\n');
 
 console.log('\nDeckVerse v11 — Supabase architecture certification\n');
@@ -107,11 +108,11 @@ test('Data API privileges are explicit and separate from RLS', () => {
   assert.match(bootstrap, /create policy collections_public_read/);
 });
 
-test('Discord endpoint verifies signatures before touching service-role Supabase', () => {
+test('Discord endpoint verifies signatures before instantiating service-role Supabase', () => {
   const verifyIndex = discordApi.indexOf('verifyKey(');
-  const clientIndex = discordApi.indexOf('adminClient()');
+  const clientInvocationIndex = discordApi.indexOf('const supabase = adminClient()');
   assert.ok(verifyIndex > 0);
-  assert.ok(clientIndex > verifyIndex);
+  assert.ok(clientInvocationIndex > verifyIndex);
   assert.match(discordApi, /DISCORD_PUBLIC_KEY/);
   assert.match(discordApi, /SUPABASE_SERVICE_ROLE_KEY/);
   assert.match(discordApi, /InteractionType\.MESSAGE_COMPONENT/);
@@ -128,6 +129,14 @@ test('Service role is restricted to server-side migration/bot surfaces', () => {
 test('Discord bot roll RPC cannot be executed by browser roles', () => {
   assert.match(botSql, /revoke all on function public\.bot_roll_gacha\([^;]+from public, anon, authenticated/i);
   assert.match(botSql, /grant execute on function public\.bot_roll_gacha\([^;]+to service_role/i);
+});
+
+test('Canonical artwork bucket is cards and restricted to image types', () => {
+  assert.match(mediaSql, /values \('cards', 'cards', true/);
+  assert.match(mediaSql, /image\/jpeg/);
+  assert.match(mediaSql, /image\/png/);
+  assert.match(mediaSql, /image\/webp/);
+  assert.doesNotMatch(mediaSql, /deckverse-media/);
 });
 
 console.log(`\nDeckVerse Supabase certification: ${passed} checks passed.\n`);
