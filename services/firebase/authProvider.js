@@ -86,7 +86,6 @@ class AuthProvider {
       await setDoc(doc(getFirestoreDb(), "users", firebaseUser.uid), payload, { merge: true });
       return payload;
     } catch (error) {
-      // Authentication remains valid even if an old deployment has not received the new rules yet.
       console.warn("[AuthProvider] User profile sync failed:", error?.message || error);
       return existing || payload;
     }
@@ -116,8 +115,10 @@ class AuthProvider {
   async getCurrentUser() {
     const mode = getStorageMode();
     if (mode === "local") {
+      // Explicit local mode is a developer/test tool only. Production defaults
+      // to Firebase whenever the project is configured.
       const localMe = await localDb.auth.me();
-      return { ...localMe, uid: localMe.id, isOwner: false, isAdmin: false, role: "user", status: "active" };
+      return { ...localMe, uid: localMe.id, isOwner: false, isAdmin: true, role: "admin", status: "active" };
     }
     this.initializeListener();
     if (this.currentUser) return this.currentUser;
