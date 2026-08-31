@@ -5,7 +5,6 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { queryClientInstance } from "./query-client";
 import PageNotFound from "./PageNotFound";
 import { AuthProvider, useAuth } from "./AuthContext";
-import UserNotRegisteredError from "./UserNotRegisteredError";
 import { TacticalToastContainer } from "./TacticalToast";
 import BottomNav from "./BottomNav";
 import CommandPalette from "./CommandPalette";
@@ -16,6 +15,8 @@ import FormsCatalog from "./FormsCatalog";
 import CardDetail from "./CardDetail";
 import MyCollection from "./MyCollection";
 import Admin from "./Admin";
+import OwnerConsole from "./OwnerConsole";
+import Login from "./Login";
 import Settings from "./Settings";
 import Profile from "./Profile";
 import LoreArchive from "./pages/LoreArchive";
@@ -36,13 +37,9 @@ import GlobalRanking from "./GlobalRanking";
 import GemShop from "./GemShop";
 import Dashboard from "./Dashboard";
 import Inventory from "./Inventory";
-import AdminTerminal from "./AdminTerminal";
-import CRTTerminalOverlay, { pushCRTLog } from "./CRTTerminalOverlay";
-import { backgroundSyncService } from "./services/sync/backgroundSyncService";
-import BackgroundSyncIndicator from "./components/BackgroundSyncIndicator";
 
-const AdminRouteGuard = ({ children }) => {
-  const { isAuthenticated, isLoadingAuth, user } = useAuth();
+const OwnerRouteGuard = ({ children, returnTo = "/owner" }) => {
+  const { isAuthenticated, isLoadingAuth, isOwner } = useAuth();
   if (isLoadingAuth) {
     return (
       <main className="mx-auto flex min-h-[70vh] max-w-xl flex-col items-center justify-center px-5 text-center">
@@ -51,18 +48,8 @@ const AdminRouteGuard = ({ children }) => {
       </main>
     );
   }
-
-  const isActiveAdmin = isAuthenticated && user?.role === "admin" && user?.status !== "inactive" && user?.status !== "disabled";
-  if (!isActiveAdmin) {
-    return (
-      <main className="mx-auto flex min-h-[70vh] max-w-xl flex-col items-center justify-center px-5 text-center">
-        <div className="rounded-full border border-destructive/30 bg-destructive/10 px-3 py-1 text-xs font-extrabold uppercase tracking-[0.14em] text-destructive">Área administrativa</div>
-        <h1 className="mt-4 text-3xl font-black tracking-tight text-foreground">Você não tem acesso a esta área</h1>
-        <p className="mt-3 text-sm leading-6 text-muted-foreground">Entre com uma conta de administrador ativa para continuar.</p>
-        <a href="/" className="mt-6 inline-flex min-h-11 items-center rounded-xl bg-primary px-4 text-sm font-extrabold text-primary-foreground">Voltar ao início</a>
-      </main>
-    );
-  }
+  if (!isAuthenticated) return <Navigate to={`/login?returnTo=${encodeURIComponent(returnTo)}`} replace />;
+  if (!isOwner) return <PageNotFound />;
   return children;
 };
 
@@ -78,6 +65,7 @@ function AnimatedRoutes() {
       <motion.div key={location.pathname} className="min-h-screen pb-24 md:pb-0" {...motionProps}>
         <Routes location={location}>
           <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
           <Route path="/collections" element={<CollectionsHub />} />
           <Route path="/collections/:collectionCode" element={<CollectionsHub />} />
           <Route path="/characters" element={<Catalog initialType="characters" />} />
@@ -89,11 +77,14 @@ function AnimatedRoutes() {
           <Route path="/settings" element={<Settings />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/lore" element={<LoreArchive />} />
-          <Route path="/fandom" element={<AdminRouteGuard><FandomImporter /></AdminRouteGuard>} />
-          <Route path="/admin" element={<AdminRouteGuard><Admin /></AdminRouteGuard>} />
-          <Route path="/adm" element={<Navigate to="/admin" replace />} />
 
-          {/* Legacy routes remain reachable during the product migration, but are no longer primary navigation. */}
+          <Route path="/owner" element={<OwnerRouteGuard><OwnerConsole /></OwnerRouteGuard>} />
+          <Route path="/owner/advanced" element={<OwnerRouteGuard returnTo="/owner/advanced"><Admin /></OwnerRouteGuard>} />
+          <Route path="/owner/fandom" element={<OwnerRouteGuard returnTo="/owner/fandom"><FandomImporter /></OwnerRouteGuard>} />
+          <Route path="/admin" element={<Navigate to="/owner" replace />} />
+          <Route path="/adm" element={<Navigate to="/owner" replace />} />
+          <Route path="/fandom" element={<Navigate to="/owner/fandom" replace />} />
+
           <Route path="/roster" element={<Roster />} />
           <Route path="/inventory" element={<Inventory />} />
           <Route path="/gacha" element={<GachaDrop />} />
@@ -118,24 +109,7 @@ function AnimatedRoutes() {
 }
 
 function ProductRuntime() {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, user, isAuthenticated } = useAuth();
-  const isActiveAdmin = isAuthenticated && user?.role === "admin" && user?.status !== "inactive" && user?.status !== "disabled";
-
-  React.useEffect(() => {
-    if (!isActiveAdmin) return;
-    let cancelled = false;
-    const runBootSync = async () => {
-      try {
-        pushCRTLog("[SYNC] Inicializando auditoria administrativa...", "INFO");
-        await backgroundSyncService.startBackgroundSync("BOOT");
-      } catch (error) {
-        if (!cancelled) console.warn("Background sync warning:", error?.message || error);
-      }
-    };
-    runBootSync();
-    return () => { cancelled = true; };
-  }, [isActiveAdmin]);
-
+  const { isLoadingAuth, isLoadingPublicSettings } = useAuth();
   if (isLoadingPublicSettings || isLoadingAuth) {
     return (
       <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background">
@@ -145,16 +119,11 @@ function ProductRuntime() {
     );
   }
 
-  if (authError?.type === "user_not_registered") return <UserNotRegisteredError />;
-
   return (
     <>
       <AnimatedRoutes />
       <BottomNav />
       <CommandPalette />
-      {isActiveAdmin && <AdminTerminal />}
-      {isActiveAdmin && <CRTTerminalOverlay />}
-      {isActiveAdmin && <BackgroundSyncIndicator />}
     </>
   );
 }
