@@ -4,6 +4,7 @@ import fs from 'node:fs';
 const read = (file) => fs.readFileSync(file, 'utf8');
 const sql = read('supabase/publication_readiness.sql');
 const entitySql = read('supabase/entity_publication_readiness.sql');
+const gachaSql = read('supabase/gacha_rarity_readiness.sql');
 const catalog = read('services/supabase/catalogService.js');
 const botSql = read('supabase/discord_bot.sql');
 
@@ -36,6 +37,12 @@ test('entity gate only targets cards whose parent collection is currently publis
   assert.match(entitySql, /collection\.is_active\s*=\s*true/i);
 });
 
+test('gacha accepts only the official curated rarity scale', () => {
+  assert.match(gachaSql, /is_gacha_enabled\s*=\s*false/i);
+  assert.match(gachaSql, /not\s+in\s*\('R',\s*'SR',\s*'SSR',\s*'UR',\s*'LR',\s*'MR'\)/i);
+  assert.doesNotMatch(gachaSql, /delete\s+from|drop\s+table|truncate\s+/i);
+});
+
 test('public cards require an active parent collection', () => {
   assert.match(catalog, /collections!inner\(name, is_active\)/);
   assert.match(catalog, /\.eq\('collections\.is_active', true\)/);
@@ -47,7 +54,7 @@ test('public forms require both active base entity and active parent collection'
   assert.match(catalog, /\.eq\('cards\.collections\.is_active', true\)/);
 });
 
-test('gacha never selects cards from parked collections', () => {
+test('gacha never selects parked cards or cards from parked collections', () => {
   assert.match(botSql, /collection_id\s+in\s*\(select id from public\.collections where is_active\)/i);
   assert.match(botSql, /where is_active and is_gacha_enabled/i);
 });
