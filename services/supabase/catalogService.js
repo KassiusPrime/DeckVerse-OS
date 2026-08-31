@@ -15,11 +15,13 @@ export function toPublicCollection(row) {
 }
 
 export function toPublicCard(row) {
+  const rarity = String(row.rarity || '').trim();
   return {
     id: row.id,
     name: row.name,
     entityType: row.entity_type || 'character',
-    rarity: row.rarity || 'R',
+    rarity,
+    rarityReviewed: Boolean(rarity),
     role: row.role || '',
     atk: Number(row.atk || 0),
     def: Number(row.def || 0),
@@ -44,6 +46,7 @@ export function toPublicForm(row) {
     order: Number(row.order_index || 1),
     collectionId: row.cards?.collection_id || '',
     baseName: row.cards?.name || '',
+    baseEntityType: row.cards?.entity_type || 'character',
   };
 }
 
@@ -67,7 +70,7 @@ export async function loadPublicCatalog() {
       .map((entry) => toPublicCard({ ...entry, atk: entry.atk ?? entry.attack, def: entry.def ?? entry.defense, collections: { name: namesById.get(entry.collection_id || entry.collectionCode) || '' } }));
 
     const legacyForms = [];
-    for (const card of cards || []) {
+    for (const card of [...(cards || []), ...(bosses || [])]) {
       for (const form of Array.isArray(card.forms) ? card.forms : []) {
         const normalized = typeof form === 'string' ? { name: form } : form || {};
         legacyForms.push({
@@ -80,6 +83,7 @@ export async function loadPublicCatalog() {
           order: Number(normalized.order || normalized.order_index || 1),
           collectionId: card.collection_id || card.collectionCode || '',
           baseName: card.name || '',
+          baseEntityType: card.entity_type || (bosses || []).includes(card) ? 'boss' : 'character',
         });
       }
     }
@@ -90,7 +94,7 @@ export async function loadPublicCatalog() {
   const [collectionsResult, cardsResult, formsResult] = await Promise.all([
     supabase.from('collections').select('id, name, description, category, cover_url').eq('is_active', true).order('name'),
     supabase.from('cards').select('id, collection_id, name, entity_type, rarity, role, atk, def, mag, speed, hp, image_url, description, collections(name)').eq('is_active', true).order('name'),
-    supabase.from('card_forms').select('id, card_id, name, rarity, image_url, description, order_index, cards!inner(name, collection_id, is_active, collections!inner(is_active))').eq('is_active', true).eq('cards.is_active', true).eq('cards.collections.is_active', true).order('order_index'),
+    supabase.from('card_forms').select('id, card_id, name, rarity, image_url, description, order_index, cards!inner(name, entity_type, collection_id, is_active, collections!inner(is_active))').eq('is_active', true).eq('cards.is_active', true).eq('cards.collections.is_active', true).order('order_index'),
   ]);
   if (collectionsResult.error) throw collectionsResult.error;
   if (cardsResult.error) throw cardsResult.error;
