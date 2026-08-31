@@ -22,6 +22,7 @@
     "typecheck": "tsc -p ./jsconfig.json",
     "preview": "vite preview",
     "seed:supabase": "node scripts/seedSupabaseLegacy.mjs",
+    "media:import:supabase": "node scripts/importCollectionZipsToSupabase.mjs",
     "discord:register": "node scripts/registerDiscordCommands.mjs"
   },
   "dependencies": {
