@@ -1,0 +1,96 @@
+name: Fix catalog ID collision
+
+on:
+  push:
+    branches:
+      - fix/catalog-unique-ids
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Fix Dark Souls item identity
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('src/data/megaCollectionsData.js')
+          text = p.read_text()
+          old = '{ id: "item_ds_1", item_code: "DS-ITM-001", name: "Frasco de Estus"'
+          new = '{ id: "item_dark_souls_1", item_code: "DARKSOULS-ITM-001", name: "Frasco de Estus"'
+          if text.count(old) != 1:
+              raise SystemExit(f'Expected exactly one Dark Souls collision row, found {text.count(old)}')
+          p.write_text(text.replace(old, new))
+          PY
+      - name: Add permanent catalog identity test
+        run: |
+          cat > scripts/testCatalogUniqueIds.mjs <<'EOF'
+          import assert from 'node:assert/strict';
+          import { MEGA_COLLECTIONS, MEGA_ITEMS, MEGA_BOSSES, generateExpandedCards } from '../src/data/megaCollectionsData.js';
+
+          const collectionAliases = new Set();
+          for (const collection of MEGA_COLLECTIONS || []) {
+            for (const value of [collection.id, collection.code, collection.collection_code, collection.collection_id, collection.slug, ...(Array.isArray(collection.aliases) ? collection.aliases : [])]) {
+              if (value) collectionAliases.add(String(value).trim().toLowerCase());
+            }
+          }
+
+          const rows = [
+            ...generateExpandedCards().map((row) => ({ ...row, _source: 'character' })),
+            ...(MEGA_ITEMS || []).map((row) => ({ ...row, _source: 'item' })),
+            ...(MEGA_BOSSES || []).map((row) => ({ ...row, _source: 'boss' })),
+          ];
+
+          const ids = new Map();
+          const technicalCodes = new Map();
+          for (const row of rows) {
+            const id = String(row.id ?? row.card_id ?? row.item_id ?? row.boss_id ?? '').trim();
+            const name = String(row.name ?? row.title ?? '').trim();
+            assert.ok(id, `${row._source} without primary ID: ${name || '<unnamed>'}`);
+            assert.ok(name, `${row._source} ${id} has no name`);
+            const previous = ids.get(id);
+            assert.equal(previous, undefined, `Duplicate catalog ID ${id}: ${previous?.name || 'unknown'} (${previous?.source || '?'}) vs ${name} (${row._source})`);
+            ids.set(id, { name, source: row._source });
+
+            const collection = row.collection_id ?? row.collection_code ?? row.collectionCode ?? row.collection;
+            if (collection) assert.ok(collectionAliases.has(String(collection).trim().toLowerCase()), `Unknown collection reference ${collection} on ${id}`);
+
+            for (const field of ['item_code', 'boss_code', 'card_code']) {
+              if (!row[field]) continue;
+              const key = `${field}:${String(row[field]).trim().toUpperCase()}`;
+              const prior = technicalCodes.get(key);
+              assert.equal(prior, undefined, `Duplicate ${field} ${row[field]}: ${prior || 'unknown'} vs ${id}`);
+              technicalCodes.set(key, id);
+            }
+          }
+
+          console.log(`Catalog identity certification PASSED: ${rows.length} rows / ${ids.size} unique IDs.`);
+          EOF
+      - name: Add identity certification to npm test
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const check = 'node scripts/testCatalogUniqueIds.mjs';
+          if (!pkg.scripts.test.includes(check)) pkg.scripts.test = `${check} && ${pkg.scripts.test}`;
+          fs.writeFileSync('package.json', `${JSON.stringify(pkg, null, 2)}\n`);
+          NODE
+      - name: Verify fix
+        run: node scripts/testCatalogUniqueIds.mjs
+      - name: Commit fix and remove temporary workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/data/megaCollectionsData.js scripts/testCatalogUniqueIds.mjs package.json
+          git rm .github/workflows/fix-catalog-id-collision.yml
+          git commit -m "fix(data): make catalog IDs unique"
+          git push origin HEAD:${GITHUB_REF_NAME}
