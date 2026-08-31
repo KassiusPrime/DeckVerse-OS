@@ -1,0 +1,36 @@
+name: Audit catalog IDs
+
+on:
+  push:
+    branches:
+      - audit/catalog-id-collision
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Find duplicate catalog IDs
+        run: |
+          node --input-type=module <<'NODE'
+          import { MEGA_ITEMS, MEGA_BOSSES, generateExpandedCards } from './src/data/megaCollectionsData.js';
+          const rows = [
+            ...generateExpandedCards().map((row) => ({ ...row, _source: 'character' })),
+            ...(MEGA_ITEMS || []).map((row) => ({ ...row, _source: 'item' })),
+            ...(MEGA_BOSSES || []).map((row) => ({ ...row, _source: 'boss' })),
+          ];
+          const byId = new Map();
+          for (const row of rows) {
+            const id = String(row.id ?? row.card_id ?? row.item_id ?? row.boss_id ?? '').trim();
+            if (!id) continue;
+            const list = byId.get(id) || [];
+            list.push({ source: row._source, name: row.name ?? row.title ?? null, collection: row.collection_id ?? row.collection_code ?? row.collectionCode ?? row.collection ?? null });
+            byId.set(id, list);
+          }
+          const duplicates = [...byId.entries()].filter(([, list]) => list.length > 1).map(([id, list]) => ({ id, list }));
+          console.log(JSON.stringify({ attemptedRows: rows.length, uniqueIds: byId.size, duplicates }, null, 2));
+          if (!duplicates.length) process.exitCode = 2;
+          NODE
