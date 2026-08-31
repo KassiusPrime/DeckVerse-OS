@@ -17,15 +17,14 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
-      # package-lock.json in the current repository predates the Firebase/media
-      # dependency additions. Vercel already resolves the same dependency graph
-      # successfully. Use npm install here until the canonical lockfile is
-      # regenerated and committed in a dedicated dependency-maintenance change.
       - name: Install dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
 
       - name: Full repository certification
+        env:
+          VITE_SUPABASE_URL: https://example.supabase.co
+          VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_test_only
         run: npm run ci
