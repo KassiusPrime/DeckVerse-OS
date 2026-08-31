@@ -7,6 +7,7 @@ import AdminMediaManager from "./AdminMediaManager";
 import { useAuth } from "./AuthContext";
 import { authProvider } from "./services/firebase/authProvider.js";
 import { runOwnerCatalogMigration } from "./services/migration/catalogCleanupService.js";
+import { cleanupLegacyBossMediaAfterCanonicalImport } from "./services/migration/legacyBossMediaCleanupService.js";
 import { importCanonicalDrivePackages } from "./services/media/driveCanonicalImportService.js";
 
 export default function OwnerConsole() {
@@ -17,6 +18,7 @@ export default function OwnerConsole() {
   const [progress, setProgress] = useState(null);
   const [migrationResult, setMigrationResult] = useState(null);
   const [importResult, setImportResult] = useState(null);
+  const [cleanupResult, setCleanupResult] = useState(null);
   const [error, setError] = useState("");
 
   const runMigrationOnly = async () => {
@@ -28,10 +30,9 @@ export default function OwnerConsole() {
       setMigrationResult(result);
       await queryClient.invalidateQueries();
       setPhase("Migração estrutural concluída.");
-      return result;
     } catch (err) {
       setError(err?.message || String(err));
-      throw err;
+      setPhase("Migração interrompida com segurança.");
     } finally {
       setBusy(false);
     }
@@ -41,20 +42,21 @@ export default function OwnerConsole() {
     setBusy(true);
     setError("");
     setImportResult(null);
+    setCleanupResult(null);
     setProgress(null);
     try {
-      setPhase("1/3 — Corrigindo catálogo e removendo conteúdo aposentado...");
+      setPhase("1/4 — Corrigindo catálogo e removendo conteúdo aposentado...");
       const migration = await runOwnerCatalogMigration();
       setMigrationResult(migration);
       await queryClient.invalidateQueries();
 
-      setPhase("2/3 — Autorizando leitura da pasta canônica do Google Drive...");
+      setPhase("2/4 — Autorizando leitura da pasta canônica do Google Drive...");
       const google = await signInWithGoogle({ requestDriveAccess: true });
       if (!google?.user?.isOwner) throw new Error("OWNER_ACCOUNT_REQUIRED: selecione a mesma conta Google proprietária do DeckVerse.");
       const token = authProvider.getGoogleAccessToken();
       if (!token) throw new Error("DRIVE_TOKEN_MISSING: a permissão Google Drive não foi concedida.");
 
-      setPhase("3/3 — Importando os 23 ZIPs canônicos...");
+      setPhase("3/4 — Importando os 23 ZIPs canônicos...");
       const imported = await importCanonicalDrivePackages(token, {
         onProgress: (state) => {
           setProgress(state);
@@ -62,6 +64,10 @@ export default function OwnerConsole() {
         },
       });
       setImportResult(imported);
+
+      setPhase("4/4 — Removendo caminhos Boss legados e relinkando Forms...");
+      const cleanup = await cleanupLegacyBossMediaAfterCanonicalImport();
+      setCleanupResult(cleanup);
       await queryClient.invalidateQueries();
       setPhase("Catálogo e mídia sincronizados.");
     } catch (err) {
@@ -118,6 +124,7 @@ export default function OwnerConsole() {
           <section className={`mt-4 rounded-2xl border p-5 ${importResult.auditCountMatches ? "border-emerald-500/30 bg-emerald-500/8" : "border-amber-500/30 bg-amber-500/8"}`}>
             <div className="flex items-center gap-2 text-sm font-black text-foreground">{importResult.auditCountMatches ? <CheckCircle2 className="h-5 w-5 text-emerald-400" /> : <TriangleAlert className="h-5 w-5 text-amber-400" />} Resultado da importação</div>
             <div className="mt-3 grid grid-cols-2 gap-2 text-center sm:grid-cols-4"><Metric label="ZIPs" value={`${importResult.processedZips}/23`} /><Metric label="Analisados" value={importResult.analyzedAssets} /><Metric label="Publicados" value={importResult.committedAssets} /><Metric label="Já existentes" value={importResult.alreadyExistingAssets} /></div>
+            {cleanupResult && <p className="mt-3 text-xs text-muted-foreground">Legado removido: {cleanupResult.legacyRecordsRemoved} registros · {cleanupResult.storageDeleted} objetos antigos · {cleanupResult.formsRelinked} Forms relinkados.</p>}
           </section>
         )}
 
