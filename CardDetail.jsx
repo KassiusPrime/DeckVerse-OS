@@ -22,11 +22,17 @@ export default function CardDetail() {
   const allForms = useMemo(() => deriveCatalogForms(snapshot), [snapshot]);
 
   const forms = useMemo(() => {
-    if (!entity || entity.entity_type !== 'character') return [];
+    if (!entity || entity.entity_type === 'item') return [];
     const entityId = String(entity.id || entity.card_id || '');
     const entityName = normalize(getName(entity));
+    const entityType = entity.entity_type === 'boss' ? 'boss' : 'character';
     return allForms
-      .filter((form) => String(form.baseCharacterId || '') === entityId || normalize(form.baseName) === entityName)
+      .filter((form) => {
+        const formEntityId = String(form.baseEntityId || form.baseCharacterId || '');
+        const sameBase = formEntityId === entityId || normalize(form.baseName) === entityName;
+        const sameType = !form.entityType || form.entityType === entityType;
+        return sameBase && sameType;
+      })
       .map((form, index) => ({
         ...form,
         id: form.id || `form-${index}`,
@@ -65,7 +71,7 @@ export default function CardDetail() {
       <main className="mx-auto w-full max-w-6xl px-4 pb-28 pt-6 sm:px-6 sm:pt-10 lg:px-8">
         <div className="mb-5 flex flex-wrap items-center gap-2">
           <Link to={collectionId ? `/collections/${encodeURIComponent(collectionId)}` : '/collections'} className="inline-flex min-h-11 items-center gap-2 rounded-xl px-2 text-sm font-bold text-muted-foreground hover:bg-muted/50 hover:text-foreground"><ArrowLeft className="h-4 w-4" /> Voltar à coleção</Link>
-          {entity.entity_type === 'character' && forms.length > 0 && <Link to="/forms" className="inline-flex min-h-11 items-center gap-2 rounded-xl px-2 text-sm font-bold text-muted-foreground hover:bg-muted/50 hover:text-primary"><Sparkles className="h-4 w-4" /> Todas as formas</Link>}
+          {forms.length > 0 && <Link to="/forms" className="inline-flex min-h-11 items-center gap-2 rounded-xl px-2 text-sm font-bold text-muted-foreground hover:bg-muted/50 hover:text-primary"><Sparkles className="h-4 w-4" /> Todas as formas</Link>}
         </div>
 
         <div className="grid gap-7 lg:grid-cols-[minmax(0,420px)_1fr] lg:gap-10">
@@ -74,7 +80,7 @@ export default function CardDetail() {
               <div className="relative aspect-[4/5] bg-muted">
                 {image ? <img key={`${selectedFormId}-${image}`} src={image} alt={`${getName(entity)} — ${activeLabel}`} className="h-full w-full object-cover" /> : <div className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(circle_at_top,hsl(var(--primary)/.15),transparent_65%)]"><ImageOff className="h-10 w-10 text-muted-foreground/35" /></div>}
                 <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-black/90 via-black/35 to-transparent" />
-                <div className="absolute inset-x-4 bottom-4 flex items-end justify-between gap-3"><div><div className="text-[10px] font-extrabold uppercase tracking-[.16em] text-white/55">{entity.entity_type === 'character' ? 'Estado' : entityLabel(entity)}</div><div className="mt-1 text-lg font-black text-white">{entity.entity_type === 'character' ? activeLabel : getName(entity)}</div></div>{rarity && <span className="rounded-full border border-white/15 bg-black/45 px-3 py-1.5 text-xs font-black tracking-[.12em] text-white backdrop-blur">{rarity}</span>}</div>
+                <div className="absolute inset-x-4 bottom-4 flex items-end justify-between gap-3"><div><div className="text-[10px] font-extrabold uppercase tracking-[.16em] text-white/55">{forms.length > 0 ? 'Estado' : entityLabel(entity)}</div><div className="mt-1 text-lg font-black text-white">{forms.length > 0 ? activeLabel : getName(entity)}</div></div>{rarity && <span className="rounded-full border border-white/15 bg-black/45 px-3 py-1.5 text-xs font-black tracking-[.12em] text-white backdrop-blur">{rarity}</span>}</div>
               </div>
             </div>
 
@@ -87,6 +93,7 @@ export default function CardDetail() {
 
             <div className="mt-5 flex flex-wrap gap-2">
               {rarity && <MetaChip label="Raridade" value={rarity} />}
+              {!rarity && entity.rarityReviewed === false && <MetaChip label="Raridade" value="Em revisão" />}
               {entity.role && <MetaChip label="Função" value={entity.role} />}
               {forms.length > 0 && <MetaChip label="Formas" value={String(forms.length)} />}
             </div>
