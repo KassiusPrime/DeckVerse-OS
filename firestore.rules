@@ -10,39 +10,31 @@ service cloud.firestore {
       return isSignedIn() && request.auth.token.email == 'cassianokaique9@gmail.com';
     }
 
-    function isActiveAdmin() {
-      return isSignedIn() &&
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.status == 'active';
-    }
-
     function canManageCatalog() {
-      return isOwner() || isActiveAdmin();
+      return isOwner();
     }
 
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // Each authenticated person owns a profile document. They may create their
-    // own user profile and edit only non-privileged fields. Role/status changes
-    // stay restricted to the owner/admin control plane.
+    // Every Firebase account owns one profile document. Regular users can edit
+    // only non-privileged fields; the authenticated Owner token controls roles.
     match /users/{userId} {
-      allow read: if isSignedIn() && (request.auth.uid == userId || canManageCatalog());
+      allow read: if isSignedIn() && (request.auth.uid == userId || isOwner());
       allow create: if isSignedIn() && request.auth.uid == userId &&
         request.resource.data.status == 'active' &&
         (
-          (isOwner() && request.resource.data.role == 'owner') ||
+          (isOwner() && (request.resource.data.role == 'admin' || request.resource.data.role == 'owner')) ||
           (!isOwner() && request.resource.data.role == 'user')
         );
-      allow update: if canManageCatalog() || (
+      allow update: if isOwner() || (
         isSignedIn() && request.auth.uid == userId &&
         request.resource.data.role == resource.data.role &&
         request.resource.data.status == resource.data.status &&
         request.resource.data.email == resource.data.email
       );
-      allow delete: if canManageCatalog();
+      allow delete: if isOwner();
     }
 
     match /collections/{collectionCode} {
@@ -66,7 +58,7 @@ service cloud.firestore {
     }
 
     // Legacy-only during migration. New public media/catalog paths no longer
-    // create Boss entities, but owner migration must be allowed to delete them.
+    // create Boss entities, but Owner migration must be allowed to delete them.
     match /bosses/{bossId} {
       allow read: if true;
       allow write: if canManageCatalog();
