@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { BookOpen, Layers, Package, Search, ShieldCheck, Sparkles, UserRound } from "lucide-react";
+import { BookOpen, Crown, Layers, Package, Search, ShieldCheck, Sparkles, UserRound } from "lucide-react";
 import { useAuth } from "@/AuthContext";
 import { buildMediaLookup, getEntityCollectionCode, loadCatalogSnapshot, resolveIndexedImage } from "@/services/catalog/catalogDataService";
 import { deriveCatalogForms } from "@/services/catalog/catalogFormsService";
@@ -24,7 +24,7 @@ export default function CommandPalette() {
   const [query, setQuery] = useState("");
   const inputRef = useRef(null);
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useAuth();
+  const { isOwner } = useAuth();
   const snapshotQuery = useQuery({ queryKey: ["catalog-snapshot-canonical"], queryFn: loadCatalogSnapshot, staleTime: 30_000, enabled: open });
   const snapshot = snapshotQuery.data || { collections: [], characters: [], items: [], bosses: [], mediaIndex: [] };
   const forms = useMemo(() => deriveCatalogForms(snapshot), [snapshot]);
@@ -49,10 +49,9 @@ export default function CommandPalette() {
 
   const commands = useMemo(() => {
     const base = [...STATIC_COMMANDS];
-    const isActiveAdmin = isAuthenticated && user?.role === "admin" && user?.status !== "inactive" && user?.status !== "disabled";
-    if (isActiveAdmin) base.push({ label: "Admin", to: "/admin", icon: ShieldCheck });
+    if (isOwner) base.push({ label: "Proprietário", to: "/owner", icon: Crown });
     return base.filter((command) => !needle || normalize(command.label).includes(needle));
-  }, [needle, isAuthenticated, user]);
+  }, [needle, isOwner]);
 
   const resolveImage = (entity, type) => {
     if (getDirectImage(entity)) return getDirectImage(entity);
