@@ -1,0 +1,86 @@
+name: Build CSM Collection Asset Pack
+
+on:
+  push:
+    branches:
+      - automation/csm-assets-20260901
+
+permissions:
+  contents: read
+
+jobs:
+  build-csm-assets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: python -m pip install --disable-pip-version-check --quiet pillow requests gdown
+
+      - name: Download base collection from Google Drive
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m gdown 'https://drive.google.com/file/d/1fmkF0GdxR2ONfEAtcy7aojgPhoX54lYd/view?usp=drivesdk' -O COL-CSM_Chainsaw-Man.zip --fuzzy
+          test -s COL-CSM_Chainsaw-Man.zip
+          python - <<'PY'
+          import zipfile
+          p='COL-CSM_Chainsaw-Man.zip'
+          with zipfile.ZipFile(p) as z:
+              assert z.testzip() is None
+              print('Base ZIP members:', len(z.namelist()))
+          PY
+
+      - name: Download, normalize, and pack 81 CSM assets
+        run: |
+          python .automation/download_csm_assets.py \
+            COL-CSM_Chainsaw-Man.zip \
+            COL-CSM_Chainsaw-Man.final.zip \
+            csm_asset_report.json
+
+      - name: Verify final collection
+        run: |
+          python - <<'PY'
+          import json, zipfile
+          from pathlib import Path
+          r=json.loads(Path('csm_asset_report.json').read_text())
+          assert r['mapped_assets'] == 81
+          assert r['downloaded_assets'] == 81
+          assert r['failure_count'] == 0
+          assert r['zip_test'] == 'ok'
+          with zipfile.ZipFile('COL-CSM_Chainsaw-Man.final.zip') as z:
+              names=z.namelist()
+              assert len(names) == len(set(names)), 'duplicate ZIP members detected'
+              assert all(not n.startswith('CSM_') for n in names), 'nonstandard CSM_ prefix detected'
+              added=[n for n in names if n.startswith('COL-CSM_')]
+              print('Final ZIP members:', len(names))
+              print('COL-CSM members:', len(added))
+          PY
+
+      - name: Upload successful result
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: csm-collection-final
+          path: |
+            COL-CSM_Chainsaw-Man.final.zip
+            csm_asset_report.json
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
+
+      - name: Upload diagnostic report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: csm-collection-diagnostics
+          path: csm_asset_report.json
+          if-no-files-found: ignore
+          retention-days: 1
