@@ -1,1 +1,1 @@
-trigger 2026-09-01T20:07-03:00
+preview-only trigger 2026-09-01T20:10-03:00
