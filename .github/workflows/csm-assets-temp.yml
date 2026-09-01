@@ -28,7 +28,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m gdown 'https://drive.google.com/file/d/1fmkF0GdxR2ONfEAtcy7aojgPhoX54lYd/view?usp=drivesdk' -O COL-CSM_Chainsaw-Man.zip --fuzzy
+          python -m gdown 1fmkF0GdxR2ONfEAtcy7aojgPhoX54lYd -O COL-CSM_Chainsaw-Man.zip
           test -s COL-CSM_Chainsaw-Man.zip
           python - <<'PY'
           import zipfile
