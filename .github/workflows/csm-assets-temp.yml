@@ -40,7 +40,7 @@ jobs:
 
       - name: Download, normalize, and pack 81 CSM assets
         run: |
-          python .automation/download_csm_assets.py \
+          python .automation/run_csm_assets.py \
             COL-CSM_Chainsaw-Man.zip \
             COL-CSM_Chainsaw-Man.final.zip \
             csm_asset_report.json
