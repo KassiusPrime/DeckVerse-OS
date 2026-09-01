@@ -36,6 +36,16 @@ if (!routes.some((route) => route.dest === '/index.html')) failures.push('vercel
 const app = fs.readFileSync('App.jsx', 'utf8');
 if (!app.includes('path="/auth/callback"')) failures.push('OAuth callback route missing');
 
+const serviceWorker = fs.readFileSync('public/sw.js', 'utf8');
+if (!serviceWorker.includes("deckverse-os-v11")) failures.push('Service worker cache namespace must be v11');
+if (!serviceWorker.includes("event.request.mode === 'navigate'")) failures.push('Service worker must treat SPA navigations separately');
+if (!serviceWorker.includes("fetch(event.request, { cache: 'no-store' })")) failures.push('SPA navigations must be network-first/no-store to prevent stale OAuth shells');
+if (serviceWorker.includes('return cached || fetch(event.request).catch(() => caches.match("/"))')) failures.push('Legacy cache-first HTML fallback is forbidden');
+
+const html = fs.readFileSync('index.html', 'utf8');
+if (!html.includes("updateViaCache: 'none'")) failures.push('Service worker registration must bypass stale service-worker script cache');
+if (!html.includes("navigator.serviceWorker.addEventListener('controllerchange'")) failures.push('Existing stale service workers must trigger one recovery reload');
+
 if (failures.length) {
   console.error('Accessibility/OAuth routing certification failed:\n- ' + failures.join('\n- '));
   process.exit(1);
