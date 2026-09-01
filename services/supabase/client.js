@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 // a broken production build when Vercel's public VITE_* variables are absent.
 const DEFAULT_SUPABASE_URL = 'https://rrujnjraonckjdtpsfol.supabase.co';
 const DEFAULT_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_NRJVDNSi3raoHNaN3fcG8Q_cBlw5ZXn';
+const DEFAULT_PUBLIC_SITE_URL = 'https://deck-verse-os.vercel.app';
 
 const readEnv = (key) => {
   if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key] !== undefined) return import.meta.env[key];
@@ -48,11 +49,28 @@ export function getSupabaseBrowserClient() {
   return browserClient;
 }
 
+function normalizeSiteUrl(value) {
+  const explicit = String(value || '').trim();
+  if (!explicit) return '';
+  return (explicit.startsWith('http') ? explicit : `https://${explicit}`).replace(/\/$/, '');
+}
+
 export function getPublicSiteUrl() {
-  if (typeof window !== 'undefined' && window.location?.origin) return window.location.origin;
-  const explicit = readEnv('VITE_SITE_URL') || readEnv('SITE_URL') || readEnv('VERCEL_PROJECT_PRODUCTION_URL') || '';
-  if (!explicit) return 'http://localhost:3000';
-  return explicit.startsWith('http') ? explicit.replace(/\/$/, '') : `https://${explicit.replace(/\/$/, '')}`;
+  const configured = normalizeSiteUrl(
+    readEnv('VITE_SITE_URL') || readEnv('SITE_URL') || readEnv('VERCEL_PROJECT_PRODUCTION_URL')
+  );
+  if (configured) return configured;
+
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    const { hostname, origin } = window.location;
+    if (hostname === 'localhost' || hostname === '127.0.0.1') return origin;
+    // OAuth started from a Vercel preview/branch URL should always return to the
+    // stable production domain, avoiding preview auth protection and stale builds.
+    if (hostname.endsWith('.vercel.app')) return DEFAULT_PUBLIC_SITE_URL;
+    return origin;
+  }
+
+  return DEFAULT_PUBLIC_SITE_URL;
 }
 
 export default getSupabaseBrowserClient;
