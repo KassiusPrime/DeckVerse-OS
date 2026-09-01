@@ -1,4 +1,4 @@
-name: Build CSM Collection Asset Pack
+name: Build Isolated CSM 81-Image Preview
 
 on:
   push:
@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  build-csm-assets:
+  build-csm-preview:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -22,65 +22,46 @@ jobs:
           python-version: '3.12'
 
       - name: Install dependencies
-        run: python -m pip install --disable-pip-version-check --quiet pillow requests gdown
+        run: python -m pip install --disable-pip-version-check --quiet pillow requests
 
-      - name: Download base collection from Google Drive
-        shell: bash
-        run: |
-          set -euo pipefail
-          python -m gdown 1fmkF0GdxR2ONfEAtcy7aojgPhoX54lYd -O COL-CSM_Chainsaw-Man.zip
-          test -s COL-CSM_Chainsaw-Man.zip
-          python - <<'PY'
-          import zipfile
-          p='COL-CSM_Chainsaw-Man.zip'
-          with zipfile.ZipFile(p) as z:
-              assert z.testzip() is None
-              print('Base ZIP members:', len(z.namelist()))
-          PY
+      - name: Build isolated 81-image preview ZIP
+        run: python .automation/build_csm_preview.py
 
-      - name: Download, normalize, and pack 81 CSM assets
-        run: |
-          python .automation/run_csm_assets.py \
-            COL-CSM_Chainsaw-Man.zip \
-            COL-CSM_Chainsaw-Man.final.zip \
-            csm_asset_report.json
-
-      - name: Verify final collection
+      - name: Verify preview ZIP
         run: |
           python - <<'PY'
           import json, zipfile
           from pathlib import Path
-          r=json.loads(Path('csm_asset_report.json').read_text())
+          r=json.loads(Path('CSM_81_assets_preview_report.json').read_text())
           assert r['mapped_assets'] == 81
           assert r['downloaded_assets'] == 81
           assert r['failure_count'] == 0
-          assert r['zip_test'] == 'ok'
-          with zipfile.ZipFile('COL-CSM_Chainsaw-Man.final.zip') as z:
+          with zipfile.ZipFile('CSM_81_assets_preview.zip') as z:
               names=z.namelist()
-              assert len(names) == len(set(names)), 'duplicate ZIP members detected'
-              assert all(not n.startswith('CSM_') for n in names), 'nonstandard CSM_ prefix detected'
-              added=[n for n in names if n.startswith('COL-CSM_')]
-              print('Final ZIP members:', len(names))
-              print('COL-CSM members:', len(added))
+              assert z.testzip() is None
+              assert len(names) == 81
+              assert len(names) == len(set(names))
+              assert all(n.startswith('CSM_') and n.endswith('.jpg') for n in names)
+              print('Preview ZIP contains exactly 81 isolated JPG assets.')
           PY
 
-      - name: Upload successful result
+      - name: Upload preview
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: csm-collection-final
+          name: csm-81-assets-preview
           path: |
-            COL-CSM_Chainsaw-Man.final.zip
-            csm_asset_report.json
+            CSM_81_assets_preview.zip
+            CSM_81_assets_preview_report.json
           if-no-files-found: error
           compression-level: 0
           retention-days: 1
 
-      - name: Upload diagnostic report on failure
+      - name: Upload diagnostics
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: csm-collection-diagnostics
-          path: csm_asset_report.json
+          name: csm-81-assets-preview-diagnostics
+          path: CSM_81_assets_preview_report.json
           if-no-files-found: ignore
           retention-days: 1
