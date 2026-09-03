@@ -172,6 +172,31 @@
   pointer-events: none !important;
 }
 
+/* Public catalog readability: preserve artwork while giving names a stable opaque surface. */
+a[href^='/collections/'] h2 {
+  display: inline-block;
+  max-width: 100%;
+  padding: .3rem .55rem;
+  border: 1px solid rgba(255, 255, 255, .10);
+  border-radius: .65rem;
+  background: rgba(3, 8, 18, .82);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, .28);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+a[href^='/card/'] h3 {
+  display: inline-block;
+  max-width: 100%;
+  padding: .28rem .5rem;
+  border: 1px solid rgba(255, 255, 255, .10);
+  border-radius: .6rem;
+  background: rgba(3, 8, 18, .88);
+  box-shadow: 0 5px 18px rgba(0, 0, 0, .3);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
 /* Legacy anomaly classes remain available for admin-only tooling, but no longer affect public screens. */
 .anomaly-glitch { box-shadow: 0 0 0 1px hsl(var(--primary) / .35), 0 16px 45px rgba(0,0,0,.28) !important; }
 .anomaly-text { text-shadow: none; }
