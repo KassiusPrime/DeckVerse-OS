@@ -1,8 +1,32 @@
 import { getSupabaseBrowserClient, isSupabaseConfigured } from './client.js';
 
 const RETIRED_PREFIXES = ['COL-05', 'COL-06'];
+const PAGE_SIZE = 1000;
 const normalize = (value) => String(value || '').trim();
 const isRetired = (collectionId) => RETIRED_PREFIXES.some((prefix) => normalize(collectionId).toUpperCase().startsWith(prefix));
+
+async function fetchAllPages(buildQuery, label = 'catalog') {
+  const rows = [];
+  let from = 0;
+
+  while (true) {
+    const result = await buildQuery().range(from, from + PAGE_SIZE - 1);
+    if (result.error) throw result.error;
+
+    const batch = result.data || [];
+    rows.push(...batch);
+
+    if (batch.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+
+    // Safety valve against an accidental endless pagination loop.
+    if (from > 100000) {
+      throw new Error(`Paginação excedeu o limite de segurança ao carregar ${label}.`);
+    }
+  }
+
+  return rows;
+}
 
 export function toPublicCollection(row) {
   return {
@@ -91,20 +115,44 @@ export async function loadPublicCatalog() {
   }
 
   const supabase = getSupabaseBrowserClient();
-  const [collectionsResult, cardsResult, formsResult] = await Promise.all([
-    supabase.from('collections').select('id, name, description, category, cover_url').eq('is_active', true).order('name'),
-    supabase.from('cards').select('id, collection_id, name, entity_type, rarity, role, atk, def, mag, speed, hp, image_url, description, collections!inner(name, is_active)').eq('is_active', true).eq('collections.is_active', true).order('name'),
-    supabase.from('card_forms').select('id, card_id, name, rarity, image_url, description, order_index, cards!inner(name, entity_type, collection_id, is_active, collections!inner(is_active))').eq('is_active', true).eq('cards.is_active', true).eq('cards.collections.is_active', true).order('order_index'),
+  const [collections, cards, forms] = await Promise.all([
+    fetchAllPages(
+      () => supabase
+        .from('collections')
+        .select('id, name, description, category, cover_url')
+        .eq('is_active', true)
+        .order('name')
+        .order('id'),
+      'coleções',
+    ),
+    fetchAllPages(
+      () => supabase
+        .from('cards')
+        .select('id, collection_id, name, entity_type, rarity, role, atk, def, mag, speed, hp, image_url, description, collections!inner(name, is_active)')
+        .eq('is_active', true)
+        .eq('collections.is_active', true)
+        .order('name')
+        .order('id'),
+      'cards',
+    ),
+    fetchAllPages(
+      () => supabase
+        .from('card_forms')
+        .select('id, card_id, name, rarity, image_url, description, order_index, cards!inner(name, entity_type, collection_id, is_active, collections!inner(is_active))')
+        .eq('is_active', true)
+        .eq('cards.is_active', true)
+        .eq('cards.collections.is_active', true)
+        .order('order_index')
+        .order('id'),
+      'formas',
+    ),
   ]);
-  if (collectionsResult.error) throw collectionsResult.error;
-  if (cardsResult.error) throw cardsResult.error;
-  if (formsResult.error) throw formsResult.error;
 
   return {
     source: 'SUPABASE',
-    collections: (collectionsResult.data || []).filter((entry) => !isRetired(entry.id)).map(toPublicCollection),
-    cards: (cardsResult.data || []).filter((entry) => !isRetired(entry.collection_id)).map(toPublicCard),
-    forms: (formsResult.data || []).filter((entry) => !isRetired(entry.cards?.collection_id)).map(toPublicForm),
+    collections: collections.filter((entry) => !isRetired(entry.id)).map(toPublicCollection),
+    cards: cards.filter((entry) => !isRetired(entry.collection_id)).map(toPublicCard),
+    forms: forms.filter((entry) => !isRetired(entry.cards?.collection_id)).map(toPublicForm),
   };
 }
 
