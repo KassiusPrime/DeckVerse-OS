@@ -197,6 +197,27 @@ a[href^='/card/'] h3 {
   -webkit-backdrop-filter: blur(8px);
 }
 
+/*
+ * Canonical entity artwork must never be destructively cropped.
+ * Public card surfaces use 4:5 or 3:4 frames; overriding object-cover here
+ * makes every portrait, landscape and unusual source ratio fit automatically.
+ * Collection hero/cover art is intentionally excluded and continues to fill.
+ */
+.aspect-\[4\/5\] > img.object-cover,
+.aspect-\[3\/4\] > img.object-cover {
+  object-fit: contain !important;
+  object-position: center center !important;
+  transform: none !important;
+  background:
+    radial-gradient(circle at 50% 18%, hsl(var(--primary) / .14), transparent 45%),
+    linear-gradient(145deg, rgba(3, 8, 18, .98), rgba(11, 18, 31, .98));
+}
+
+.aspect-\[4\/5\] > img.object-cover:hover,
+.aspect-\[3\/4\] > img.object-cover:hover {
+  transform: none !important;
+}
+
 /* Legacy anomaly classes remain available for admin-only tooling, but no longer affect public screens. */
 .anomaly-glitch { box-shadow: 0 0 0 1px hsl(var(--primary) / .35), 0 16px 45px rgba(0,0,0,.28) !important; }
 .anomaly-text { text-shadow: none; }
