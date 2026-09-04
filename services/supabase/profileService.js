@@ -8,7 +8,7 @@ export async function getMyProfile() {
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, discord_id, discord_username, display_name, avatar_url, role, astral_shards, ether_cores, level, xp, pwr, cosmic_luck, pity_counter, created_at, updated_at')
+    .select('id, discord_id, discord_username, display_name, avatar_url, role, astral_shards, ether_cores, level, xp, cosmic_luck, pity_counter, created_at, updated_at')
     .eq('id', authData.user.id)
     .maybeSingle();
   if (error) throw error;
@@ -27,7 +27,7 @@ export async function updateDisplayName(displayName) {
     .from('profiles')
     .update({ display_name: value, updated_at: new Date().toISOString() })
     .eq('id', authData.user.id)
-    .select('id, display_name, role, discord_id, discord_username, avatar_url, astral_shards, ether_cores, level, xp, pwr, cosmic_luck, pity_counter')
+    .select('id, display_name, role, discord_id, discord_username, avatar_url, astral_shards, ether_cores, level, xp, cosmic_luck, pity_counter')
     .single();
   if (error) throw error;
   return data;
