@@ -1,75 +1,22 @@
 {
   "name": "Item",
   "type": "object",
+  "description": "Relíquia, equipamento ou artefato colecionável. Itens não concedem bônus numéricos de combate.",
   "properties": {
-    "name": {
-      "type": "string"
-    },
-    "description": {
-      "type": "string"
-    },
+    "name": { "type": "string" },
+    "synopsis": { "type": "string", "description": "Sinopse editorial de 200–240 caracteres." },
+    "description": { "type": "string", "description": "Lore estendida opcional." },
     "type": {
       "type": "string",
-      "enum": [
-        "Weapon",
-        "Armor",
-        "Relic",
-        "Accessory",
-        "Consumable"
-      ],
-      "description": "Item category"
+      "enum": ["Weapon", "Armor", "Relic", "Accessory", "Consumable", "Artifact"],
+      "description": "Categoria narrativa do item"
     },
-    "rarity": {
-      "type": "string",
-      "enum": [
-        "Recruit",
-        "Adept",
-        "Elite",
-        "Champion",
-        "Sovereign",
-        "Ascendant"
-      ]
-    },
-    "atk_bonus": {
-      "type": "number",
-      "default": 0
-    },
-    "def_bonus": {
-      "type": "number",
-      "default": 0
-    },
-    "hp_bonus": {
-      "type": "number",
-      "default": 0
-    },
-    "spd_bonus": {
-      "type": "number",
-      "default": 0
-    },
-    "role_bonus": {
-      "type": "string",
-      "description": "Role that gets double effect (e.g. DPS)",
-      "enum": [
-        "DPS",
-        "Tank",
-        "Support",
-        "Healer",
-        "Assassin",
-        "Mage",
-        ""
-      ]
-    },
-    "image_url": {
-      "type": "string"
-    },
-    "icon": {
-      "type": "string",
-      "description": "Emoji icon"
-    }
+    "rarity": { "type": "string" },
+    "origin": { "type": "string" },
+    "properties": { "type": "array", "items": { "type": "string" }, "description": "Propriedades canônicas descritas sem escala numérica." },
+    "risk": { "type": "string", "description": "Risco, custo ou condição narrativa de uso." },
+    "image_url": { "type": "string" },
+    "icon": { "type": "string", "description": "Ícone editorial opcional" }
   },
-  "required": [
-    "name",
-    "type",
-    "rarity"
-  ]
+  "required": ["name", "type", "synopsis"]
 }
