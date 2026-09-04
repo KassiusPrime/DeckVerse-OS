@@ -1,309 +1,122 @@
-import { db } from "@/deckverseClient";
+import React, { useMemo, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ArrowLeftRight, Check, Coins, Gift, Loader2, Package, Plus, ShieldCheck, X } from 'lucide-react';
+import Navbar from './Navbar';
+import { useAuth } from './AuthContext';
+import {
+  acceptTrade, closeTrade, confirmTrade, createTrade, giftAssets, getMyRosterForTrading,
+  listMyTrades, setTradeOffer,
+} from './services/supabase/economySocialService.js';
 
-import React, { useState, useMemo } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-
-import { useAuth } from "@/AuthContext";
-import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeftRight, Check, X, Clock, Plus, Search, Gem } from "lucide-react";
-import Navbar from "@/Navbar";
-import { useToast } from "@/use-toast";
-import { Input } from "@/input";
-
-const STATUS_CONFIG = {
-  pending:   { label: "Pendente",  color: "text-amber-400",  bg: "bg-amber-400/10",  border: "border-amber-400/30"  },
-  accepted:  { label: "Aceita",    color: "text-green-400",  bg: "bg-green-400/10",  border: "border-green-400/30"  },
-  rejected:  { label: "Recusada", color: "text-red-400",    bg: "bg-red-400/10",    border: "border-red-400/30"    },
-  cancelled: { label: "Cancelada", color: "text-zinc-400",  bg: "bg-zinc-400/10",  border: "border-zinc-400/30"   },
-};
-
-function CardPicker({ cards, selected, onSelect, label }) {
-  const [q, setQ] = useState("");
-  const filtered = cards.filter(c => !q || c.name?.toLowerCase().includes(q.toLowerCase()));
-  return (
-    <div className="space-y-2">
-      <p className="text-[10px] font-heading tracking-widest text-muted-foreground">{label}</p>
-      <div className="relative">
-        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
-        <Input value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar carta..." className="pl-8 h-8 bg-muted/20 border-border/50 text-xs font-body" />
-      </div>
-      <div className="grid grid-cols-3 gap-1.5 max-h-40 overflow-y-auto">
-        {filtered.map(card => (
-          <button
-            key={card.id || card.card_id}
-            onClick={() => onSelect(card)}
-            className={`border overflow-hidden transition-all text-left ${selected?.id === card.id ? "border-primary/70 ring-1 ring-primary/30" : "border-border/40 hover:border-border/70"}`}
-          >
-            <div className="aspect-[3/4] relative">
-              {card.image_url
-                ? <img src={card.image_url} alt={card.name} className="w-full h-full object-cover" />
-                : <div className="w-full h-full bg-muted/20 flex items-center justify-center text-[10px] font-heading text-muted-foreground">{card.name?.[0]}</div>
-              }
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
-              <p className="absolute bottom-1 left-1 right-1 text-[8px] font-heading text-white truncate">{card.name}</p>
-            </div>
-          </button>
-        ))}
-      </div>
-      {selected && <p className="text-[10px] font-heading text-primary">✓ {selected.name}</p>}
-    </div>
-  );
-}
+const fmt = (n) => Number(n || 0).toLocaleString('pt-BR');
+const parseAssets = (value) => Array.isArray(value) ? value : [];
 
 export default function Trade() {
-  const { user } = useAuth();
-  const { toast } = useToast();
+  const { isAuthenticated, profile, navigateToLogin, refreshProfile } = useAuth();
   const qc = useQueryClient();
+  const [error, setError] = useState('');
+  const [recipient, setRecipient] = useState('');
+  const [giftRecipient, setGiftRecipient] = useState('');
+  const [giftCardId, setGiftCardId] = useState('');
+  const [giftQty, setGiftQty] = useState(1);
+  const [giftDc, setGiftDc] = useState(0);
+  const [confirmGift, setConfirmGift] = useState(false);
+  const [drafts, setDrafts] = useState({});
 
-  const [showNew, setShowNew] = useState(false);
-  const [offerCard, setOfferCard] = useState(null);
-  const [wantCard, setWantCard] = useState(null);
-  const [targetUser, setTargetUser] = useState("");
-  const [gemBonus, setGemBonus] = useState(0);
+  const roster = useQuery({ queryKey: ['trade-roster'], queryFn: getMyRosterForTrading, enabled: isAuthenticated });
+  const trades = useQuery({ queryKey: ['my-trades-v2'], queryFn: listMyTrades, enabled: isAuthenticated, refetchInterval: 15_000 });
 
-  const { data: players = [] } = useQuery({
-    queryKey: ["players-trade"],
-    queryFn: () => db.entities.Player.list(),
-    enabled: !!user,
-  });
-
-  const { data: allCards = [] } = useQuery({
-    queryKey: ["cards-trade"],
-    queryFn: () => db.entities.Card.list("-created_date", 300),
-  });
-
-  const { data: rosterEntries = [] } = useQuery({
-    queryKey: ["roster-trade"],
-    queryFn: () => db.entities.Roster.list("-created_date", 300),
-    enabled: !!user,
-  });
-
-  const { data: trades = [] } = useQuery({
-    queryKey: ["trades"],
-    queryFn: () => db.entities.TradeRequest.list("-created_date", 50),
-    enabled: !!user,
-    refetchInterval: 10000,
-  });
-
-  const player = players.find(p => p.created_by === user?.email) || null;
-
-  const myId = player?.discord_id || user?.email || "";
-
-  const myRosterCards = useMemo(() => {
-    return rosterEntries
-      .filter(r => r.player_discord_id === myId)
-      .map(r => allCards.find(c => c.id === r.card_id))
-      .filter(Boolean);
-  }, [rosterEntries, allCards, myId]);
-
-  const myTrades = useMemo(() => trades.filter(t => t.sender_discord_id === myId || t.receiver_discord_id === myId), [trades, myId]);
-  const incomingPending = useMemo(() => myTrades.filter(t => t.receiver_discord_id === myId && t.status === "pending"), [myTrades, myId]);
-
-  const createTrade = useMutation({
-    mutationFn: (data) => db.entities.TradeRequest.create(data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["trades"] });
-      setShowNew(false); setOfferCard(null); setWantCard(null); setTargetUser(""); setGemBonus(0);
-      toast({ title: "Proposta de troca enviada!" });
-    },
-  });
-
-  const updateTrade = useMutation({
-    mutationFn: ({ id, status }) => db.entities.TradeRequest.update(id, { status }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["trades"] }),
-  });
-
-  const handleCreate = () => {
-    if (!offerCard || !wantCard || !targetUser) return;
-    const target = players.find(p => p.username?.toLowerCase() === targetUser.toLowerCase() || p.discord_id === targetUser);
-    if (!target) { toast({ title: "Jogador não encontrado", variant: "destructive" }); return; }
-    createTrade.mutate({
-      sender_discord_id: myId,
-      sender_username: player?.username || user?.email || "?",
-      receiver_discord_id: target.discord_id || target.id,
-      receiver_username: target.username,
-      sender_card_id: offerCard.id,
-      sender_card_name: offerCard.name,
-      receiver_card_id: wantCard.id,
-      receiver_card_name: wantCard.name,
-      gem_bonus: gemBonus,
-      status: "pending",
-    });
+  const sync = async () => {
+    setError('');
+    await Promise.all([qc.invalidateQueries({ queryKey: ['my-trades-v2'] }), qc.invalidateQueries({ queryKey: ['trade-roster'] })]);
+    await refreshProfile?.();
   };
+  const fail = (err) => setError(err?.message || 'A operação não pôde ser concluída.');
 
-  const handleAccept = async (trade) => {
-    await updateTrade.mutateAsync({ id: trade.id, status: "accepted" });
-    toast({ title: "Troca aceita! Cartas trocadas." });
-  };
+  const newTrade = useMutation({ mutationFn: createTrade, onSuccess: async () => { setRecipient(''); await sync(); }, onError: fail });
+  const saveOffer = useMutation({ mutationFn: ({ id, assets, dc }) => setTradeOffer(id, assets, dc), onSuccess: sync, onError: fail });
+  const confirm = useMutation({ mutationFn: confirmTrade, onSuccess: sync, onError: fail });
+  const accept = useMutation({ mutationFn: acceptTrade, onSuccess: sync, onError: fail });
+  const close = useMutation({ mutationFn: ({ id, status }) => closeTrade(id, status), onSuccess: sync, onError: fail });
+  const gift = useMutation({ mutationFn: giftAssets, onSuccess: async () => { setConfirmGift(false); setGiftRecipient(''); setGiftCardId(''); setGiftQty(1); setGiftDc(0); await sync(); }, onError: fail });
 
-  const handleReject = (trade) => {
-    updateTrade.mutate({ id: trade.id, status: "rejected" });
-  };
+  const cards = roster.data || [];
+  const selectedGift = cards.find((c) => c.card_id === giftCardId);
+  const busy = newTrade.isPending || saveOffer.isPending || confirm.isPending || accept.isPending || close.isPending || gift.isPending;
+
+  if (!isAuthenticated) return <div className="min-h-screen bg-background text-foreground"><Navbar /><main className="mx-auto flex min-h-[70vh] max-w-xl flex-col items-center justify-center px-5 text-center"><ShieldCheck className="h-10 w-10 text-primary" /><h1 className="mt-4 text-2xl font-black">Entre para negociar</h1><p className="mt-2 text-sm text-muted-foreground">Presentes e trocas usam liquidação atômica no servidor.</p><button onClick={navigateToLogin} className="mt-6 min-h-11 rounded-xl bg-primary px-5 text-sm font-black text-primary-foreground">Entrar</button></main></div>;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background text-foreground">
       <Navbar />
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
-        {/* Header */}
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 border border-cyan-400/30 bg-cyan-400/10 flex items-center justify-center">
-                <ArrowLeftRight className="w-5 h-5 text-cyan-400" />
-              </div>
-              <div>
-                <h1 className="font-heading text-2xl sm:text-3xl font-black tracking-tight">TROCAS</h1>
-                <p className="text-xs font-body text-muted-foreground tracking-widest">NEGOCIE CARTAS COM OUTROS JOGADORES</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              {incomingPending.length > 0 && (
-                <span className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-400/10 border border-amber-400/30 text-amber-400 font-heading text-xs animate-pulse">
-                  {incomingPending.length} proposta{incomingPending.length > 1 ? "s" : ""} pendente{incomingPending.length > 1 ? "s" : ""}
-                </span>
-              )}
-              <button
-                onClick={() => setShowNew(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-cyan-400 text-black font-heading text-xs font-bold tracking-widest hover:bg-cyan-300 transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5" /> NOVA TROCA
-              </button>
-            </div>
+      <main className="mx-auto w-full max-w-6xl px-4 pb-28 pt-7 sm:px-6 lg:px-8">
+        <section className="rounded-[2rem] border border-primary/25 bg-card p-6 sm:p-8">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+            <div><div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[.15em] text-primary"><ArrowLeftRight className="h-4 w-4" /> P2P seguro</div><h1 className="mt-2 text-3xl font-black tracking-[-.04em] sm:text-5xl">Trocas & presentes</h1><p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">As duas partes confirmam a proposta e depois aceitam a liquidação. A movimentação de DeckCredits sofre taxa de 5% no fechamento da troca.</p></div>
+            <div className="rounded-2xl border border-border bg-background/60 px-4 py-3"><div className="text-[9px] font-black uppercase tracking-[.13em] text-muted-foreground">Saldo disponível</div><div className="mt-1 text-xl font-black">{fmt(profile?.deck_credits)} <span className="text-xs text-primary">DC</span></div></div>
           </div>
-        </motion.div>
+        </section>
 
-        {/* Incoming trades */}
-        {incomingPending.length > 0 && (
-          <div className="mb-6">
-            <h2 className="font-heading text-xs font-bold tracking-widest text-amber-400 mb-3">— PROPOSTAS RECEBIDAS</h2>
-            <div className="space-y-3">
-              {incomingPending.map(trade => (
-                <motion.div key={trade.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                  className="border border-amber-400/30 bg-amber-400/5 p-4">
-                  <div className="flex items-center justify-between flex-wrap gap-3">
-                    <div>
-                      <p className="font-heading text-xs font-black text-foreground">
-                        <span className="text-amber-400">@{trade.sender_username}</span> quer trocar
-                      </p>
-                      <div className="flex items-center gap-2 mt-1 flex-wrap">
-                        <span className="font-heading text-[10px] text-cyan-400 border border-cyan-400/20 px-1.5 py-0.5">{trade.sender_card_name}</span>
-                        <ArrowLeftRight className="w-3 h-3 text-muted-foreground" />
-                        <span className="font-heading text-[10px] text-primary border border-primary/20 px-1.5 py-0.5">{trade.receiver_card_name}</span>
-                        {trade.gem_bonus > 0 && <span className="font-heading text-[10px] text-amber-400">+{trade.gem_bonus} Gems</span>}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => handleAccept(trade)} className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500/10 border border-green-500/30 text-green-400 font-heading text-[10px] hover:bg-green-500/20 transition-colors">
-                        <Check className="w-3 h-3" /> ACEITAR
-                      </button>
-                      <button onClick={() => handleReject(trade)} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 border border-red-500/30 text-red-400 font-heading text-[10px] hover:bg-red-500/20 transition-colors">
-                        <X className="w-3 h-3" /> RECUSAR
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        )}
+        {error && <div className="mt-5 rounded-2xl border border-destructive/25 bg-destructive/10 p-4 text-sm text-destructive">{error}</div>}
 
-        {/* Trade history */}
-        <div>
-          <h2 className="font-heading text-xs font-bold tracking-widest text-muted-foreground mb-3">— HISTÓRICO DE TROCAS</h2>
-          {myTrades.length === 0 ? (
-            <div className="text-center py-12 border border-border/30 bg-card/20">
-              <ArrowLeftRight className="w-8 h-8 text-muted-foreground/20 mx-auto mb-2" />
-              <p className="text-sm font-body text-muted-foreground">Nenhuma troca ainda</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {myTrades.map(trade => {
-                const isSender = trade.sender_discord_id === myId;
-                const sc = STATUS_CONFIG[trade.status] || STATUS_CONFIG.pending;
-                return (
-                  <div key={trade.id} className={`border ${sc.border} ${sc.bg} p-3 flex items-center justify-between flex-wrap gap-2`}>
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[10px] font-heading text-muted-foreground">{isSender ? "→ Para" : "← De"}</span>
-                        <span className="font-heading text-xs font-bold text-foreground">@{isSender ? trade.receiver_username : trade.sender_username}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                        <span className="font-mono text-[10px] text-cyan-400">{isSender ? trade.sender_card_name : trade.receiver_card_name}</span>
-                        <ArrowLeftRight className="w-3 h-3 text-muted-foreground" />
-                        <span className="font-mono text-[10px] text-primary">{isSender ? trade.receiver_card_name : trade.sender_card_name}</span>
-                        {trade.gem_bonus > 0 && <span className="font-mono text-[10px] text-amber-400">+{trade.gem_bonus}💎</span>}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`font-heading text-[10px] font-bold px-2 py-0.5 border ${sc.border} ${sc.color}`}>{sc.label}</span>
-                      {trade.status === "pending" && isSender && (
-                        <button onClick={() => updateTrade.mutate({ id: trade.id, status: "cancelled" })} className="text-[10px] font-heading text-muted-foreground hover:text-destructive transition-colors">
-                          Cancelar
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+        <div className="mt-7 grid gap-6 lg:grid-cols-2">
+          <section className="rounded-3xl border border-border bg-card p-5 sm:p-6">
+            <div className="flex items-center gap-2"><Gift className="h-5 w-5 text-primary" /><h2 className="text-lg font-black">Presente direto</h2></div>
+            <p className="mt-2 text-xs leading-6 text-muted-foreground">Envie carta, item ou DeckCredits por ID/username. A transferência é irreversível após a confirmação.</p>
+            <label className="mt-5 block text-[10px] font-black uppercase tracking-[.13em] text-muted-foreground">ID ou username</label>
+            <input value={giftRecipient} onChange={(e) => setGiftRecipient(e.target.value)} placeholder="@jogador ou ID" className="mt-2 min-h-11 w-full rounded-xl border border-border bg-background px-3 text-sm outline-none focus:border-primary/50" />
+            <label className="mt-4 block text-[10px] font-black uppercase tracking-[.13em] text-muted-foreground">Carta / item opcional</label>
+            <select value={giftCardId} onChange={(e) => setGiftCardId(e.target.value)} className="mt-2 min-h-11 w-full rounded-xl border border-border bg-background px-3 text-sm"><option value="">Nenhum</option>{cards.map((card) => <option key={card.card_id} value={card.card_id}>{card.name} · {card.entity_type === 'item' ? 'Item' : 'Carta'} · x{card.copies}</option>)}</select>
+            <div className="mt-4 grid grid-cols-2 gap-3"><Field label="Quantidade" type="number" min="1" value={giftQty} onChange={(e) => setGiftQty(e.target.value)} /><Field label="DeckCredits" type="number" min="0" value={giftDc} onChange={(e) => setGiftDc(e.target.value)} /></div>
+            <button disabled={!giftRecipient || (!giftCardId && Number(giftDc) <= 0)} onClick={() => setConfirmGift(true)} className="mt-5 min-h-12 w-full rounded-xl bg-primary px-4 text-sm font-black text-primary-foreground disabled:opacity-40">Revisar presente</button>
+          </section>
+
+          <section className="rounded-3xl border border-border bg-card p-5 sm:p-6">
+            <div className="flex items-center gap-2"><Plus className="h-5 w-5 text-primary" /><h2 className="text-lg font-black">Abrir troca em escrow</h2></div>
+            <p className="mt-2 text-xs leading-6 text-muted-foreground">Crie o canal bilateral. Cada participante define a própria oferta; qualquer edição invalida as confirmações anteriores.</p>
+            <label className="mt-5 block text-[10px] font-black uppercase tracking-[.13em] text-muted-foreground">ID ou username do outro jogador</label>
+            <input value={recipient} onChange={(e) => setRecipient(e.target.value)} placeholder="@jogador ou ID" className="mt-2 min-h-11 w-full rounded-xl border border-border bg-background px-3 text-sm outline-none focus:border-primary/50" />
+            <button disabled={!recipient.trim() || newTrade.isPending} onClick={() => newTrade.mutate(recipient)} className="mt-5 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-primary/35 bg-primary/10 px-4 text-sm font-black text-primary disabled:opacity-40">{newTrade.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowLeftRight className="h-4 w-4" />} Criar troca</button>
+            <div className="mt-5 rounded-xl border border-border bg-background/50 p-3 text-[11px] leading-5 text-muted-foreground"><strong className="text-foreground">Taxa:</strong> 5% somente sobre DC movimentado. Cartas e itens não sofrem taxa.</div>
+          </section>
         </div>
-      </div>
 
-      {/* New Trade Modal */}
-      <AnimatePresence>
-        {showNew && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            onClick={e => e.target === e.currentTarget && setShowNew(false)}
-          >
-            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-card border border-border/60 p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto"
-            >
-              <div className="flex items-center justify-between mb-5">
-                <h2 className="font-heading text-sm font-black tracking-widest">PROPOR TROCA</h2>
-                <button onClick={() => setShowNew(false)} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
-              </div>
+        <section className="mt-7">
+          <div className="mb-4 flex items-center justify-between"><h2 className="text-2xl font-black">Minhas trocas</h2><button onClick={() => trades.refetch()} className="min-h-10 rounded-xl border border-border px-3 text-xs font-black text-muted-foreground">Atualizar</button></div>
+          {trades.isLoading ? <div className="flex min-h-32 items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div> : (trades.data || []).length === 0 ? <div className="rounded-3xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">Nenhuma troca criada ainda.</div> : <div className="space-y-4">{(trades.data || []).map((trade) => <TradeCard key={trade.id} trade={trade} me={profile?.id} cards={cards} drafts={drafts} setDrafts={setDrafts} busy={busy} onSave={(payload) => saveOffer.mutate(payload)} onConfirm={(id) => confirm.mutate(id)} onAccept={(id) => accept.mutate(id)} onClose={(payload) => close.mutate(payload)} />)}</div>}
+        </section>
+      </main>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
-                <CardPicker cards={myRosterCards} selected={offerCard} onSelect={setOfferCard} label="VOCÊ OFERECE" />
-                <CardPicker cards={allCards} selected={wantCard} onSelect={setWantCard} label="VOCÊ QUER" />
-              </div>
-
-              <div className="space-y-3 mb-5">
-                <div>
-                  <label className="text-[10px] font-heading tracking-widest text-muted-foreground block mb-1">JOGADOR ALVO (username ou discord ID)</label>
-                  <Input value={targetUser} onChange={e => setTargetUser(e.target.value)} placeholder="ex: void_hunter" className="bg-muted/20 border-border/50 font-body" />
-                </div>
-                <div>
-                  <label className="text-[10px] font-heading tracking-widest text-muted-foreground block mb-1">GEMS BÔNUS (opcional)</label>
-                  <div className="flex items-center gap-2">
-                    <Gem className="w-4 h-4 text-primary shrink-0" />
-                    <Input type="number" value={gemBonus} onChange={e => setGemBonus(Number(e.target.value))} min={0} className="bg-muted/20 border-border/50 font-mono w-32" />
-                  </div>
-                </div>
-              </div>
-
-              {offerCard && wantCard && (
-                <div className="flex items-center gap-3 p-3 border border-border/30 bg-muted/10 mb-5">
-                  <span className="font-heading text-xs text-cyan-400">{offerCard.name}</span>
-                  <ArrowLeftRight className="w-4 h-4 text-muted-foreground" />
-                  <span className="font-heading text-xs text-primary">{wantCard.name}</span>
-                  {gemBonus > 0 && <span className="font-heading text-xs text-amber-400 ml-auto">+{gemBonus} 💎</span>}
-                </div>
-              )}
-
-              <button
-                onClick={handleCreate}
-                disabled={!offerCard || !wantCard || !targetUser || createTrade.isPending}
-                className="w-full py-2.5 bg-cyan-400 text-black font-heading text-xs font-bold tracking-widest hover:bg-cyan-300 transition-colors disabled:opacity-40"
-              >
-                {createTrade.isPending ? "ENVIANDO..." : "ENVIAR PROPOSTA"}
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {confirmGift && <ConfirmModal title="Confirmar presente irreversível" onClose={() => setConfirmGift(false)} onConfirm={() => gift.mutate({ recipient: giftRecipient, cardId: giftCardId || null, quantity: giftCardId ? Number(giftQty) : 0, deckCredits: Number(giftDc) || 0 })} busy={gift.isPending}><p className="text-sm text-muted-foreground">Destino: <strong className="text-foreground">{giftRecipient}</strong></p>{selectedGift && <p className="mt-2 text-sm text-muted-foreground">Asset: <strong className="text-foreground">{selectedGift.name} × {giftQty}</strong></p>}<p className="mt-2 text-sm text-muted-foreground">DeckCredits: <strong className="text-foreground">{fmt(giftDc)} DC</strong></p><p className="mt-4 rounded-xl border border-amber-400/25 bg-amber-400/10 p-3 text-xs text-amber-200">Após confirmar, o servidor transfere os ativos imediatamente e não há desfazer automático.</p></ConfirmModal>}
     </div>
   );
 }
+
+function TradeCard({ trade, me, cards, drafts, setDrafts, busy, onSave, onConfirm, onAccept, onClose }) {
+  const isSender = trade.sender_profile_id === me;
+  const myConfirmed = isSender ? trade.sender_confirmed : trade.receiver_confirmed;
+  const otherConfirmed = isSender ? trade.receiver_confirmed : trade.sender_confirmed;
+  const myAccepted = isSender ? trade.sender_accepted : trade.receiver_accepted;
+  const myAssets = parseAssets(isSender ? trade.sender_assets : trade.receiver_assets);
+  const otherAssets = parseAssets(isSender ? trade.receiver_assets : trade.sender_assets);
+  const myDc = Number(isSender ? trade.sender_dc : trade.receiver_dc) || 0;
+  const otherDc = Number(isSender ? trade.receiver_dc : trade.sender_dc) || 0;
+  const draft = drafts[trade.id] || { assets: myAssets, dc: myDc };
+  const toggle = (card) => {
+    const exists = draft.assets.some((a) => (a.card_id || a.id) === card.card_id);
+    const assets = exists ? draft.assets.filter((a) => (a.card_id || a.id) !== card.card_id) : [...draft.assets, { card_id: card.card_id, quantity: 1, name: card.name, entity_type: card.entity_type }];
+    setDrafts((prev) => ({ ...prev, [trade.id]: { ...draft, assets } }));
+  };
+  const closed = ['completed', 'cancelled', 'rejected'].includes(trade.status);
+  return <article className="rounded-3xl border border-border bg-card p-5 sm:p-6">
+    <div className="flex flex-wrap items-start justify-between gap-3"><div><div className="text-[10px] font-black uppercase tracking-[.13em] text-primary">Troca {String(trade.id).slice(0, 8)}</div><div className="mt-1 text-lg font-black">{labelStatus(trade.status)}</div></div><div className="rounded-full border border-border bg-background px-3 py-1 text-[10px] font-black text-muted-foreground">Taxa DC 5%</div></div>
+    <div className="mt-4 grid gap-3 sm:grid-cols-2"><OfferBox title="Sua oferta" assets={myAssets} dc={myDc} confirmed={myConfirmed} /><OfferBox title="Oferta da outra parte" assets={otherAssets} dc={otherDc} confirmed={otherConfirmed} /></div>
+    {!closed && trade.status === 'draft' && <div className="mt-5 rounded-2xl border border-border bg-background/45 p-4"><div className="text-[10px] font-black uppercase tracking-[.13em] text-muted-foreground">Editar sua oferta</div><div className="mt-3 grid max-h-48 grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-3 md:grid-cols-4">{cards.map((card) => { const active = draft.assets.some((a) => (a.card_id || a.id) === card.card_id); return <button key={card.card_id} onClick={() => toggle(card)} className={`rounded-xl border p-2 text-left ${active ? 'border-primary bg-primary/10' : 'border-border bg-card'}`}><div className="truncate text-[11px] font-black">{card.name}</div><div className="mt-1 text-[9px] text-muted-foreground">{card.entity_type} · x{card.copies}</div></button>; })}</div><div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto]"><Field label="DeckCredits na oferta" type="number" min="0" value={draft.dc} onChange={(e) => setDrafts((prev) => ({ ...prev, [trade.id]: { ...draft, dc: e.target.value } }))} /><button disabled={busy} onClick={() => onSave({ id: trade.id, assets: draft.assets, dc: Number(draft.dc) || 0 })} className="mt-auto min-h-11 rounded-xl border border-primary/35 bg-primary/10 px-4 text-xs font-black text-primary disabled:opacity-40">Salvar oferta</button></div></div>}
+    <div className="mt-5 flex flex-wrap gap-2">{trade.status === 'draft' && <button disabled={busy || myConfirmed} onClick={() => onConfirm(trade.id)} className="min-h-11 rounded-xl bg-primary px-4 text-xs font-black text-primary-foreground disabled:opacity-40"><Check className="mr-2 inline h-4 w-4" />Confirmar proposta</button>}{trade.status === 'ready' && <button disabled={busy || myAccepted} onClick={() => onAccept(trade.id)} className="min-h-11 rounded-xl bg-emerald-500 px-4 text-xs font-black text-black disabled:opacity-40"><ShieldCheck className="mr-2 inline h-4 w-4" />{myAccepted ? 'Aceite registrado' : 'Aceitar troca'}</button>}{!closed && <button disabled={busy} onClick={() => onClose({ id: trade.id, status: isSender ? 'cancelled' : 'rejected' })} className="min-h-11 rounded-xl border border-border px-4 text-xs font-black text-muted-foreground"><X className="mr-2 inline h-4 w-4" />{isSender ? 'Cancelar' : 'Recusar'}</button>}</div>
+  </article>;
+}
+
+function OfferBox({ title, assets, dc, confirmed }) { return <div className="rounded-2xl border border-border bg-background/55 p-4"><div className="flex items-center justify-between gap-2"><span className="text-[10px] font-black uppercase tracking-[.12em] text-muted-foreground">{title}</span><span className={`text-[9px] font-black ${confirmed ? 'text-emerald-300' : 'text-amber-300'}`}>{confirmed ? 'Confirmada' : 'Pendente'}</span></div><div className="mt-3 space-y-1">{assets.length ? assets.map((a, i) => <div key={`${a.card_id}-${i}`} className="flex items-center gap-2 text-xs"><Package className="h-3.5 w-3.5 text-primary" /><span className="truncate">{a.name || a.card_id}</span><strong className="ml-auto">x{a.quantity || 1}</strong></div>) : <div className="text-xs text-muted-foreground">Nenhum asset</div>}</div><div className="mt-3 flex items-center gap-2 border-t border-border pt-3 text-xs"><Coins className="h-3.5 w-3.5 text-primary" /><span>DeckCredits</span><strong className="ml-auto">{fmt(dc)} DC</strong></div></div>; }
+function Field({ label, ...props }) { return <label className="block"><span className="text-[10px] font-black uppercase tracking-[.12em] text-muted-foreground">{label}</span><input {...props} className="mt-2 min-h-11 w-full rounded-xl border border-border bg-background px-3 text-sm outline-none focus:border-primary/50" /></label>; }
+function ConfirmModal({ title, children, onClose, onConfirm, busy }) { return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm"><div className="w-full max-w-md rounded-3xl border border-border bg-card p-6 shadow-2xl"><h2 className="text-lg font-black">{title}</h2><div className="mt-4">{children}</div><div className="mt-6 grid grid-cols-2 gap-2"><button onClick={onClose} disabled={busy} className="min-h-11 rounded-xl border border-border text-xs font-black">Voltar</button><button onClick={onConfirm} disabled={busy} className="min-h-11 rounded-xl bg-primary text-xs font-black text-primary-foreground">{busy ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : 'Confirmar'}</button></div></div></div>; }
+function labelStatus(status) { return ({ draft: 'Proposta em montagem', ready: 'Pronta para aceite final', completed: 'Troca concluída', cancelled: 'Cancelada', rejected: 'Recusada' }[status] || status); }
