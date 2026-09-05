@@ -19,6 +19,7 @@ import Login from './Login';
 import AuthCallback from './AuthCallback';
 import Support from './Support';
 import Gacha from './Gacha';
+import GachaPreferences from './GachaPreferences';
 import AdminSupabase from './AdminSupabase';
 import AdminSynopsis from './AdminSynopsis';
 
@@ -55,6 +56,7 @@ function AnimatedRoutes() {
           <Route path="/items" element={<Catalog initialType="items" />} />
           <Route path="/bosses" element={<Catalog initialType="bosses" />} />
           <Route path="/gacha" element={<Gacha />} />
+          <Route path="/gacha/preferences" element={<GachaPreferences />} />
           <Route path="/my-collection" element={<MyCollection />} />
           <Route path="/card/:id" element={<CardDetail />} />
           <Route path="/profile" element={<Profile />} />
