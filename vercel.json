@@ -5,12 +5,6 @@
       "maxDuration": 15
     }
   },
-  "crons": [
-    {
-      "path": "/api/discord/spawn-tick",
-      "schedule": "*/5 * * * *"
-    }
-  ],
   "routes": [
     { "handle": "filesystem" },
     { "src": "/.*", "dest": "/index.html" }
