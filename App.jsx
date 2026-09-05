@@ -20,6 +20,7 @@ import AuthCallback from './AuthCallback';
 import Support from './Support';
 import Gacha from './Gacha';
 import AdminSupabase from './AdminSupabase';
+import AdminSynopsis from './AdminSynopsis';
 
 function AdminRouteGuard({ children }) {
   const { isAuthenticated, isAdmin, isLoadingAuth } = useAuth();
@@ -59,6 +60,7 @@ function AnimatedRoutes() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/support" element={<Support />} />
           <Route path="/admin" element={<AdminRouteGuard><AdminSupabase /></AdminRouteGuard>} />
+          <Route path="/admin/synopses" element={<AdminRouteGuard><AdminSynopsis /></AdminRouteGuard>} />
           <Route path="/adm" element={<Navigate to="/admin" replace />} />
           <Route path="*" element={<PageNotFound />} />
         </Routes>
