@@ -30,6 +30,8 @@ drop trigger if exists deckverse_roster_pwr_refresh on public.rosters;
 drop function if exists public.set_equipped_card(text, boolean);
 drop function if exists app_private.roster_pwr_trigger();
 drop function if exists app_private.recalculate_pwr(uuid);
+-- The old admin profile RPC returned profiles.pwr, so it must be retired before the column.
+drop function if exists public.admin_search_profiles(text);
 
 -- Combat statistics are no longer part of collectible entities.
 alter table public.cards
