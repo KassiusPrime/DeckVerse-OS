@@ -1,46 +1,31 @@
 -- DeckVerse OS — admin-only synopsis editor
 -- Keeps public catalog writes closed and exposes a narrow audited RPC to authenticated admins.
+-- Safe to apply before the wider lore-first/stat-removal migration.
 
 begin;
 set local lock_timeout = '5s';
 set local statement_timeout = '60s';
 
--- Recreate the admin profile search without the retired PWR field.
-create or replace function public.admin_search_profiles(p_query text)
-returns table(
-  id uuid,
-  discord_id text,
-  discord_username text,
-  display_name text,
-  avatar_url text,
-  role text,
-  astral_shards bigint,
-  ether_cores bigint,
-  level integer,
-  xp bigint,
-  cosmic_luck numeric,
-  pity_counter integer
-)
-language plpgsql
-security definer
-set search_path = ''
-as $$
-begin
-  if not app_private.is_admin() then raise exception 'ADMIN_REQUIRED'; end if;
-  return query
-  select p.id, p.discord_id, p.discord_username, p.display_name, p.avatar_url,
-         p.role, p.astral_shards, p.ether_cores, p.level, p.xp, p.cosmic_luck, p.pity_counter
-  from public.profiles p
-  where coalesce(p_query, '') = ''
-     or p.discord_id ilike '%' || p_query || '%'
-     or p.discord_username ilike '%' || p_query || '%'
-     or p.display_name ilike '%' || p_query || '%'
-  order by coalesce(p.display_name, p.discord_username)
-  limit 50;
-end;
-$$;
-revoke all on function public.admin_search_profiles(text) from public, anon;
-grant execute on function public.admin_search_profiles(text) to authenticated;
+alter table public.collections add column if not exists synopsis text;
+alter table public.cards add column if not exists synopsis text;
+alter table public.card_forms add column if not exists synopsis text;
+
+alter table public.collections drop constraint if exists collections_synopsis_length_ck;
+alter table public.collections add constraint collections_synopsis_length_ck
+  check (synopsis is null or char_length(synopsis) between 350 and 400) not valid;
+
+alter table public.cards drop constraint if exists cards_synopsis_length_ck;
+alter table public.cards add constraint cards_synopsis_length_ck
+  check (
+    synopsis is null or
+    (entity_type = 'character' and char_length(synopsis) between 220 and 260) or
+    (entity_type = 'boss' and char_length(synopsis) between 250 and 300) or
+    (entity_type = 'item' and char_length(synopsis) between 200 and 240)
+  ) not valid;
+
+alter table public.card_forms drop constraint if exists card_forms_synopsis_length_ck;
+alter table public.card_forms add constraint card_forms_synopsis_length_ck
+  check (synopsis is null or char_length(synopsis) between 180 and 220) not valid;
 
 create or replace function public.admin_update_synopsis(
   p_scope text,
