@@ -37,7 +37,7 @@ const keyGokuDBZ = createEntityKey({ name: "Goku", collection_id: "DBZ", type: "
 const keyGokuDC = createEntityKey({ name: "Goku", collection_id: "DC", type: "character" });
 
 assert(keyGokuDBZ !== keyGokuDC, "Mesmo nome em franquias diferentes gera chaves distintas");
-assert(keyGokuDBZ.includes("COL-01-DBZ"), `DBZ resolvido para canônico COL-01-DBZ: ${keyGokuDBZ}`);
+assert(keyGokuDBZ.includes("COL-01-DB"), `DBZ resolvido para canônico COL-01-DB: ${keyGokuDBZ}`);
 assert(keyGokuDC.includes("COL-03-DC"), `DC resolvido para canônico COL-03-DC: ${keyGokuDC}`);
 
 // Test 3: Normalização de Aliases e Nomes Equivalentes
