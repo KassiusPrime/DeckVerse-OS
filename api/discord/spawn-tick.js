@@ -1,8 +1,10 @@
+import crypto from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import { createSpawnWave, dueGuildSettings, sendSpawnWave } from '../../services/discord/spawnService.js';
 
 export const config = { maxDuration: 60 };
 const DEFAULT_SUPABASE_URL = 'https://rrujnjraonckjdtpsfol.supabase.co';
+const SCHEDULER_TOKEN_SHA256 = '1b6e014149a94dc176363518ec047252c1567e97d0721ca7ba3205913db5daec';
 
 function adminClient() {
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL;
@@ -11,9 +13,27 @@ function adminClient() {
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
+function safeEqualHex(left, right) {
+  try {
+    const a = Buffer.from(left, 'hex');
+    const b = Buffer.from(right, 'hex');
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
+  } catch {
+    return false;
+  }
+}
+
 function authorized(req) {
-  const secret = process.env.CRON_SECRET;
-  return Boolean(secret && req.headers.authorization === `Bearer ${secret}`);
+  const header = String(req.headers.authorization || '');
+  if (!header.startsWith('Bearer ')) return false;
+  const token = header.slice(7).trim();
+  if (!token) return false;
+
+  const envSecret = process.env.CRON_SECRET;
+  if (envSecret && token === envSecret) return true;
+
+  const digest = crypto.createHash('sha256').update(token).digest('hex');
+  return safeEqualHex(digest, SCHEDULER_TOKEN_SHA256);
 }
 
 export default async function handler(req, res) {
