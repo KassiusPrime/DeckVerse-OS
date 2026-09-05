@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { CircleHelp, Gem, Layers, LogIn, Menu, Package, Search, ShieldCheck, Sparkles, UserRound, X } from 'lucide-react';
+import { BookOpen, CircleHelp, Gem, Layers, LogIn, Menu, Package, Search, ShieldCheck, Sparkles, UserRound, X } from 'lucide-react';
 import DeckVerseLogo from './DeckVerseLogo';
 import { useAuth } from './AuthContext';
 
@@ -46,6 +46,7 @@ export default function Navbar({ onSearch }) {
 
         <div className="ml-auto hidden items-center gap-1 xl:flex">
           {NAV_LINKS.map(({ to, label, icon: Icon }) => <NavLink key={to} to={to} className={linkClass}><Icon className="h-4 w-4" />{label}</NavLink>)}
+          {isAdmin && <NavLink to="/admin/synopses" className={linkClass}><BookOpen className="h-4 w-4" />Sinopses</NavLink>}
           {isAdmin && <NavLink to="/admin" className={linkClass}><ShieldCheck className="h-4 w-4" />Admin</NavLink>}
         </div>
 
@@ -55,7 +56,7 @@ export default function Navbar({ onSearch }) {
         </div>
       </nav>
 
-      {mobileOpen && <div ref={menuRef} className="border-t border-border bg-background px-4 py-4 shadow-2xl xl:hidden"><form onSubmit={submitSearch} className="mb-3 md:hidden"><label className="relative block"><Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><input aria-label="Buscar personagem, forma ou item" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar personagem, forma ou item" className="h-11 w-full rounded-xl border border-border bg-card pl-10 pr-3 text-sm text-foreground outline-none focus:border-primary/60" /></label></form><div className="grid gap-1 sm:grid-cols-2">{NAV_LINKS.map(({ to, label, icon: Icon }) => <NavLink key={to} to={to} onClick={() => setMobileOpen(false)} className={linkClass}><Icon className="h-4 w-4" />{label}</NavLink>)}<NavLink to={isAuthenticated ? '/profile' : '/login'} onClick={() => setMobileOpen(false)} className={linkClass}>{isAuthenticated ? <UserRound className="h-4 w-4" /> : <LogIn className="h-4 w-4" />}{isAuthenticated ? 'Perfil' : 'Entrar com Discord'}</NavLink>{isAdmin && <NavLink to="/admin" onClick={() => setMobileOpen(false)} className={linkClass}><ShieldCheck className="h-4 w-4" />Admin</NavLink>}</div></div>}
+      {mobileOpen && <div ref={menuRef} className="border-t border-border bg-background px-4 py-4 shadow-2xl xl:hidden"><form onSubmit={submitSearch} className="mb-3 md:hidden"><label className="relative block"><Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><input aria-label="Buscar personagem, forma ou item" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar personagem, forma ou item" className="h-11 w-full rounded-xl border border-border bg-card pl-10 pr-3 text-sm text-foreground outline-none focus:border-primary/60" /></label></form><div className="grid gap-1 sm:grid-cols-2">{NAV_LINKS.map(({ to, label, icon: Icon }) => <NavLink key={to} to={to} onClick={() => setMobileOpen(false)} className={linkClass}><Icon className="h-4 w-4" />{label}</NavLink>)}<NavLink to={isAuthenticated ? '/profile' : '/login'} onClick={() => setMobileOpen(false)} className={linkClass}>{isAuthenticated ? <UserRound className="h-4 w-4" /> : <LogIn className="h-4 w-4" />}{isAuthenticated ? 'Perfil' : 'Entrar com Discord'}</NavLink>{isAdmin && <NavLink to="/admin/synopses" onClick={() => setMobileOpen(false)} className={linkClass}><BookOpen className="h-4 w-4" />Sinopses</NavLink>}{isAdmin && <NavLink to="/admin" onClick={() => setMobileOpen(false)} className={linkClass}><ShieldCheck className="h-4 w-4" />Admin</NavLink>}</div></div>}
     </header>
   );
 }
