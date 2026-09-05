@@ -19,9 +19,10 @@ import Login from './Login';
 import AuthCallback from './AuthCallback';
 import Support from './Support';
 import Gacha from './Gacha';
-import GachaPreferences from './GachaPreferences';
+import GameHub from './GameHub';
 import AdminSupabase from './AdminSupabase';
 import AdminSynopsis from './AdminSynopsis';
+import AdminCardValues from './AdminCardValues';
 
 function AdminRouteGuard({ children }) {
   const { isAuthenticated, isAdmin, isLoadingAuth } = useAuth();
@@ -56,13 +57,15 @@ function AnimatedRoutes() {
           <Route path="/items" element={<Catalog initialType="items" />} />
           <Route path="/bosses" element={<Catalog initialType="bosses" />} />
           <Route path="/gacha" element={<Gacha />} />
-          <Route path="/gacha/preferences" element={<GachaPreferences />} />
+          <Route path="/gacha/preferences" element={<Navigate to="/game?tab=disables" replace />} />
+          <Route path="/game" element={<GameHub />} />
           <Route path="/my-collection" element={<MyCollection />} />
           <Route path="/card/:id" element={<CardDetail />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/support" element={<Support />} />
           <Route path="/admin" element={<AdminRouteGuard><AdminSupabase /></AdminRouteGuard>} />
           <Route path="/admin/synopses" element={<AdminRouteGuard><AdminSynopsis /></AdminRouteGuard>} />
+          <Route path="/admin/card-values" element={<AdminRouteGuard><AdminCardValues /></AdminRouteGuard>} />
           <Route path="/adm" element={<Navigate to="/admin" replace />} />
           <Route path="*" element={<PageNotFound />} />
         </Routes>
