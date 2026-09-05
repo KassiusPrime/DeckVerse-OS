@@ -58,7 +58,7 @@ declare
   clean_synopsis text := trim(coalesce(p_synopsis, ''));
   old_synopsis text;
   entity_name text;
-  entity_type text;
+  target_type text;
   min_len integer;
   max_len integer;
   new_len integer := char_length(clean_synopsis);
@@ -69,22 +69,22 @@ begin
   if nullif(trim(coalesce(p_id, '')), '') is null then raise exception 'ENTITY_ID_REQUIRED'; end if;
 
   if clean_scope = 'collection' then
-    select synopsis, name into old_synopsis, entity_name
-    from public.collections where id = p_id for update;
+    select c.synopsis, c.name into old_synopsis, entity_name
+    from public.collections c where c.id = p_id for update;
     if not found then raise exception 'COLLECTION_NOT_FOUND'; end if;
-    entity_type := 'collection'; min_len := 350; max_len := 400;
+    target_type := 'collection'; min_len := 350; max_len := 400;
   elsif clean_scope = 'form' then
-    select synopsis, name into old_synopsis, entity_name
-    from public.card_forms where id = p_id for update;
+    select f.synopsis, f.name into old_synopsis, entity_name
+    from public.card_forms f where f.id = p_id for update;
     if not found then raise exception 'FORM_NOT_FOUND'; end if;
-    entity_type := 'form'; min_len := 180; max_len := 220;
+    target_type := 'form'; min_len := 180; max_len := 220;
   else
-    select synopsis, name, entity_type into old_synopsis, entity_name, entity_type
-    from public.cards where id = p_id for update;
+    select c.synopsis, c.name, c.entity_type into old_synopsis, entity_name, target_type
+    from public.cards c where c.id = p_id for update;
     if not found then raise exception 'CARD_NOT_FOUND'; end if;
-    if entity_type = 'character' then min_len := 220; max_len := 260;
-    elsif entity_type = 'boss' then min_len := 250; max_len := 300;
-    elsif entity_type = 'item' then min_len := 200; max_len := 240;
+    if target_type = 'character' then min_len := 220; max_len := 260;
+    elsif target_type = 'boss' then min_len := 250; max_len := 300;
+    elsif target_type = 'item' then min_len := 200; max_len := 240;
     else raise exception 'UNSUPPORTED_ENTITY_TYPE';
     end if;
   end if;
@@ -109,7 +109,7 @@ begin
       'scope', clean_scope,
       'entity_id', p_id,
       'entity_name', entity_name,
-      'entity_type', entity_type,
+      'entity_type', target_type,
       'old_length', coalesce(char_length(old_synopsis), 0),
       'new_length', new_len
     )
@@ -120,7 +120,7 @@ begin
     'scope', clean_scope,
     'id', p_id,
     'name', entity_name,
-    'entity_type', entity_type,
+    'entity_type', target_type,
     'synopsis', clean_synopsis,
     'length', new_len
   );
