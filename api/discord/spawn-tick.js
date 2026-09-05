@@ -4,7 +4,7 @@ import { createSpawnWave, dueGuildSettings, sendSpawnWave } from '../../services
 
 export const config = { maxDuration: 60 };
 const DEFAULT_SUPABASE_URL = 'https://rrujnjraonckjdtpsfol.supabase.co';
-const SCHEDULER_TOKEN_SHA256 = '1b6e014149a94dc176363518ec047252c1567e97d0721ca7ba3205913db5daec';
+const SCHEDULER_TOKEN_SHA256 = '55b0cc20576e06b8238c582e550e2eb0dad529633752da319df40dbc8612b1ac';
 
 function adminClient() {
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL;
