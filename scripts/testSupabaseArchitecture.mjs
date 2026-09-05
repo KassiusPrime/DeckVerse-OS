@@ -24,6 +24,9 @@ const auth = read('AuthContext.jsx');
 const client = read('services/supabase/client.js');
 const profileService = read('services/supabase/profileService.js');
 const gameService = read('services/supabase/gameService.js');
+const adminService = read('services/supabase/adminService.js');
+const synopsisPanel = read('src/components/admin/SynopsisAdminPanel.jsx');
+const synopsisMigration = read('supabase/migrations/20260905132000_admin_synopsis_editor.sql');
 const bootstrap = read('supabase/bootstrap.sql');
 const botSql = read('supabase/discord_bot.sql');
 const seed = read('scripts/seedSupabaseLegacy.mjs');
@@ -51,10 +54,11 @@ test('Discord OAuth is the product login path', () => {
   assert.doesNotMatch(auth, /signInWithEmailAndPassword|createUserWithEmailAndPassword/);
 });
 
-test('Admin route is protected by Supabase profile role', () => {
+test('Admin routes are protected by Supabase profile role', () => {
   assert.match(app, /AdminRouteGuard/);
   assert.match(app, /isAdmin/);
   assert.match(app, /<AdminRouteGuard><AdminSupabase \/><\/AdminRouteGuard>/);
+  assert.match(app, /<AdminRouteGuard><AdminSynopsis \/><\/AdminRouteGuard>/);
 });
 
 test('Legacy floating console and old product routes are absent from runtime', () => {
@@ -88,12 +92,26 @@ test('Admin authorization is based on profiles.role, never editable auth metadat
   assert.doesNotMatch(profileService, /role\s*:/);
 });
 
-test('Economy and roster writes use protected RPCs', () => {
+test('Economy writes stay protected and roster is collection-only in browser service', () => {
   assert.match(gameService, /rpc\('roll_gacha'/);
-  assert.match(gameService, /rpc\('set_equipped_card'/);
   assert.match(gameService, /rpc\('admin_adjust_balance'/);
+  assert.match(gameService, /from\('rosters'\)/);
+  assert.doesNotMatch(gameService, /set_equipped_card/);
+  assert.doesNotMatch(gameService, /\.from\('rosters'\)[\s\S]{0,300}\.update\(/);
   assert.match(bootstrap, /revoke insert, update, delete on public\.rosters from authenticated/i);
   assert.match(bootstrap, /revoke insert, update, delete on public\.economy_ledger from authenticated/i);
+});
+
+test('Synopsis editor is admin-only, bounded and audited', () => {
+  assert.match(app, /\/admin\/synopses/);
+  assert.match(adminService, /rpc\('admin_update_synopsis'/);
+  assert.match(synopsisPanel, /synopsisLengthStatus/);
+  assert.match(synopsisMigration, /if not app_private\.is_admin\(\) then raise exception 'ADMIN_REQUIRED'/i);
+  assert.match(synopsisMigration, /catalog\.synopsis\.create/);
+  assert.match(synopsisMigration, /catalog\.synopsis\.update/);
+  assert.match(synopsisMigration, /grant execute on function public\.admin_update_synopsis\(text, text, text\) to authenticated/i);
+  assert.match(synopsisMigration, /char_length\(synopsis\) between 350 and 400/i);
+  assert.match(synopsisMigration, /entity_type = 'character' and char_length\(synopsis\) between 220 and 260/i);
 });
 
 test('Legacy seed is idempotent and does not overwrite existing rows', () => {
@@ -110,7 +128,7 @@ test('Data API privileges are explicit and separate from RLS', () => {
 
 test('Discord endpoint verifies signatures before instantiating service-role Supabase', () => {
   const verifyIndex = discordApi.indexOf('verifyKey(');
-  const clientInvocationIndex = discordApi.indexOf('const supabase = adminClient()');
+  const clientInvocationIndex = discordApi.indexOf('const supabase=adminClient()') >= 0 ? discordApi.indexOf('const supabase=adminClient()') : discordApi.indexOf('const supabase = adminClient()');
   assert.ok(verifyIndex > 0);
   assert.ok(clientInvocationIndex > verifyIndex);
   assert.match(discordApi, /DISCORD_PUBLIC_KEY/);
@@ -119,7 +137,7 @@ test('Discord endpoint verifies signatures before instantiating service-role Sup
 });
 
 test('Service role is restricted to server-side migration/bot surfaces', () => {
-  for (const browserFile of ['AuthContext.jsx','Login.jsx','Profile.jsx','Gacha.jsx','AdminSupabase.jsx','services/supabase/client.js','services/supabase/gameService.js','services/supabase/catalogService.js','services/supabase/profileService.js','services/supabase/adminService.js']) {
+  for (const browserFile of ['AuthContext.jsx','Login.jsx','Profile.jsx','Gacha.jsx','AdminSupabase.jsx','AdminSynopsis.jsx','services/supabase/client.js','services/supabase/gameService.js','services/supabase/catalogService.js','services/supabase/profileService.js','services/supabase/adminService.js','src/components/admin/SynopsisAdminPanel.jsx']) {
     assert.doesNotMatch(read(browserFile), /SUPABASE_SERVICE_ROLE_KEY/);
   }
   assert.match(seed, /SUPABASE_SERVICE_ROLE_KEY/);
