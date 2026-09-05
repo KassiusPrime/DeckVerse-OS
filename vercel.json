@@ -3,8 +3,17 @@
   "functions": {
     "api/**/*.js": {
       "maxDuration": 15
+    },
+    "api/discord/spawn-tick.js": {
+      "maxDuration": 60
     }
   },
+  "crons": [
+    {
+      "path": "/api/discord/spawn-tick",
+      "schedule": "*/5 * * * *"
+    }
+  ],
   "routes": [
     { "handle": "filesystem" },
     { "src": "/.*", "dest": "/index.html" }
