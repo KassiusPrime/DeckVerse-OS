@@ -2,6 +2,8 @@ const CACHE_NAME = 'deckverse-os-v11';
 const STATIC_CACHE = `${CACHE_NAME}-static`;
 const STATIC_ASSETS = [
   '/manifest.json',
+  '/icon-192.png',
+  '/icon-512.png',
   '/assets/brand/deckverse-mark.svg',
 ];
 
@@ -39,8 +41,8 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Fingerprinted Vite assets are immutable by filename, so cache-first is safe.
-  if (url.pathname.startsWith('/assets/')) {
+  // Fingerprinted Vite assets and PWA install assets are safe to cache by URL.
+  if (url.pathname.startsWith('/assets/') || STATIC_ASSETS.includes(url.pathname)) {
     event.respondWith(
       caches.open(STATIC_CACHE).then(async (cache) => {
         const cached = await cache.match(event.request);

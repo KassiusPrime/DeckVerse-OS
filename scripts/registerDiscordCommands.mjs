@@ -1,6 +1,7 @@
 const appId = process.env.DISCORD_APPLICATION_ID || process.env.CLIENT_ID || '1543823857293594714';
 const token = process.env.DISCORD_BOT_TOKEN || process.env.DISCORD_TOKEN;
-const guildId = process.env.DISCORD_GUILD_ID || process.env.GUILD_ID || '';
+const defaultGuildId = '1487497709148569610';
+const guildId = process.env.DISCORD_GUILD_ID || process.env.GUILD_ID || defaultGuildId;
 if (!token) {
   console.error('Missing DISCORD_BOT_TOKEN or DISCORD_TOKEN.');
   process.exit(1);
@@ -31,6 +32,8 @@ const commands = [
   {
     name: 's',
     description: 'Configura o spawn automático',
+    default_member_permissions: '32',
+    dm_permission: false,
     options: [
       {
         type: 1,
@@ -57,11 +60,9 @@ const commands = [
   },
 ];
 
-const endpoint = guildId
-  ? `https://discord.com/api/v10/applications/${appId}/guilds/${guildId}/commands`
-  : `https://discord.com/api/v10/applications/${appId}/commands`;
+const endpoint = `https://discord.com/api/v10/applications/${appId}/guilds/${guildId}/commands`;
 
-console.log(`Sincronizando ${commands.length} comandos curtos com o Discord (${guildId ? 'guild' : 'global'})...`);
+console.log(`Sincronizando ${commands.length} comandos curtos com o Discord (guild ${guildId})...`);
 const response = await fetch(endpoint, {
   method: 'PUT',
   headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' },
@@ -72,4 +73,4 @@ if (!response.ok) {
   console.error(`Discord command registration failed (${response.status}): ${body}`);
   process.exit(1);
 }
-console.log(`✅ ${commands.length} comandos curtos registrados com sucesso ${guildId ? `na guild ${guildId}` : 'globalmente'}.`);
+console.log(`✅ ${commands.length} comandos curtos registrados com sucesso na guild ${guildId}.`);

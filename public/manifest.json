@@ -1,19 +1,35 @@
 {
+  "id": "/",
   "name": "DeckVerse OS — Multiverse Archive",
-  "short_name": "DeckVerse OS",
+  "short_name": "DeckVerse",
   "description": "Arquivo multiversal colecionável de universos, personagens, formas, itens e bosses.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
   "background_color": "#021018",
   "theme_color": "#021018",
   "orientation": "any",
+  "prefer_related_applications": false,
+  "categories": ["games", "entertainment"],
   "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
     {
       "src": "/assets/brand/deckverse-mark.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ]
 }
