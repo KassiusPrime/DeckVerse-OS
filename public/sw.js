@@ -1,4 +1,4 @@
-const CACHE_NAME = 'deckverse-os-v12';
+const CACHE_NAME = 'deckverse-os-v11';
 const STATIC_CACHE = `${CACHE_NAME}-static`;
 const STATIC_ASSETS = [
   '/manifest.json',
