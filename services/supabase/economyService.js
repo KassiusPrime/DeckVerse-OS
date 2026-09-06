@@ -53,6 +53,18 @@ export function getMyTrades() {
   return rpc('get_my_trades');
 }
 
+export async function getCardsByIds(ids = []) {
+  const unique = [...new Set((ids || []).filter(Boolean))];
+  if (!unique.length) return [];
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase
+    .from('cards')
+    .select('id,name,rarity,entity_type,image_url,collection_id,collections(name)')
+    .in('id', unique);
+  if (error) throw error;
+  return data || [];
+}
+
 export function createTrade(recipient) {
   return rpc('create_trade', { p_recipient: String(recipient || '').trim() });
 }
@@ -87,6 +99,7 @@ export default {
   buyMarketListing,
   cancelMarketListing,
   getMyTrades,
+  getCardsByIds,
   createTrade,
   setTradeOffer,
   confirmTradeProposal,
