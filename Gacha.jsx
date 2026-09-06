@@ -1,19 +1,23 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Gem, Heart, KeyRound, Loader2, SlidersHorizontal, Sparkles, Stars, Ticket, Zap } from 'lucide-react';
+import { Gem, Heart, KeyRound, Loader2, LockKeyhole, Save, SlidersHorizontal, Sparkles, Stars, Ticket, Zap } from 'lucide-react';
 import Navbar from './Navbar';
 import { useAuth } from './AuthContext';
 import { rollGacha } from './services/supabase/gameService.js';
 import { getMetaGameState } from './services/supabase/metagameService.js';
+import { buyRollLimitUnlock, getRollProgression, setLevelProgression } from './services/supabase/economyService.js';
 
 const RARITY_ORDER = ['R', 'SR', 'SSR', 'UR', 'LR', 'MR'];
 
 function friendlyGachaError(error) {
   const message = String(error?.message || error || 'Não foi possível executar o giro.');
   if (message.includes('NO_GACHA_CARDS_AVAILABLE_FOR_FILTER') || message.includes('NO_GACHA_CARDS_AVAILABLE')) return 'Sua Disablelist removeu todas as cartas elegíveis. Reative pelo menos uma coleção para continuar.';
-  if (message.includes('ROLL_COUNT_EXCEEDS_LEVEL_LIMIT')) return 'A quantidade de rolls excede o limite liberado pelo seu nível.';
+  if (message.includes('ROLL_COUNT_EXCEEDS_LEVEL_LIMIT')) return 'Essa quantidade excede seu limite atual de giros. Aumente o limite por nível ou compre o Expansor +10.';
+  if (message.includes('ROLL_LIMIT_ALREADY_MAX')) return 'Seu limite de giros já atingiu o máximo permitido.';
+  if (message.includes('PROGRESSION_POINTS_EXCEEDED')) return 'A distribuição excede os pontos liberados pelo seu nível.';
   if (message.includes('INSUFFICIENT_FREE_ROLLS')) return 'Você não possui Rolls gratuitos suficientes.';
+  if (message.includes('INSUFFICIENT_DECK_CREDITS')) return 'Deck Credits insuficientes.';
   if (message.includes('INSUFFICIENT_BALANCE')) return 'Saldo insuficiente para esse roll.';
   return message;
 }
@@ -25,12 +29,29 @@ export default function Gacha() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const metaQuery = useQuery({ queryKey: ['metagame-state'], queryFn: getMetaGameState, enabled: isAuthenticated, staleTime: 5_000 });
-  const meta = metaQuery.data || {};
+  const [progressBusy, setProgressBusy] = useState(false);
+  const [rollAllocation, setRollAllocation] = useState(0);
 
-  const level = Number(profile?.level || 1);
-  const maxBatch = Math.min(50, 10 + Math.floor(level / 10) * 5);
-  const options = useMemo(() => [...new Set([1, 5, 10, maxBatch].filter((value) => value <= maxBatch))], [maxBatch]);
+  const metaQuery = useQuery({ queryKey: ['metagame-state'], queryFn: getMetaGameState, enabled: isAuthenticated, staleTime: 5_000 });
+  const progressionQuery = useQuery({ queryKey: ['roll-progression'], queryFn: getRollProgression, enabled: isAuthenticated, staleTime: 5_000 });
+  const meta = metaQuery.data || {};
+  const progression = progressionQuery.data || {};
+
+  const level = Number(profile?.level || progression.level || 1);
+  const availablePoints = Number(progression.available_points || Math.max(level - 1, 0));
+  const maxBatch = Number(progression.max_batch || 10);
+  const luckPoints = Math.max(0, availablePoints - rollAllocation);
+  const options = useMemo(() => [...new Set([1, 5, 10, maxBatch].filter((value) => value >= 1 && value <= maxBatch))], [maxBatch]);
+
+  useEffect(() => {
+    if (progressionQuery.data) setRollAllocation(Number(progressionQuery.data.roll_points || 0));
+  }, [progressionQuery.data]);
+
+  useEffect(() => {
+    if (count > maxBatch) setCount(maxBatch);
+  }, [count, maxBatch]);
+
+  const refreshAll = async () => Promise.all([refreshProfile(), metaQuery.refetch(), progressionQuery.refetch()]);
 
   const execute = async () => {
     if (!isAuthenticated) return navigateToLogin();
@@ -39,12 +60,32 @@ export default function Gacha() {
     try {
       const data = await rollGacha(count, currency);
       setResult(data);
-      await Promise.all([refreshProfile(), metaQuery.refetch()]);
+      await refreshAll();
     } catch (err) {
       setError(friendlyGachaError(err));
     } finally {
       setBusy(false);
     }
+  };
+
+  const saveProgression = async () => {
+    if (!isAuthenticated) return navigateToLogin();
+    setProgressBusy(true); setError('');
+    try {
+      await setLevelProgression(rollAllocation, luckPoints);
+      await refreshAll();
+    } catch (err) { setError(friendlyGachaError(err)); }
+    finally { setProgressBusy(false); }
+  };
+
+  const buyUnlock = async () => {
+    if (!isAuthenticated) return navigateToLogin();
+    setProgressBusy(true); setError('');
+    try {
+      await buyRollLimitUnlock();
+      await refreshAll();
+    } catch (err) { setError(friendlyGachaError(err)); }
+    finally { setProgressBusy(false); }
   };
 
   const pulls = Array.isArray(result?.pulls) ? result.pulls : [];
@@ -61,10 +102,26 @@ export default function Gacha() {
             <Link to="/game?tab=disables" className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-border bg-background/70 px-3 text-xs font-black text-muted-foreground transition hover:border-primary/50 hover:text-primary"><SlidersHorizontal className="h-4 w-4" /> Disables & Wishs</Link>
           </div>
           <div className="mt-3 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div><h1 className="text-3xl font-black tracking-[-.04em] sm:text-5xl">Giros individuais ou em lote.</h1><p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">O servidor valida saldo, limite por nível, taxas, Sorte Cósmica e sua Disablelist pessoal. Duplicatas geram Keys automaticamente.</p></div>
-            <div className="grid grid-cols-4 gap-2 sm:min-w-[460px]"><Metric label="Nível" value={level} /><Metric label="Pity" value={profile?.pity_counter ?? 0} /><Metric label="Rolls" value={meta.free_rolls ?? 0} /><Metric label="Limite" value={`${maxBatch}x`} /></div>
+            <div><h1 className="text-3xl font-black tracking-[-.04em] sm:text-5xl">Giros individuais ou em lote.</h1><p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">O servidor valida saldo, seu limite real, Sorte Cósmica e a Disablelist. A cada nível você decide entre +1 no limite ou mais sorte — e pode redistribuir quando quiser.</p></div>
+            <div className="grid grid-cols-4 gap-2 sm:min-w-[460px]"><Metric label="Nível" value={level} /><Metric label="Sorte" value={`${Number(progression.cosmic_luck || profile?.cosmic_luck || 1).toFixed(2)}x`} /><Metric label="Rolls" value={meta.free_rolls ?? 0} /><Metric label="Limite" value={`${maxBatch}x`} /></div>
           </div>
         </section>
+
+        {isAuthenticated && (
+          <section className="mt-6 grid gap-4 lg:grid-cols-[1fr_340px]">
+            <div className="rounded-3xl border border-border bg-card p-5 sm:p-6">
+              <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-black">Progressão por nível</h2><p className="mt-1 text-xs text-muted-foreground">{availablePoints} ponto(s) liberado(s). Arraste para decidir quantos vão para limite; o restante vai para sorte.</p></div><div className="rounded-xl border border-primary/25 bg-primary/5 px-3 py-2 text-xs font-black text-primary">{rollAllocation} Limite · {luckPoints} Sorte</div></div>
+              <input aria-label="Distribuição de pontos entre limite e sorte" type="range" min="0" max={availablePoints} step="1" value={Math.min(rollAllocation, availablePoints)} onChange={(e) => setRollAllocation(Number(e.target.value))} className="mt-5 w-full accent-primary" />
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-[11px] text-muted-foreground"><span>← mais Sorte</span><span>+1 limite por ponto · +2% no multiplicador de sorte por ponto</span><span>mais Limite →</span></div>
+              <button type="button" onClick={saveProgression} disabled={progressBusy || progressionQuery.isLoading} className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-xl border border-primary/35 bg-primary/10 px-4 text-xs font-black text-primary disabled:opacity-50"><Save className="h-4 w-4" /> Salvar distribuição</button>
+            </div>
+            <div className="rounded-3xl border border-amber-400/25 bg-card p-5 sm:p-6">
+              <div className="flex items-center gap-2 text-amber-300"><LockKeyhole className="h-5 w-5" /><h2 className="text-base font-black">Expansor de Giros +{progression.roll_unlock_amount || 10}</h2></div>
+              <p className="mt-2 text-xs leading-6 text-muted-foreground">Compra permanente que aumenta seu limite de giro em lote em +{progression.roll_unlock_amount || 10}, até o teto global de {progression.hard_max || 100}.</p>
+              <button type="button" onClick={buyUnlock} disabled={progressBusy || maxBatch >= Number(progression.hard_max || 100)} className="mt-4 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-amber-400 px-3 text-xs font-black text-black disabled:opacity-40"><Zap className="h-4 w-4" /> Comprar por {Number(progression.roll_unlock_cost_dc || 2500).toLocaleString('pt-BR')} DC</button>
+            </div>
+          </section>
+        )}
 
         <section className="mt-6 grid gap-5 lg:grid-cols-[380px_1fr]">
           <div className="rounded-3xl border border-border bg-card p-5 sm:p-6">
