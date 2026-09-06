@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from './AuthContext';
 import { TacticalToastContainer } from './TacticalToast';
 import BottomNav from './BottomNav';
 import CommandPalette from './CommandPalette';
+import PwaInstallPrompt from './PwaInstallPrompt';
 import PageNotFound from './PageNotFound';
 import Home from './Home';
 import Catalog from './Catalog';
@@ -79,7 +80,7 @@ function ProductRuntime() {
   const { isLoadingAuth } = useAuth();
   const isAuthCallback = location.pathname === '/auth/callback';
   if (isLoadingAuth && !isAuthCallback) return <RouteLoading />;
-  return <><AnimatedRoutes /><BottomNav /><CommandPalette /></>;
+  return <><AnimatedRoutes /><BottomNav /><CommandPalette /><PwaInstallPrompt /></>;
 }
 
 export default function App() {
