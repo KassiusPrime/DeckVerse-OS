@@ -45,8 +45,23 @@ function option(options, name) {
 function errorText(error) {
   const raw = String(error?.message || error || '');
   if (raw.includes('DISCORD_PROFILE_NOT_FOUND')) return 'Entre no DeckVerse com Discord antes de usar este comando.';
-  if (raw.includes('INSUFFICIENT_BALANCE')) return 'Saldo insuficiente.';
-  if (raw.includes('ROLL_COUNT_EXCEEDS_LEVEL_LIMIT')) return 'Essa quantidade de rolls excede o limite do seu nível.';
+  if (raw.includes('INSUFFICIENT_BALANCE')) return 'Saldo insuficiente para esse giro.';
+  if (raw.includes('INSUFFICIENT_FREE_ROLLS')) return 'Você não possui rolls gratuitos suficientes.';
+  if (raw.includes('INSUFFICIENT_DECK_CREDITS')) return 'Deck Credits insuficientes.';
+  if (raw.includes('ROLL_COUNT_EXCEEDS_LEVEL_LIMIT')) return 'Essa quantidade excede seu limite atual. Use `/prog` para distribuir pontos de nível ou `/unlock` para comprar +10.';
+  if (raw.includes('ROLL_LIMIT_ALREADY_MAX')) return 'Seu limite de giros já está no máximo.';
+  if (raw.includes('PROGRESSION_POINTS_EXCEEDED')) return 'Você tentou distribuir mais pontos do que seu nível liberou.';
+  if (raw.includes('INVALID_PROGRESSION_ALLOCATION')) return 'Distribuição de progressão inválida.';
+  if (raw.includes('INSUFFICIENT_COPIES')) return 'Você não possui cópias suficientes dessa carta.';
+  if (raw.includes('CARD_IS_EQUIPPED')) return 'Remova a carta do equipamento antes de vender a última cópia.';
+  if (raw.includes('CARD_HAS_NO_SELL_VALUE')) return 'Essa carta não possui valor de liquidação.';
+  if (raw.includes('RECIPIENT_NOT_FOUND')) return 'Jogador não encontrado. Ele precisa ter uma conta DeckVerse vinculada ao Discord.';
+  if (raw.includes('CANNOT_TRADE_SELF')) return 'Você não pode abrir uma troca consigo mesmo.';
+  if (raw.includes('TRADE_NOT_FOUND')) return 'Troca não encontrada.';
+  if (raw.includes('TRADE_NOT_READY')) return 'Os dois jogadores precisam confirmar a proposta antes do aceite final.';
+  if (raw.includes('TRADE_NOT_EDITABLE')) return 'Essa troca não pode mais ser editada.';
+  if (raw.includes('TRADE_ASSET_UNAVAILABLE')) return 'A carta oferecida não está mais disponível no acervo.';
+  if (raw.includes('SENDER_INSUFFICIENT_DECK_CREDITS') || raw.includes('RECEIVER_INSUFFICIENT_DECK_CREDITS')) return 'Um dos jogadores não possui mais os Deck Credits prometidos.';
   if (raw.includes('SPAWN_CARD_NOT_FOUND')) return 'Essa carta do spawn não existe mais.';
   if (raw.includes('SPAWN_ALREADY_CLAIMED')) return 'Essa carta já foi pega.';
   if (raw.includes('PLAYER_ALREADY_CLAIMED_THIS_WAVE')) return 'Você já pegou uma carta nesta rodada.';
@@ -57,7 +72,7 @@ function errorText(error) {
 async function getProfileByDiscord(supabase, discordId) {
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, discord_id, discord_username, display_name, avatar_url, astral_shards, ether_cores, level, cosmic_luck, pity_counter')
+    .select('id, discord_id, discord_username, display_name, avatar_url, astral_shards, ether_cores, deck_credits, level, cosmic_luck, pity_counter')
     .eq('discord_id', discordId)
     .maybeSingle();
   if (error) throw error;
@@ -71,7 +86,7 @@ async function inventoryPage(supabase, discordId, page = 0) {
   const to = from + PAGE_SIZE - 1;
   const { data, error, count } = await supabase
     .from('rosters')
-    .select('copies, cards(name, rarity, entity_type, image_url, collections(name))', { count: 'exact' })
+    .select('card_id, copies, cards(name, rarity, entity_type, image_url, collections(name))', { count: 'exact' })
     .eq('profile_id', profile.id)
     .order('acquired_at', { ascending: false })
     .range(from, to);
@@ -83,10 +98,10 @@ async function inventoryPage(supabase, discordId, page = 0) {
 function inventoryEmbed(result) {
   return {
     title: `Acervo de ${result.profile.display_name || result.profile.discord_username || 'Jogador'}`,
-    description: result.count ? `${result.count} entidades únicas · página ${result.page + 1}/${result.totalPages}` : 'Este acervo ainda está vazio.',
+    description: result.count ? `${result.count} entidades únicas · página ${result.page + 1}/${result.totalPages}\nUse o ID mostrado abaixo em \`/v\` e \`/t offer\`.` : 'Este acervo ainda está vazio.',
     fields: result.rows.map((row) => ({
       name: `${row.cards?.rarity || '—'} · ${row.cards?.name || 'Entidade'}`,
-      value: `${row.cards?.collections?.name || 'DeckVerse'} · ${row.copies}x`,
+      value: `${row.cards?.collections?.name || 'DeckVerse'} · ${row.copies}x\nID: \`${row.card_id}\``,
       inline: false,
     })),
     thumbnail: result.profile.avatar_url ? { url: result.profile.avatar_url } : undefined,
@@ -108,9 +123,9 @@ async function runRoll(interaction, supabase, discordId) {
   const options = interaction.data?.options || [];
   const legacyCount = option(options, 'quantidade');
   const legacyCurrency = option(options, 'moeda');
-  const count = Math.max(1, Math.min(50, Number(option(options, 'q')?.value || legacyCount?.value || (interaction.data?.name === 'rolls' ? 10 : 1))));
+  const count = Math.max(1, Math.min(100, Number(option(options, 'q')?.value || legacyCount?.value || (interaction.data?.name === 'rolls' ? 10 : 1))));
   const currencyValue = option(options, 'm')?.value || legacyCurrency?.value || 'astral';
-  const currency = currencyValue === 'ether' ? 'ether_cores' : 'astral_shards';
+  const currency = currencyValue === 'ether' ? 'ether_cores' : currencyValue === 'gratis' ? 'free_rolls' : 'astral_shards';
   const { data, error } = await supabase.rpc('bot_roll_gacha', {
     p_discord_id: discordId,
     p_count: count,
@@ -119,7 +134,7 @@ async function runRoll(interaction, supabase, discordId) {
   if (error) return message(errorText(error), [], [], true);
 
   const pulls = Array.isArray(data?.pulls) ? data.pulls : [];
-  const preview = pulls.slice(0, 10).map((pull) => `**${pull.rarity}** · ${pull.name}`).join('\n');
+  const preview = pulls.slice(0, 10).map((pull) => `**${pull.rarity}** · ${pull.name}${pull.key_gained ? ' 🔑' : ''}${pull.wished ? ' 💛' : ''}`).join('\n');
   const order = ['R', 'SR', 'SSR', 'UR', 'LR', 'MR'];
   const top = [...pulls].sort((a, b) => order.indexOf(b.rarity) - order.indexOf(a.rarity))[0];
   return message('', [{
@@ -127,8 +142,128 @@ async function runRoll(interaction, supabase, discordId) {
     description: `${preview}${pulls.length > 10 ? `\n…e mais ${pulls.length - 10}` : ''}`,
     image: top?.image_url ? { url: top.image_url } : undefined,
     color: 0x7c5cff,
-    footer: { text: `Pity ${data.pity_before} → ${data.pity_after} · custo ${data.cost}` },
+    footer: { text: `Pity ${data.pity_before} → ${data.pity_after} · limite ${data.max_batch || '—'} · sorte ${Number(data.cosmic_luck || 1).toFixed(2)}x · custo ${data.cost}` },
   }]);
+}
+
+async function runSell(interaction, supabase, discordId) {
+  const options = interaction.data?.options || [];
+  const cardId = String(option(options, 'card')?.value || '').trim();
+  const quantity = Math.max(1, Math.min(999, Number(option(options, 'q')?.value || 1)));
+  if (!cardId) return message('Informe o ID da carta. Veja seus IDs em `/i`.', [], [], true);
+  const { data, error } = await supabase.rpc('bot_sell_card', { p_discord_id: discordId, p_card_id: cardId, p_quantity: quantity });
+  if (error) return message(errorText(error), [], [], true);
+  return message(`💰 Venda concluída: **${quantity}x** \`${cardId}\` por **${Number(data.received_dc || 0).toLocaleString('pt-BR')} DC**.\nSaldo: **${Number(data.deck_credits || 0).toLocaleString('pt-BR')} DC**.`, [], [], true);
+}
+
+async function getProgression(supabase, discordId) {
+  const { data, error } = await supabase.rpc('bot_get_roll_progression', { p_discord_id: discordId });
+  if (error) throw error;
+  return data;
+}
+
+function progressionEmbed(data) {
+  return {
+    title: 'Progressão de giros',
+    color: 0x7c5cff,
+    description: `Nível **${data.level}** libera **${data.available_points}** ponto(s). Você pode redistribuí-los a qualquer momento com \`/prog limite:X sorte:Y\`.`,
+    fields: [
+      { name: 'Limite', value: `${data.max_batch}x`, inline: true },
+      { name: 'Pontos em limite', value: String(data.roll_points), inline: true },
+      { name: 'Pontos em sorte', value: String(data.luck_points), inline: true },
+      { name: 'Sorte cósmica', value: `${Number(data.cosmic_luck || 1).toFixed(2)}x`, inline: true },
+      { name: 'Bônus comprado', value: `+${data.purchased_roll_limit_bonus}`, inline: true },
+      { name: 'Pontos livres', value: String(data.unallocated_points), inline: true },
+      { name: 'Expansor +10', value: `${Number(data.roll_unlock_cost_dc || 2500).toLocaleString('pt-BR')} DC`, inline: false },
+    ],
+  };
+}
+
+async function runProgression(interaction, supabase, discordId) {
+  try {
+    const current = await getProgression(supabase, discordId);
+    const limitOpt = option(interaction.data?.options, 'limite');
+    const luckOpt = option(interaction.data?.options, 'sorte');
+    if (!limitOpt && !luckOpt) return message('', [progressionEmbed(current)], [], true);
+    const rollPoints = limitOpt ? Math.max(0, Number(limitOpt.value || 0)) : Number(current.roll_points || 0);
+    const luckPoints = luckOpt ? Math.max(0, Number(luckOpt.value || 0)) : Number(current.luck_points || 0);
+    const { data, error } = await supabase.rpc('bot_set_level_progression', { p_discord_id: discordId, p_roll_points: rollPoints, p_luck_points: luckPoints });
+    if (error) return message(errorText(error), [], [], true);
+    return message('✅ Progressão redistribuída.', [progressionEmbed(data)], [], true);
+  } catch (error) {
+    return message(errorText(error), [], [], true);
+  }
+}
+
+async function runUnlock(supabase, discordId) {
+  const { data, error } = await supabase.rpc('bot_buy_roll_limit_unlock', { p_discord_id: discordId });
+  if (error) return message(errorText(error), [], [], true);
+  return message(`🔓 **Expansor de Giros +10** comprado por **${Number(data.cost_dc || 0).toLocaleString('pt-BR')} DC**.`, [progressionEmbed(data.progression)], [], true);
+}
+
+function tradeStatusLabel(status) {
+  return ({ draft: 'Em negociação', ready: 'Pronta', completed: 'Concluída', cancelled: 'Cancelada', rejected: 'Recusada' })[status] || status;
+}
+
+async function tradeListEmbed(supabase, discordId) {
+  const profile = await getProfileByDiscord(supabase, discordId);
+  if (!profile) throw new Error('DISCORD_PROFILE_NOT_FOUND');
+  const { data: trades, error } = await supabase.from('trades').select('*').or(`sender_profile_id.eq.${profile.id},receiver_profile_id.eq.${profile.id}`).order('created_at', { ascending: false }).limit(10);
+  if (error) throw error;
+  if (!trades?.length) return { title: 'Suas trocas', description: 'Nenhuma troca encontrada.', color: 0x7c5cff };
+  const profileIds = [...new Set(trades.flatMap((t) => [t.sender_profile_id, t.receiver_profile_id]))];
+  const { data: people } = await supabase.from('profiles').select('id,display_name,discord_username,discord_id').in('id', profileIds);
+  const peopleMap = new Map((people || []).map((p) => [p.id, p]));
+  const lines = trades.map((t) => {
+    const otherId = t.sender_profile_id === profile.id ? t.receiver_profile_id : t.sender_profile_id;
+    const other = peopleMap.get(otherId);
+    const name = other?.display_name || other?.discord_username || other?.discord_id || 'Jogador';
+    return `**${tradeStatusLabel(t.status)}** · ${name}\n\`${t.id}\``;
+  });
+  return { title: 'Suas trocas', description: lines.join('\n\n'), color: 0x7c5cff, footer: { text: 'Use o ID com /t offer, /t confirm, /t accept ou /t cancel.' } };
+}
+
+async function runTrade(interaction, supabase, discordId) {
+  const sub = interaction.data?.options?.[0];
+  if (!sub || sub.name === 'list') {
+    try { return message('', [await tradeListEmbed(supabase, discordId)], [], true); } catch (error) { return message(errorText(error), [], [], true); }
+  }
+  let rpcName = '';
+  let params = { p_discord_id: discordId };
+  if (sub.name === 'new') {
+    rpcName = 'bot_create_trade';
+    params.p_recipient = String(option(sub.options, 'user')?.value || '').trim();
+  } else if (sub.name === 'offer') {
+    rpcName = 'bot_set_trade_offer';
+    params.p_trade_id = String(option(sub.options, 'id')?.value || '').trim();
+    params.p_card_id = String(option(sub.options, 'card')?.value || '').trim() || null;
+    params.p_quantity = Math.max(1, Number(option(sub.options, 'q')?.value || 1));
+    params.p_deck_credits = Math.max(0, Number(option(sub.options, 'dc')?.value || 0));
+  } else if (sub.name === 'confirm') {
+    rpcName = 'bot_confirm_trade';
+    params.p_trade_id = String(option(sub.options, 'id')?.value || '').trim();
+  } else if (sub.name === 'accept') {
+    rpcName = 'bot_accept_trade';
+    params.p_trade_id = String(option(sub.options, 'id')?.value || '').trim();
+  } else if (sub.name === 'cancel' || sub.name === 'reject') {
+    rpcName = 'bot_close_trade';
+    params.p_trade_id = String(option(sub.options, 'id')?.value || '').trim();
+    params.p_status = sub.name === 'reject' ? 'rejected' : 'cancelled';
+  } else return message('Subcomando de troca inválido.', [], [], true);
+
+  const { data, error } = await supabase.rpc(rpcName, params);
+  if (error) return message(errorText(error), [], [], true);
+  const status = data?.status || 'draft';
+  const text = sub.name === 'new'
+    ? `🤝 Troca aberta. ID: \`${data.id}\`\nAgora cada lado usa \`/t offer\` e depois \`/t confirm\`.`
+    : sub.name === 'offer'
+      ? `✅ Sua oferta foi salva na troca \`${data.id}\`. Qualquer edição remove as confirmações anteriores.`
+      : sub.name === 'confirm'
+        ? `✅ Confirmação registrada. Estado: **${tradeStatusLabel(status)}**.`
+        : sub.name === 'accept'
+          ? `✅ Aceite registrado. Estado: **${tradeStatusLabel(status)}**.${status === 'completed' ? ' As cartas e Deck Credits já foram transferidos.' : ' Falta o aceite da outra pessoa.'}`
+          : `✅ Troca ${sub.name === 'reject' ? 'recusada' : 'cancelada'}.`;
+  return message(text, [], [], true);
 }
 
 async function claimBySlot(interaction, supabase, discordId) {
@@ -219,19 +354,27 @@ async function handleCommand(interaction, supabase) {
   }
 
   if (name === 'r' || name === 'roll' || name === 'rolls') return runRoll(interaction, supabase, discordId);
+  if (name === 'v' || name === 'sell') return runSell(interaction, supabase, discordId);
+  if (name === 'prog') return runProgression(interaction, supabase, discordId);
+  if (name === 'unlock') return runUnlock(supabase, discordId);
+  if (name === 't' || name === 'trade') return runTrade(interaction, supabase, discordId);
   if (name === 'c') return claimBySlot(interaction, supabase, discordId);
   if (name === 's') return handleSpawnSettings(interaction, supabase);
 
   if (name === 'p' || name === 'profile') {
     const profile = await getProfileByDiscord(supabase, discordId);
     if (!profile) return message('Entre no DeckVerse com Discord antes de usar o bot.', [], [], true);
+    let progression = null;
+    try { progression = await getProgression(supabase, discordId); } catch { /* profile still works */ }
     return message('', [{
       title: profile.display_name || profile.discord_username || 'Perfil DeckVerse',
       thumbnail: profile.avatar_url ? { url: profile.avatar_url } : undefined,
       color: 0x7c5cff,
       fields: [
         { name: 'Nível', value: String(profile.level), inline: true },
-        { name: 'Sorte', value: `${Number(profile.cosmic_luck || 1).toFixed(2)}x`, inline: true },
+        { name: 'Sorte', value: `${Number(progression?.cosmic_luck || profile.cosmic_luck || 1).toFixed(2)}x`, inline: true },
+        { name: 'Limite', value: `${progression?.max_batch || 10}x`, inline: true },
+        { name: 'Deck Credits', value: Number(profile.deck_credits || 0).toLocaleString('pt-BR'), inline: true },
         { name: 'Astral', value: String(profile.astral_shards), inline: true },
         { name: 'Éter', value: String(profile.ether_cores), inline: true },
         { name: 'Pity', value: String(profile.pity_counter), inline: true },
@@ -246,7 +389,18 @@ async function handleCommand(interaction, supabase) {
   }
 
   if (name === 'h' || name === 'support') {
-    return message('`/r` roll · `/c` pegar · `/i` inventário · `/p` perfil · `/s` spawn (admin).\nEx.: `/r q:10`, `/s ch`, `/s on`, `/s t m:15`.', [], [], true);
+    return message([
+      '**DeckVerse — comandos rápidos**',
+      '`/r q:10 m:astral` — girar cartas',
+      '`/c n:1` — pegar carta do spawn',
+      '`/i` — acervo e IDs das cartas',
+      '`/p` — perfil, sorte, limite e saldos',
+      '`/prog` — ver/redistribuir pontos de nível',
+      '`/unlock` — comprar +10 no limite de giros',
+      '`/v card:ID q:1` — vender carta ao sistema',
+      '`/t list` / `new` / `offer` / `confirm` / `accept` — trocas P2P',
+      '`/s ...` — configurar spawn (Gerenciar Servidor)',
+    ].join('\n'), [], [], true);
   }
 
   return message('Comando não reconhecido.', [], [], true);
@@ -322,6 +476,6 @@ export default async function handler(req, res) {
     return response(res, body);
   } catch (error) {
     console.error('[DeckVerse Discord]', error?.message || error);
-    return response(res, message('O DeckVerse encontrou um erro temporário ao processar o comando.', [], [], true));
+    return response(res, message(errorText(error), [], [], true));
   }
 }
