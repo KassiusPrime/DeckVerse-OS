@@ -1,11 +1,21 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { UploadCloud, Link2, Image as ImageIcon, CheckCircle2, AlertTriangle, Loader2, X } from "lucide-react";
-import { getFirebaseStorage, isFirebaseConfigured } from "../../../firebase/firebaseClient.js";
+import { getFirebaseStorage, isFirebaseConfigured } from "../../../services/firebase/firebaseClient.js";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { normalizeImageUrl, detectImageProvider, isHttpImageUrl } from "../../utils/normalizeImageUrl.js";
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+const ALLOWED_ENTITY_TYPES = new Set(["collection", "character", "item", "boss"]);
+
+function slugify(value) {
+  return String(value || "card")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "card";
+}
 
 function testImageLoad(src) {
   return new Promise((resolve) => {
@@ -17,11 +27,16 @@ function testImageLoad(src) {
   });
 }
 
+function getEntityType(card) {
+  const raw = String(card?.entityType || card?.entity_type || card?.type || "character").toLowerCase().trim();
+  return ALLOWED_ENTITY_TYPES.has(raw) ? raw : "character";
+}
+
 export default function CardArtworkEditorModal({ card, onClose, onApply }) {
   const [tab, setTab] = useState("upload");
   const [file, setFile] = useState(null);
-  const [url, setUrl] = useState(card?.img_oficial || card?.image_url || "");
-  const [previewUrl, setPreviewUrl] = useState(card?.img_oficial || card?.image_url || "");
+  const [url, setUrl] = useState(card?.artwork_url || card?.img_oficial || card?.image_url || "");
+  const [previewUrl, setPreviewUrl] = useState(card?.artwork_url || card?.img_oficial || card?.image_url || "");
   const [status, setStatus] = useState(null);
   const [busy, setBusy] = useState(false);
 
@@ -62,13 +77,16 @@ export default function CardArtworkEditorModal({ card, onClose, onApply }) {
         if (fileError) throw new Error(fileError);
         if (!isFirebaseConfigured()) throw new Error("Firebase Storage não está configurado neste ambiente.");
 
-        const collectionCode = String(card?.collection_id || card?.collection_code || "MULTIVERSE").trim();
-        const slug = String(card?.slug || card?.card_id || card?.id || card?.name || "card")
-          .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+        const collectionCode = String(card?.collection_id || card?.collection_code || "MULTIVERSE").trim().toUpperCase();
+        const entityType = getEntityType(card);
         const extension = (file.name.split(".").pop() || "jpg").toLowerCase();
-        const path = `deckverse-media/${collectionCode}/cards/${slug}-${Date.now()}.${extension}`;
+        const canonicalFilename = `${collectionCode}__${entityType}__${slugify(card?.slug || card?.card_id || card?.id || card?.name)}${extension === "jpeg" ? ".jpg" : `.${extension}`}`;
+        const path = `deckverse-media/${collectionCode}/${entityType}/${canonicalFilename}`;
         const storageRef = ref(getFirebaseStorage(), path);
-        await uploadBytes(storageRef, file, { contentType: file.type, cacheControl: "public,max-age=31536000,immutable" });
+        await uploadBytes(storageRef, file, {
+          contentType: file.type,
+          cacheControl: "public,max-age=31536000,immutable"
+        });
         const downloadUrl = await getDownloadURL(storageRef);
 
         await onApply({
@@ -78,7 +96,6 @@ export default function CardArtworkEditorModal({ card, onClose, onApply }) {
           artwork_original_url: null,
           img_oficial: downloadUrl,
           image_url: downloadUrl,
-          img_custom: card?.img_custom || "",
           updated_at: new Date().toISOString()
         });
       } else {
@@ -90,11 +107,10 @@ export default function CardArtworkEditorModal({ card, onClose, onApply }) {
           artwork_original_url: url,
           img_oficial: result.normalized,
           image_url: result.normalized,
-          img_custom: card?.img_custom || "",
           updated_at: new Date().toISOString()
         });
       }
-      setStatus({ type: "success", message: "Arte da carta atualizado com sucesso." });
+      setStatus({ type: "success", message: "Arte da carta aplicado ao editor." });
     } catch (error) {
       setStatus({ type: "error", message: error.message || "Não foi possível atualizar a arte." });
     } finally {
@@ -131,7 +147,7 @@ export default function CardArtworkEditorModal({ card, onClose, onApply }) {
             <div className="space-y-2">
               <label className="text-[10px] font-heading tracking-widest text-muted-foreground">URL DA IMAGEM</label>
               <input value={url} onChange={e => { setUrl(e.target.value); setPreviewUrl(e.target.value); setStatus(null); }} placeholder="https://i.imgur.com/..." className="w-full h-10 rounded-md border border-border/50 bg-muted/20 px-3 text-xs font-mono outline-none focus:border-primary/60" />
-              <div className="text-[10px] text-muted-foreground">Provedor detectado: <span className="text-foreground font-semibold">{provider}</span>. O DeckVerse não envia a URL externa para o Storage automaticamente.</div>
+              <div className="text-[10px] text-muted-foreground">Provedor detectado: <span className="text-foreground font-semibold">{provider}</span>. URL externa é mantida como referência; não é copiada automaticamente.</div>
             </div>
           )}
 
