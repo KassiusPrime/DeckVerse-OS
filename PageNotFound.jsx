@@ -1,72 +1,11 @@
-import { db } from "@/deckverseClient";
+import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { ArrowLeft, Compass, Home, Search } from 'lucide-react';
+import Navbar from './Navbar';
 
-import { useLocation } from 'react-router-dom';
+export default function PageNotFound() {
+  const location = useLocation();
+  const pageName = location.pathname || '/';
 
-import { useQuery } from '@tanstack/react-query';
-
-export default function PageNotFound({}) {
-    const location = useLocation();
-    const pageName = location.pathname.substring(1);
-
-    const { data: authData, isFetched } = useQuery({
-        queryKey: ['user'],
-        queryFn: async () => {
-            try {
-                const user = await db.auth.me();
-                return { user, isAuthenticated: true };
-            } catch (error) {
-                return { user: null, isAuthenticated: false };
-            }
-        }
-    });
-    
-    return (
-        <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50">
-            <div className="max-w-md w-full">
-                <div className="text-center space-y-6">
-                    <div className="space-y-2">
-                        <h1 className="text-7xl font-light text-slate-300">404</h1>
-                        <div className="h-0.5 w-16 bg-slate-200 mx-auto"></div>
-                    </div>
-                    
-                    <div className="space-y-3">
-                        <h2 className="text-2xl font-medium text-slate-800">
-                            Página não encontrada
-                        </h2>
-                        <p className="text-slate-600 leading-relaxed">
-                            Não encontramos <span className="font-medium text-slate-700">"{pageName || '/'}"</span>. O endereço pode ter mudado ou não estar mais disponível.
-                        </p>
-                    </div>
-                    
-                    {isFetched && authData.isAuthenticated && authData.user?.role === 'admin' && (
-                        <div className="mt-8 p-4 bg-slate-100 rounded-lg border border-slate-200">
-                            <div className="flex items-start space-x-3">
-                                <div className="flex-shrink-0 w-5 h-5 rounded-full bg-orange-100 flex items-center justify-center mt-0.5">
-                                    <div className="w-2 h-2 rounded-full bg-orange-400"></div>
-                                </div>
-                                <div className="text-left space-y-1">
-                                    <p className="text-sm font-medium text-slate-700">Para administradores</p>
-                                    <p className="text-sm text-slate-600 leading-relaxed">
-                                        Se esta rota deveria existir, confira a configuração de rotas e o deploy atual.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                    
-                    <div className="pt-6">
-                        <button 
-                            onClick={() => window.location.href = '/'} 
-                            className="inline-flex items-center px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500"
-                        >
-                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                            </svg>
-                            Voltar ao início
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    )
+  return <div className="min-h-screen bg-background text-foreground"><Navbar /><main className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-[1480px] items-center justify-center px-5 pb-28 pt-8 sm:px-6 lg:px-8"><section className="relative w-full max-w-2xl overflow-hidden rounded-[2rem] border border-border bg-card p-7 text-center shadow-2xl sm:p-12"><div className="pointer-events-none absolute inset-0 archive-grid opacity-20" /><div className="relative"><div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-primary/25 bg-primary/10 text-primary"><Compass className="h-7 w-7" /></div><p className="mt-6 text-[10px] font-black uppercase tracking-[.2em] text-primary">DeckVerse · rota ausente</p><div className="mt-2 text-7xl font-black tracking-[-.08em] sm:text-8xl">404</div><h1 className="mt-2 text-2xl font-black sm:text-3xl">Página não encontrada</h1><p className="mx-auto mt-3 max-w-lg text-sm leading-7 text-muted-foreground">O endereço <code className="rounded-md border border-border bg-background px-1.5 py-0.5 text-xs text-foreground">{pageName}</code> não corresponde a uma página disponível no códice atual.</p><div className="mt-7 flex flex-col justify-center gap-2 sm:flex-row"><Link to="/" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-black text-primary-foreground"><Home className="h-4 w-4" /> Ir para o início</Link><Link to="/characters" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border bg-background px-5 text-sm font-extrabold"><Search className="h-4 w-4" /> Pesquisar catálogo</Link><button type="button" onClick={() => window.history.back()} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border bg-background px-5 text-sm font-extrabold"><ArrowLeft className="h-4 w-4" /> Voltar</button></div></div></section></main></div>;
 }
