@@ -10,7 +10,7 @@ const navbar = read('Navbar.jsx');
 const bottomNav = read('BottomNav.jsx');
 const commandPalette = read('CommandPalette.jsx');
 
-const requiredRoutes = ['/', '/login', '/auth/callback', '/collections', '/collections/:collectionCode', '/characters', '/forms', '/items', '/bosses', '/gacha', '/my-collection', '/card/:id', '/profile', '/support', '/admin', '/adm'];
+const requiredRoutes = ['/', '/login', '/auth/callback', '/collections', '/collections/:collectionCode', '/characters', '/forms', '/items', '/bosses', '/gacha', '/my-collection', '/card/:id', '/profile', '/support', '/admin', '/admin/content', '/adm'];
 const publicPrimary = ['/collections', '/characters', '/forms', '/items', '/gacha', '/support'];
 const removedLegacyRoutes = ['/arena', '/market', '/guilds', '/battles', '/ranking', '/synergy', '/upgrade', '/store', '/dashboard', '/fandom', '/settings'];
 
@@ -21,12 +21,15 @@ for (const route of publicPrimary) if (![navbar, bottomNav, commandPalette].some
 for (const route of removedLegacyRoutes) if (routes.has(route)) failures.push(`Legacy route still mounted in App.jsx: ${route}`);
 
 if (!app.includes('<AdminRouteGuard><AdminSupabase /></AdminRouteGuard>')) failures.push('/admin is not protected by the Supabase admin guard.');
+if (!app.includes('<AdminRouteGuard><AdminContentManager /></AdminRouteGuard>')) failures.push('/admin/content is not protected by the Supabase admin guard.');
 if (!app.includes('<Navigate to="/admin" replace />')) failures.push('/adm does not redirect to /admin.');
 for (const legacyComponent of ['AdminTerminal', 'CRTTerminalOverlay', 'BackgroundSyncIndicator', 'FandomImporter', 'Dashboard', 'Arena', 'Market', 'Guilds', 'Settings']) {
   if (app.includes(legacyComponent)) failures.push(`Legacy runtime component is still imported/mounted: ${legacyComponent}`);
 }
+
 if (!navbar.includes('isAdmin &&')) failures.push('Admin navigation is not conditioned by Supabase role.');
 if (!navbar.includes("to=\"/login\"") && !navbar.includes("'/login'")) failures.push('Discord login is not reachable from Navbar.');
+if (!navbar.includes("to=\"/admin/content\"")) failures.push('Admin Content Center is not reachable from Navbar.');
 
 if (failures.length) {
   console.error('DeckVerse product-route certification FAILED');
@@ -36,4 +39,4 @@ if (failures.length) {
 
 console.log('DeckVerse product-route certification PASSED');
 console.log(`Routes verified: ${requiredRoutes.length}`);
-console.log('Supabase auth, support, gacha, admin isolation and legacy DOM removal verified.');
+console.log('Supabase auth, support, gacha, admin isolation, content center and legacy DOM removal verified.');
