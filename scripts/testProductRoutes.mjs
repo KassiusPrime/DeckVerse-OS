@@ -10,20 +10,20 @@ const navbar = read('Navbar.jsx');
 const bottomNav = read('BottomNav.jsx');
 const commandPalette = read('CommandPalette.jsx');
 
-const requiredRoutes = ['/', '/login', '/auth/callback', '/collections', '/collections/:collectionCode', '/characters', '/forms', '/items', '/bosses', '/gacha', '/my-collection', '/card/:id', '/profile', '/support', '/admin', '/admin/content', '/adm'];
-const publicPrimary = ['/collections', '/characters', '/forms', '/items', '/gacha', '/support'];
-const removedLegacyRoutes = ['/arena', '/market', '/guilds', '/battles', '/ranking', '/synergy', '/upgrade', '/store', '/dashboard', '/fandom', '/settings'];
+const requiredRoutes = ['/', '/login', '/auth/callback', '/collections', '/collections/:collectionCode', '/characters', '/forms', '/items', '/bosses', '/gacha', '/game', '/my-collection', '/inventory', '/card/:id', '/profile', '/support', '/arena', '/battles', '/fandom', '/admin', '/admin/content', '/adm'];
+const publicPrimary = ['/collections', '/characters', '/forms', '/items', '/gacha', '/game', '/support'];
+const removedLegacyRoutes = ['/market', '/guilds', '/ranking', '/synergy', '/upgrade', '/store', '/dashboard', '/settings'];
 
 const routes = new Set([...app.matchAll(/<Route\s+path="([^"]+)"/g)].map((match) => match[1]));
 const failures = [];
 for (const route of requiredRoutes) if (!routes.has(route)) failures.push(`Missing required route: ${route}`);
 for (const route of publicPrimary) if (![navbar, bottomNav, commandPalette].some((source) => source.includes(route))) failures.push(`Public route not reachable: ${route}`);
-for (const route of removedLegacyRoutes) if (routes.has(route)) failures.push(`Legacy route still mounted in App.jsx: ${route}`);
+for (const route of removedLegacyRoutes) if (routes.has(route)) failures.push(`Unimplemented legacy route still mounted in App.jsx: ${route}`);
 
 if (!app.includes('<AdminRouteGuard><AdminSupabase /></AdminRouteGuard>')) failures.push('/admin is not protected by the Supabase admin guard.');
 if (!app.includes('<AdminRouteGuard><AdminContentManager /></AdminRouteGuard>')) failures.push('/admin/content is not protected by the Supabase admin guard.');
 if (!app.includes('<Navigate to="/admin" replace />')) failures.push('/adm does not redirect to /admin.');
-for (const legacyComponent of ['AdminTerminal', 'CRTTerminalOverlay', 'BackgroundSyncIndicator', 'FandomImporter', 'Dashboard', 'Arena', 'Market', 'Guilds', 'Settings']) {
+for (const legacyComponent of ['AdminTerminal', 'CRTTerminalOverlay', 'BackgroundSyncIndicator', 'Dashboard', 'Arena', 'Market', 'Guilds', 'Settings']) {
   if (app.includes(legacyComponent)) failures.push(`Legacy runtime component is still imported/mounted: ${legacyComponent}`);
 }
 
@@ -39,4 +39,4 @@ if (failures.length) {
 
 console.log('DeckVerse product-route certification PASSED');
 console.log(`Routes verified: ${requiredRoutes.length}`);
-console.log('Supabase auth, support, gacha, admin isolation, content center and legacy DOM removal verified.');
+console.log('Player route aliases, Supabase auth, support, gacha, admin isolation, content center and legacy DOM removal verified.');
