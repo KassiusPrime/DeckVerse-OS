@@ -1,10 +1,10 @@
 import React, { useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
-import { Check, ImageOff, Package, Search, ShieldCheck, Sparkles, UserRound } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Check, ImageOff, Images, Package, Search, ShieldCheck, Sparkles, UserRound } from 'lucide-react';
 import { useAuth } from './AuthContext';
 import Navbar from './Navbar';
-import { getMyRoster } from './services/supabase/gameService.js';
+import { getMyRosterWithArtwork } from './services/supabase/playerArtworkService.js';
+import PlayerCardArtworkEditor from './src/components/player/PlayerCardArtworkEditor.jsx';
 
 const RARITIES = ['R', 'SR', 'SSR', 'UR', 'LR', 'MR'];
 const normalize = (value) => String(value || '').trim().toLowerCase();
@@ -16,7 +16,7 @@ export default function MyCollection() {
   const [rarity, setRarity] = useState('all');
   const [type, setType] = useState('all');
 
-  const rosterQuery = useQuery({ queryKey: ['my-roster-supabase'], queryFn: getMyRoster, enabled: isAuthenticated, staleTime: 60_000 });
+  const rosterQuery = useQuery({ queryKey: ['my-roster-supabase'], queryFn: getMyRosterWithArtwork, enabled: isAuthenticated, staleTime: 60_000 });
   const roster = rosterQuery.data || [];
   const filtered = useMemo(() => {
     const needle = normalize(search);
@@ -42,4 +42,22 @@ export default function MyCollection() {
 }
 
 function Summary({value,label}) { return <div className="rounded-2xl border border-border bg-background/70 px-4 py-3 text-center"><div className="text-xl font-black">{value}</div><div className="mt-0.5 text-[10px] font-bold uppercase tracking-[.12em] text-muted-foreground">{label}</div></div>; }
-function OwnedCard({entry}) { const card=entry.cards||{}; const Icon=card.entity_type==='item'?Package:card.entity_type==='boss'?Sparkles:UserRound; return <Link to={`/card/${encodeURIComponent(entry.card_id)}`} className="group overflow-hidden rounded-2xl border border-border bg-card transition hover:-translate-y-0.5 hover:border-primary/45"><div className="relative aspect-[4/5] overflow-hidden bg-muted">{card.image_url?<img src={card.image_url} alt={card.name||'Entidade'} loading="lazy" decoding="async" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.025]"/>:<div className="absolute inset-0 flex items-center justify-center"><Icon className="h-8 w-8 text-muted-foreground/30"/></div>}<div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/94 via-black/45 to-transparent"/><div className="absolute left-3 top-3 flex items-center gap-1 rounded-full border border-emerald-300/20 bg-emerald-500/15 px-2 py-1 text-[10px] font-bold text-emerald-100 backdrop-blur"><Check className="h-3 w-3"/> {entry.copies}x</div><div className="absolute inset-x-3 bottom-3"><div className="text-[9px] font-black uppercase tracking-[.1em] text-white/60">{typeLabel(card.entity_type)} · {card.rarity||'Em revisão'}</div><h3 className="mt-1 line-clamp-2 text-sm font-black leading-tight text-white">{card.name||'Sem nome'}</h3><div className="mt-1 truncate text-[10px] text-white/60">{card.collections?.name||'DeckVerse'}</div></div></div></Link>; }
+function OwnedCard({entry}) {
+  const queryClient = useQueryClient();
+  const [editorOpen, setEditorOpen] = useState(false);
+  const card=entry.cards||{};
+  const Icon=card.entity_type==='item'?Package:card.entity_type==='boss'?Sparkles:UserRound;
+  const imageUrl = entry.effective_image_url || card.image_url;
+  const hasPersonalArtwork = Boolean(entry.player_artwork);
+  return <>
+    <Link to={`/card/${encodeURIComponent(entry.card_id)}`} className="group overflow-hidden rounded-2xl border border-border bg-card transition hover:-translate-y-0.5 hover:border-primary/45">
+      <div className="relative aspect-[4/5] overflow-hidden bg-muted">
+        {imageUrl?<img src={imageUrl} alt={card.name||'Entidade'} loading="lazy" decoding="async" referrerPolicy="no-referrer" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.025]"/>:<div className="absolute inset-0 flex items-center justify-center"><Icon className="h-8 w-8 text-muted-foreground/30"/></div>}
+        <button type="button" onClick={(event)=>{event.preventDefault();event.stopPropagation();setEditorOpen(true);}} className="absolute right-3 top-3 z-20 inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/20 bg-black/55 text-white backdrop-blur transition hover:bg-primary hover:text-primary-foreground" title="Personalizar arte" aria-label={`Personalizar arte de ${card.name||'carta'}`}><Images className="h-4 w-4"/></button>
+        {hasPersonalArtwork && <div className="absolute right-3 top-14 z-20 rounded-full border border-primary/30 bg-primary/15 px-2 py-1 text-[8px] font-black uppercase tracking-[.1em] text-primary backdrop-blur">Minha arte</div>}
+        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/94 via-black/45 to-transparent"/><div className="absolute left-3 top-3 flex items-center gap-1 rounded-full border border-emerald-300/20 bg-emerald-500/15 px-2 py-1 text-[10px] font-bold text-emerald-100 backdrop-blur"><Check className="h-3 w-3"/> {entry.copies}x</div><div className="absolute inset-x-3 bottom-3"><div className="text-[9px] font-black uppercase tracking-[.1em] text-white/60">{typeLabel(card.entity_type)} · {card.rarity||'Em revisão'}</div><h3 className="mt-1 line-clamp-2 text-sm font-black leading-tight text-white">{card.name||'Sem nome'}</h3><div className="mt-1 truncate text-[10px] text-white/60">{card.collections?.name||'DeckVerse'}</div></div>
+      </div>
+    </Link>
+    {editorOpen && <PlayerCardArtworkEditor card={{...card, id: entry.card_id}} currentArtwork={entry.player_artwork} onClose={()=>setEditorOpen(false)} onSaved={async ()=>{await queryClient.invalidateQueries({queryKey:['my-roster-supabase']});setEditorOpen(false);}}/>}
+  </>;
+}
