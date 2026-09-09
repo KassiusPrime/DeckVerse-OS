@@ -12,16 +12,7 @@ const commands = [
     description: 'Rola cartas',
     options: [
       { type: 4, name: 'q', description: 'Quantidade (1-50)', required: false, min_value: 1, max_value: 50 },
-      {
-        type: 3,
-        name: 'm',
-        description: 'Moeda',
-        required: false,
-        choices: [
-          { name: 'Astral', value: 'astral' },
-          { name: 'Éter', value: 'ether' },
-        ],
-      },
+      { type: 3, name: 'm', description: 'Moeda', required: false, choices: [{ name: 'Astral', value: 'astral' }, { name: 'Éter', value: 'ether' }] },
     ],
   },
   { name: 'c', description: 'Pega uma carta do spawn', options: [{ type: 4, name: 'n', description: 'Número da carta', required: false, min_value: 1, max_value: 100 }] },
@@ -29,29 +20,25 @@ const commands = [
   { name: 'p', description: 'Mostra seu perfil' },
   { name: 'h', description: 'Ajuda rápida' },
   {
+    name: 'deck',
+    description: 'Gerencia e invoca seus decks do DeckVerse',
+    options: [
+      { type: 1, name: 'listar', description: 'Lista seus decks invocáveis' },
+      { type: 1, name: 'ver', description: 'Visualiza um deck pelo código', options: [{ type: 3, name: 'codigo', description: 'Ex.: DV-AB12CD34', required: true }] },
+      { type: 1, name: 'invocar', description: 'Invoca um deck dentro do Discord', options: [{ type: 3, name: 'codigo', description: 'Código do deck; vazio usa o principal', required: false }] },
+      { type: 1, name: 'principal', description: 'Invoca o seu deck principal' },
+      { type: 1, name: 'ajuda', description: 'Mostra como usar a invocação de decks' },
+    ],
+  },
+  {
     name: 's',
     description: 'Configura o spawn automático',
     options: [
-      {
-        type: 1,
-        name: 'ch',
-        description: 'Define o canal do spawn',
-        options: [{ type: 7, name: 'c', description: 'Canal', required: true }],
-      },
+      { type: 1, name: 'ch', description: 'Define o canal do spawn', options: [{ type: 7, name: 'c', description: 'Canal', required: true }] },
       { type: 1, name: 'on', description: 'Liga o spawn automático' },
       { type: 1, name: 'off', description: 'Desliga o spawn automático' },
-      {
-        type: 1,
-        name: 't',
-        description: 'Define o intervalo em minutos',
-        options: [{ type: 4, name: 'm', description: 'Minutos', required: true, min_value: 5, max_value: 1440 }],
-      },
-      {
-        type: 1,
-        name: 'max',
-        description: 'Máximo de cartas por rodada',
-        options: [{ type: 4, name: 'n', description: 'Máximo', required: true, min_value: 1, max_value: 100 }],
-      },
+      { type: 1, name: 't', description: 'Define o intervalo em minutos', options: [{ type: 4, name: 'm', description: 'Minutos', required: true, min_value: 5, max_value: 1440 }] },
+      { type: 1, name: 'max', description: 'Máximo de cartas por rodada', options: [{ type: 4, name: 'n', description: 'Máximo', required: true, min_value: 1, max_value: 100 }] },
       { type: 1, name: 'now', description: 'Agenda um spawn para o próximo ciclo' },
     ],
   },
@@ -61,7 +48,7 @@ const endpoint = guildId
   ? `https://discord.com/api/v10/applications/${appId}/guilds/${guildId}/commands`
   : `https://discord.com/api/v10/applications/${appId}/commands`;
 
-console.log(`Sincronizando ${commands.length} comandos curtos com o Discord (${guildId ? 'guild' : 'global'})...`);
+console.log(`Sincronizando ${commands.length} comandos com o Discord (${guildId ? 'guild' : 'global'})...`);
 const response = await fetch(endpoint, {
   method: 'PUT',
   headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' },
@@ -72,4 +59,4 @@ if (!response.ok) {
   console.error(`Discord command registration failed (${response.status}): ${body}`);
   process.exit(1);
 }
-console.log(`✅ ${commands.length} comandos curtos registrados com sucesso ${guildId ? `na guild ${guildId}` : 'globalmente'}.`);
+console.log(`✅ ${commands.length} comandos registrados com sucesso ${guildId ? `na guild ${guildId}` : 'globalmente'}.`);
