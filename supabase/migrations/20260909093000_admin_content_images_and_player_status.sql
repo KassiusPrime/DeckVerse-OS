@@ -21,9 +21,11 @@ on conflict (id) do update set public = excluded.public, file_size_limit = exclu
 drop policy if exists deckverse_cards_admin_insert on storage.objects;
 drop policy if exists deckverse_cards_admin_update on storage.objects;
 drop policy if exists deckverse_cards_admin_delete on storage.objects;
+drop policy if exists deckverse_cards_admin_select on storage.objects;
 create policy deckverse_cards_admin_insert on storage.objects for insert to authenticated with check (bucket_id = 'cards' and app_private.is_admin());
 create policy deckverse_cards_admin_update on storage.objects for update to authenticated using (bucket_id = 'cards' and app_private.is_admin()) with check (bucket_id = 'cards' and app_private.is_admin());
 create policy deckverse_cards_admin_delete on storage.objects for delete to authenticated using (bucket_id = 'cards' and app_private.is_admin());
+create policy deckverse_cards_admin_select on storage.objects for select to authenticated using (bucket_id = 'cards' and app_private.is_admin());
 
 create or replace function public.admin_update_collection_content(p_id text, p_synopsis text default null, p_is_active boolean default null, p_cover_url text default null)
 returns public.collections language plpgsql security definer set search_path = '' as $$
@@ -89,3 +91,13 @@ select p.id,p.discord_id,p.discord_username,p.display_name,p.avatar_url,p.role,p
 $$;
 revoke all on function public.admin_search_players(text) from public, anon;
 grant execute on function public.admin_search_players(text) to authenticated;
+
+-- media_assets is already present in the canonical schema; keep its admin-only policy contract explicit.
+drop policy if exists media_assets_admin_read on public.media_assets;
+drop policy if exists media_assets_admin_insert on public.media_assets;
+drop policy if exists media_assets_admin_update on public.media_assets;
+drop policy if exists media_assets_admin_delete on public.media_assets;
+create policy media_assets_admin_read on public.media_assets for select to authenticated using (app_private.is_admin());
+create policy media_assets_admin_insert on public.media_assets for insert to authenticated with check (app_private.is_admin());
+create policy media_assets_admin_update on public.media_assets for update to authenticated using (app_private.is_admin()) with check (app_private.is_admin());
+create policy media_assets_admin_delete on public.media_assets for delete to authenticated using (app_private.is_admin());
