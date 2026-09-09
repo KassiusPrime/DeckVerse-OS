@@ -1,6 +1,6 @@
 import React from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter as Router, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { queryClientInstance } from './query-client';
 import { AuthProvider, useAuth } from './AuthContext';
