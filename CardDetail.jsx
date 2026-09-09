@@ -1,10 +1,13 @@
 import React, { useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, BookOpen, ImageOff, Lock, Package, Sparkles, Swords, UserRound } from 'lucide-react';
+import { ArrowLeft, BookOpen, ImageOff, Images, Lock, Package, Sparkles, Swords, UserRound } from 'lucide-react';
 import Navbar from './Navbar';
+import { useAuth } from './AuthContext';
 import { loadCatalogSnapshot } from './services/catalog/catalogDataService.js';
 import { deriveCatalogForms } from './services/catalog/catalogFormsService.js';
+import { getMyCardArtwork, getMyCardOwnership } from './services/supabase/playerArtworkService.js';
+import PlayerCardArtworkEditor from './src/components/player/PlayerCardArtworkEditor.jsx';
 
 const getName = (entity) => entity?.name || entity?.title || 'Sem nome';
 const getRarity = (entity) => String(entity?.rarity || '').toUpperCase();
@@ -14,12 +17,17 @@ const entityIcon = (entity) => entity?.entity_type === 'item' ? Package : entity
 
 export default function CardDetail() {
   const { id } = useParams();
+  const { isAuthenticated } = useAuth();
+  const queryClient = useQueryClient();
   const [selectedFormId, setSelectedFormId] = useState('base');
+  const [editorOpen, setEditorOpen] = useState(false);
   const snapshotQuery = useQuery({ queryKey: ['catalog-snapshot-canonical'], queryFn: loadCatalogSnapshot, staleTime: 5 * 60_000 });
   const snapshot = snapshotQuery.data || { characters: [], items: [], bosses: [] };
   const allEntities = useMemo(() => [...(snapshot.characters || []), ...(snapshot.items || []), ...(snapshot.bosses || [])], [snapshot]);
   const entity = useMemo(() => allEntities.find((entry) => String(entry?.id || entry?.card_id || '') === String(id)) || null, [allEntities, id]);
   const allForms = useMemo(() => deriveCatalogForms(snapshot), [snapshot]);
+  const ownershipQuery = useQuery({ queryKey: ['my-card-ownership', id], queryFn: () => getMyCardOwnership(id), enabled: Boolean(isAuthenticated && id && entity), staleTime: 60_000 });
+  const artworkQuery = useQuery({ queryKey: ['my-card-artwork', id], queryFn: async () => (await getMyCardArtwork([id]))[0] || null, enabled: Boolean(isAuthenticated && id && entity), staleTime: 60_000 });
 
   const forms = useMemo(() => {
     if (!entity || entity.entity_type === 'item') return [];
@@ -44,7 +52,8 @@ export default function CardDetail() {
   if (!entity) return <NotFound />;
 
   const selectedForm = selectedFormId === 'base' ? null : forms.find((form) => form.id === selectedFormId) || null;
-  const image = selectedForm?.image || entity.image_url || entity.imageUrl || '';
+  const playerArtwork = artworkQuery.data;
+  const image = selectedForm?.image || playerArtwork?.effective_url || entity.image_url || entity.imageUrl || '';
   const activeLabel = selectedForm?.name || 'Base';
   const rarity = getRarity(selectedForm) || getRarity(entity);
   const collectionName = entity.collection || entity.series || 'DeckVerse';
@@ -66,7 +75,11 @@ export default function CardDetail() {
           <section>
             <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-[0_24px_70px_rgba(0,0,0,.28)]">
               <div className="relative aspect-[4/5] bg-muted">
-                {image ? <img key={`${selectedFormId}-${image}`} src={image} alt={`${getName(entity)} — ${activeLabel}`} loading="eager" decoding="async" className="h-full w-full object-cover" /> : <div className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(circle_at_top,hsl(var(--primary)/.15),transparent_65%)]"><ImageOff className="h-10 w-10 text-muted-foreground/35" /></div>}
+                {image ? <img key={`${selectedFormId}-${image}`} src={image} alt={`${getName(entity)} — ${activeLabel}`} loading="eager" decoding="async" referrerPolicy="no-referrer" className="h-full w-full object-cover" /> : <div className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(circle_at_top,hsl(var(--primary)/.15),transparent_65%)]"><ImageOff className="h-10 w-10 text-muted-foreground/35" /></div>}
+                <div className="absolute right-4 top-4 flex gap-2">
+                  {playerArtwork && <div className="rounded-full border border-primary/25 bg-primary/15 px-3 py-1.5 text-[9px] font-black uppercase tracking-[.12em] text-primary backdrop-blur">Minha arte</div>}
+                  {ownershipQuery.data && !selectedForm && <button type="button" onClick={() => setEditorOpen(true)} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-white/20 bg-black/55 px-3 text-xs font-black text-white backdrop-blur hover:bg-primary hover:text-primary-foreground" title="Personalizar arte"><Images className="h-4 w-4" /> Personalizar</button>}
+                </div>
                 <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/94 via-black/38 to-transparent" />
                 <div className="absolute inset-x-4 bottom-4 flex items-end justify-between gap-3"><div><div className="text-[10px] font-extrabold uppercase tracking-[.16em] text-white/55">{forms.length > 0 ? 'Estado canônico' : entityLabel(entity)}</div><div className="mt-1 text-lg font-black text-white">{forms.length > 0 ? activeLabel : getName(entity)}</div></div>{rarity && <span className="rounded-full border border-white/15 bg-black/45 px-3 py-1.5 text-xs font-black tracking-[.12em] text-white backdrop-blur">{rarity}</span>}</div>
               </div>
@@ -96,6 +109,7 @@ export default function CardDetail() {
           </section>
         </div>
       </main>
+      {editorOpen && <PlayerCardArtworkEditor card={{...entity, id: entity.id || entity.card_id}} currentArtwork={playerArtwork} onClose={()=>setEditorOpen(false)} onSaved={async ()=>{await queryClient.invalidateQueries({queryKey:['my-card-artwork', id]});setEditorOpen(false);}}/>}
     </div>
   );
 }
