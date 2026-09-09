@@ -20,6 +20,21 @@ async function getCurrentUserId() {
   return data.user.id;
 }
 
+export async function getMyCardOwnership(cardId) {
+  const normalizedCardId = String(cardId || '').trim();
+  if (!normalizedCardId) return false;
+  const supabase = getSupabaseBrowserClient();
+  const userId = await getCurrentUserId();
+  const { data, error } = await supabase
+    .from('rosters')
+    .select('card_id')
+    .eq('profile_id', userId)
+    .eq('card_id', normalizedCardId)
+    .maybeSingle();
+  if (error) throw error;
+  return Boolean(data);
+}
+
 export async function getMyCardArtwork(cardIds = []) {
   const ids = [...new Set(cardIds.filter(Boolean).map(String))];
   if (!ids.length) return [];
@@ -172,6 +187,7 @@ export async function clearPlayerCardArtwork(cardId) {
 }
 
 export default {
+  getMyCardOwnership,
   getMyCardArtwork,
   getMyRosterWithArtwork,
   savePlayerCardArtwork,
