@@ -35,6 +35,12 @@ function AdminRouteGuard({ children }) {
 
 function RouteLoading() { return <main className="flex min-h-[70vh] items-center justify-center bg-background"><div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-primary" aria-label="Carregando" /></main>; }
 
+function AccountBlocked() {
+  const { accountStatus, logout } = useAuth();
+  const banned = accountStatus === 'banned';
+  return <main className="flex min-h-screen items-center justify-center bg-background px-6 text-foreground"><section className="w-full max-w-lg rounded-3xl border border-destructive/30 bg-card p-8 text-center"><div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-destructive/10 text-2xl">!</div><h1 className="mt-5 text-2xl font-black">Conta {banned ? 'banida' : 'suspensa'}</h1><p className="mt-3 text-sm leading-7 text-muted-foreground">O acesso ao DeckVerse está temporariamente bloqueado para esta conta. Se você acredita que isso é um erro, entre em contato com o suporte.</p><button onClick={() => logout()} className="mt-6 min-h-11 rounded-xl bg-primary px-5 text-xs font-black text-primary-foreground">SAIR DA CONTA</button></section></main>;
+}
+
 function AnimatedRoutes() {
   const location = useLocation();
   const reduceMotion = useReducedMotion();
@@ -46,5 +52,5 @@ function AnimatedRoutes() {
   </Routes></motion.div></AnimatePresence>;
 }
 
-function ProductRuntime() { const location = useLocation(); const { isLoadingAuth } = useAuth(); const isAuthCallback = location.pathname === '/auth/callback'; if (isLoadingAuth && !isAuthCallback) return <RouteLoading />; return <><AnimatedRoutes /><BottomNav /><CommandPalette /></>; }
+function ProductRuntime() { const location = useLocation(); const { isLoadingAuth, isAccountBlocked } = useAuth(); const isAuthCallback = location.pathname === '/auth/callback'; if (isLoadingAuth && !isAuthCallback) return <RouteLoading />; if (isAccountBlocked && !isAuthCallback) return <AccountBlocked />; return <><AnimatedRoutes /><BottomNav /><CommandPalette /></>; }
 export default function App() { return <AuthProvider><QueryClientProvider client={queryClientInstance}><Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}><ProductRuntime /></Router><TacticalToastContainer /></QueryClientProvider></AuthProvider>; }
