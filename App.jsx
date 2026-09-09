@@ -20,6 +20,8 @@ import AuthCallback from './AuthCallback';
 import Support from './Support';
 import Gacha from './Gacha';
 import GameHub from './GameHub';
+import BattleHistory from './BattleHistory';
+import FandomImporter from './FandomImporter';
 import AdminSupabase from './AdminSupabase';
 import AdminSynopsis from './AdminSynopsis';
 import AdminCardValues from './AdminCardValues';
@@ -58,7 +60,9 @@ function AnimatedRoutes() {
   const motionProps = reduceMotion ? { initial: false, animate: { opacity: 1 }, exit: { opacity: 1 }, transition: { duration: 0 } } : { initial: { opacity: 0, y: 5 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -3 }, transition: { duration: 0.14, ease: 'easeOut' } };
   return <AnimatePresence mode="wait" initial={false}><motion.div key={location.pathname} className="min-h-screen pb-24 md:pb-0" {...motionProps}><Routes location={location}>
     <Route path="/" element={<Home />} /><Route path="/login" element={<Login />} /><Route path="/auth/callback" element={<AuthCallback />} />
-    <Route path="/collections" element={<CollectionsHub />} /><Route path="/collections/:collectionCode" element={<CollectionsHub />} /><Route path="/characters" element={<Catalog initialType="characters" />} /><Route path="/forms" element={<FormsCatalog />} /><Route path="/items" element={<Catalog initialType="items" />} /><Route path="/bosses" element={<Catalog initialType="bosses" />} /><Route path="/gacha" element={<Gacha />} /><Route path="/gacha/preferences" element={<Navigate to="/game?tab=disables" replace />} /><Route path="/game" element={<GameHub />} /><Route path="/my-collection" element={<MyCollection />} /><Route path="/card/:id" element={<CardDetail />} /><Route path="/profile" element={<Profile />} /><Route path="/support" element={<Support />} />
+    <Route path="/collections" element={<CollectionsHub />} /><Route path="/collections/:collectionCode" element={<CollectionsHub />} /><Route path="/characters" element={<Catalog initialType="characters" />} /><Route path="/forms" element={<FormsCatalog />} /><Route path="/items" element={<Catalog initialType="items" />} /><Route path="/bosses" element={<Catalog initialType="bosses" />} /><Route path="/gacha" element={<Gacha />} /><Route path="/gacha/preferences" element={<Navigate to="/game?tab=disables" replace />} /><Route path="/game" element={<GameHub />} />
+    <Route path="/my-collection" element={<MyCollection />} /><Route path="/inventory" element={<Navigate to="/my-collection" replace />} /><Route path="/card/:id" element={<CardDetail />} /><Route path="/profile" element={<Profile />} /><Route path="/support" element={<Support />} />
+    <Route path="/arena" element={<GameHub />} /><Route path="/battles" element={<BattleHistory />} /><Route path="/fandom" element={<FandomImporter />} />
     <Route path="/admin" element={<AdminRouteGuard><AdminSupabase /></AdminRouteGuard>} /><Route path="/admin/content" element={<AdminRouteGuard><AdminContentManager /></AdminRouteGuard>} /><Route path="/admin/synopses" element={<AdminRouteGuard><AdminSynopsis /></AdminRouteGuard>} /><Route path="/admin/card-values" element={<AdminRouteGuard><AdminCardValues /></AdminRouteGuard>} /><Route path="/adm" element={<Navigate to="/admin" replace />} /><Route path="*" element={<PageNotFound />} />
   </Routes></motion.div></AnimatePresence>;
 }
