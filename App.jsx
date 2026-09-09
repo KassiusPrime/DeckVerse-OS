@@ -23,7 +23,7 @@ import GameHub from './GameHub';
 import AdminSupabase from './AdminSupabase';
 import AdminSynopsis from './AdminSynopsis';
 import AdminCardValues from './AdminCardValues';
-import AdminContentManager from './AdminContentManager';
+import AdminContentManager from './AdminContentManagerV2';
 
 function AdminRouteGuard({ children }) {
   const { isAuthenticated, isAdmin, isLoadingAuth } = useAuth();
