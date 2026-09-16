@@ -56,21 +56,22 @@ export async function getAdminLedger(limit = 100) {
   return data || [];
 }
 
+export async function searchCards(query) {
+  const supabase = getSupabaseBrowserClient();
+  const needle = String(query || '').trim().replace(/[%_,]/g, '');
+  if (!needle) return [];
+  const { data, error } = await supabase.from('cards').select('id, name, rarity, entity_type, image_url, synopsis, collections(name)').ilike('name', `%${needle}%`).limit(30);
+  if (error) throw error;
+  return data || [];
+}
+
 function cleanNeedle(query) { return String(query || '').trim().replace(/[%_,]/g, ''); }
 
 const mapCatalogRow = (row) => ({
-  scope: row.scope,
-  entityType: row.entity_type,
-  id: row.id,
-  name: row.name,
-  synopsis: row.synopsis || '',
-  description: row.description || '',
-  imageUrl: row.image_url || '',
-  collectionId: row.collection_id || '',
-  collectionName: row.collection_name || '',
-  baseName: row.base_name || '',
-  rarity: row.rarity || '',
-  isActive: row.is_active,
+  scope: row.scope, entityType: row.entity_type, id: row.id, name: row.name,
+  synopsis: row.synopsis || '', description: row.description || '', imageUrl: row.image_url || '',
+  collectionId: row.collection_id || '', collectionName: row.collection_name || '', baseName: row.base_name || '',
+  rarity: row.rarity || '', isActive: row.is_active,
 });
 
 export async function searchAdminCatalog({ query = '', kind = 'all', collectionId = null, rarity = null, letter = null, limit = 300 } = {}) {
@@ -130,4 +131,4 @@ export async function bulkUpdateCatalog({ scope, ids, synopsis, isActive, imageU
   return data;
 }
 
-export default { searchProfiles, searchAdminPlayers, updatePlayerStatus, getPlayerInventory, grantCard, removeCard, transferCard, getAdminLedger, searchAdminCatalog, searchSynopsisTargets, updateSynopsis, updateCollectionContent, updateCardContent, updateFormContent, importImageFromUrl, bulkUpdateCatalog };
+export default { searchProfiles, searchAdminPlayers, updatePlayerStatus, getPlayerInventory, grantCard, removeCard, transferCard, getAdminLedger, searchCards, searchAdminCatalog, searchSynopsisTargets, updateSynopsis, updateCollectionContent, updateCardContent, updateFormContent, importImageFromUrl, bulkUpdateCatalog };
