@@ -56,9 +56,7 @@ export async function getAdminLedger(limit = 100) {
   return data || [];
 }
 
-function cleanNeedle(query) {
-  return String(query || '').trim().replace(/[%_,]/g, '');
-}
+function cleanNeedle(query) { return String(query || '').trim().replace(/[%_,]/g, ''); }
 
 const mapCatalogRow = (row) => ({
   scope: row.scope,
@@ -78,20 +76,14 @@ const mapCatalogRow = (row) => ({
 export async function searchAdminCatalog({ query = '', kind = 'all', collectionId = null, rarity = null, letter = null, limit = 300 } = {}) {
   const supabase = getSupabaseBrowserClient();
   const { data, error } = await supabase.rpc('admin_search_catalog', {
-    p_query: cleanNeedle(query),
-    p_kind: kind || 'all',
-    p_collection_id: collectionId,
-    p_rarity: rarity,
-    p_letter: letter,
+    p_query: cleanNeedle(query), p_kind: kind || 'all', p_collection_id: collectionId, p_rarity: rarity, p_letter: letter,
     p_limit: Math.min(300, Math.max(20, Number(limit) || 300)),
   });
   if (error) throw error;
   return (data || []).map(mapCatalogRow);
 }
 
-export async function searchSynopsisTargets(query = '', kind = 'all', limit = 120) {
-  return searchAdminCatalog({ query, kind, limit });
-}
+export async function searchSynopsisTargets(query = '', kind = 'all', limit = 120) { return searchAdminCatalog({ query, kind, limit }); }
 
 export async function updateSynopsis(scope, id, synopsis) {
   const supabase = getSupabaseBrowserClient();
@@ -102,53 +94,40 @@ export async function updateSynopsis(scope, id, synopsis) {
 
 export async function updateCollectionContent(id, payload = {}) {
   const supabase = getSupabaseBrowserClient();
-  const { data, error } = await supabase.rpc('admin_update_collection_content', { p_id: id, p_synopsis: payload.synopsis ?? null, p_is_active: payload.is_active ?? null, p_cover_url: payload.cover_url ?? null });
+  const { data, error } = await supabase.rpc('admin_update_collection_content', { p_id: id, p_synopsis: payload.synopsis ?? null, p_is_active: payload.is_active ?? null, p_cover_url: payload.cover_url ?? null, p_clear_image: payload.clear_image === true });
   if (error) throw error;
   return data;
 }
 
 export async function updateCardContent(id, payload = {}) {
   const supabase = getSupabaseBrowserClient();
-  const { data, error } = await supabase.rpc('admin_update_card_content', { p_id: id, p_synopsis: payload.synopsis ?? null, p_is_active: payload.is_active ?? null, p_image_url: payload.image_url ?? null });
+  const { data, error } = await supabase.rpc('admin_update_card_content', { p_id: id, p_synopsis: payload.synopsis ?? null, p_is_active: payload.is_active ?? null, p_image_url: payload.image_url ?? null, p_clear_image: payload.clear_image === true });
   if (error) throw error;
   return data;
 }
 
 export async function updateFormContent(id, payload = {}) {
   const supabase = getSupabaseBrowserClient();
-  const { data, error } = await supabase.rpc('admin_update_form_content', { p_id: id, p_synopsis: payload.synopsis ?? null, p_is_active: payload.is_active ?? null, p_image_url: payload.image_url ?? null });
+  const { data, error } = await supabase.rpc('admin_update_form_content', { p_id: id, p_synopsis: payload.synopsis ?? null, p_is_active: payload.is_active ?? null, p_image_url: payload.image_url ?? null, p_clear_image: payload.clear_image === true });
   if (error) throw error;
   return data;
+}
+
+export async function importImageFromUrl(entity, url, entityType) {
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.functions.invoke('deckverse-admin-import-image', {
+    body: { url, entity_type: entityType, collection_id: entity.collectionId || (entityType === 'collection' ? entity.id : 'MULTIVERSE'), name: entity.name },
+  });
+  if (error) throw error;
+  if (!data?.image_url) throw new Error('IMAGE_IMPORT_FAILED');
+  return data.image_url;
 }
 
 export async function bulkUpdateCatalog({ scope, ids, synopsis, isActive, imageUrl, rarity }) {
   const supabase = getSupabaseBrowserClient();
-  const { data, error } = await supabase.rpc('admin_bulk_update_catalog', {
-    p_scope: scope,
-    p_ids: ids,
-    p_synopsis: synopsis ?? null,
-    p_is_active: typeof isActive === 'boolean' ? isActive : null,
-    p_image_url: imageUrl ?? null,
-    p_rarity: rarity ?? null,
-  });
+  const { data, error } = await supabase.rpc('admin_bulk_update_catalog', { p_scope: scope, p_ids: ids, p_synopsis: synopsis ?? null, p_is_active: typeof isActive === 'boolean' ? isActive : null, p_image_url: imageUrl ?? null, p_rarity: rarity ?? null });
   if (error) throw error;
   return data;
 }
 
-export default {
-  searchProfiles,
-  searchAdminPlayers,
-  updatePlayerStatus,
-  getPlayerInventory,
-  grantCard,
-  removeCard,
-  transferCard,
-  getAdminLedger,
-  searchAdminCatalog,
-  searchSynopsisTargets,
-  updateSynopsis,
-  updateCollectionContent,
-  updateCardContent,
-  updateFormContent,
-  bulkUpdateCatalog,
-};
+export default { searchProfiles, searchAdminPlayers, updatePlayerStatus, getPlayerInventory, grantCard, removeCard, transferCard, getAdminLedger, searchAdminCatalog, searchSynopsisTargets, updateSynopsis, updateCollectionContent, updateCardContent, updateFormContent, importImageFromUrl, bulkUpdateCatalog };
