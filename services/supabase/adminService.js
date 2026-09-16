@@ -56,67 +56,41 @@ export async function getAdminLedger(limit = 100) {
   return data || [];
 }
 
-export async function searchCards(query) {
-  const supabase = getSupabaseBrowserClient();
-  const needle = String(query || '').trim();
-  if (!needle) return [];
-  const { data, error } = await supabase.from('cards').select('id, name, rarity, entity_type, image_url, synopsis, collections(name)').ilike('name', `%${needle.replace(/[%_]/g, '')}%`).limit(30);
-  if (error) throw error;
-  return data || [];
+function cleanNeedle(query) {
+  return String(query || '').trim().replace(/[%_,]/g, '');
 }
 
-function cleanNeedle(query) { return String(query || '').trim().replace(/[%_]/g, ''); }
+const mapCatalogRow = (row) => ({
+  scope: row.scope,
+  entityType: row.entity_type,
+  id: row.id,
+  name: row.name,
+  synopsis: row.synopsis || '',
+  description: row.description || '',
+  imageUrl: row.image_url || '',
+  collectionId: row.collection_id || '',
+  collectionName: row.collection_name || '',
+  baseName: row.base_name || '',
+  rarity: row.rarity || '',
+  isActive: row.is_active,
+});
 
-function applyTextSearch(queryBuilder, needle, fields = ['name']) {
-  if (!needle) return queryBuilder;
-  const escaped = needle.replace(/,/g, '');
-  const clauses = fields.map((field) => `${field}.ilike.%${escaped}%`).join(',');
-  return queryBuilder.or(clauses);
+export async function searchAdminCatalog({ query = '', kind = 'all', collectionId = null, rarity = null, letter = null, limit = 300 } = {}) {
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.rpc('admin_search_catalog', {
+    p_query: cleanNeedle(query),
+    p_kind: kind || 'all',
+    p_collection_id: collectionId,
+    p_rarity: rarity,
+    p_letter: letter,
+    p_limit: Math.min(300, Math.max(20, Number(limit) || 300)),
+  });
+  if (error) throw error;
+  return (data || []).map(mapCatalogRow);
 }
 
 export async function searchSynopsisTargets(query = '', kind = 'all', limit = 120) {
-  const supabase = getSupabaseBrowserClient();
-  const needle = cleanNeedle(query);
-  const safeLimit = Math.min(300, Math.max(10, Number(limit) || 120));
-  const wantsCollections = kind === 'all' || kind === 'collection';
-  const wantsForms = kind === 'all' || kind === 'form';
-  const wantsCards = ['all', 'character', 'boss', 'item'].includes(kind);
-  const jobs = [];
-
-  if (wantsCollections) {
-    let q = supabase.from('collections').select('id, name, synopsis, description, cover_url, category, is_active').order('name').limit(safeLimit);
-    q = applyTextSearch(q, needle, ['name']);
-    jobs.push(q.then(({ data, error }) => {
-      if (error) throw error;
-      return (data || []).map((row) => ({ scope: 'collection', entityType: 'collection', id: row.id, name: row.name, synopsis: row.synopsis || '', description: row.description || '', imageUrl: row.cover_url || '', collectionName: row.name, category: row.category || '', isActive: row.is_active }));
-    }));
-  }
-
-  if (wantsCards) {
-    let q = supabase.from('cards').select('id, name, synopsis, description, entity_type, image_url, rarity, collection_id, is_active, collections(name)').order('name').limit(safeLimit);
-    if (kind !== 'all') q = q.eq('entity_type', kind);
-    q = applyTextSearch(q, needle, ['name', 'rarity']);
-    jobs.push(q.then(({ data, error }) => {
-      if (error) throw error;
-      return (data || []).map((row) => ({ scope: 'card', entityType: row.entity_type, id: row.id, name: row.name, synopsis: row.synopsis || '', description: row.description || '', imageUrl: row.image_url || '', collectionId: row.collection_id, collectionName: row.collections?.name || '', rarity: row.rarity || '', isActive: row.is_active }));
-    }));
-  }
-
-  if (wantsForms) {
-    let q = supabase.from('card_forms').select('id, card_id, name, synopsis, description, image_url, rarity, is_active, cards(name, collection_id, collections(name))').order('name').limit(safeLimit);
-    q = applyTextSearch(q, needle, ['name', 'rarity']);
-    jobs.push(q.then(({ data, error }) => {
-      if (error) throw error;
-      return (data || []).map((row) => ({ scope: 'form', entityType: 'form', id: row.id, cardId: row.card_id, name: row.name, synopsis: row.synopsis || '', description: row.description || '', imageUrl: row.image_url || '', baseName: row.cards?.name || '', collectionId: row.cards?.collection_id || '', collectionName: row.cards?.collections?.name || '', rarity: row.rarity || '', isActive: row.is_active }));
-    }));
-  }
-
-  const groups = await Promise.all(jobs);
-  return groups.flat().sort((a, b) => {
-    const collection = String(a.collectionName || a.name || '').localeCompare(String(b.collectionName || b.name || ''), 'pt-BR', { sensitivity: 'base' });
-    if (collection !== 0) return collection;
-    return String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR', { sensitivity: 'base' });
-  });
+  return searchAdminCatalog({ query, kind, limit });
 }
 
 export async function updateSynopsis(scope, id, synopsis) {
@@ -147,4 +121,34 @@ export async function updateFormContent(id, payload = {}) {
   return data;
 }
 
-export default { searchProfiles, searchAdminPlayers, updatePlayerStatus, getPlayerInventory, grantCard, removeCard, transferCard, getAdminLedger, searchCards, searchSynopsisTargets, updateSynopsis, updateCollectionContent, updateCardContent, updateFormContent };
+export async function bulkUpdateCatalog({ scope, ids, synopsis, isActive, imageUrl, rarity }) {
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.rpc('admin_bulk_update_catalog', {
+    p_scope: scope,
+    p_ids: ids,
+    p_synopsis: synopsis ?? null,
+    p_is_active: typeof isActive === 'boolean' ? isActive : null,
+    p_image_url: imageUrl ?? null,
+    p_rarity: rarity ?? null,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export default {
+  searchProfiles,
+  searchAdminPlayers,
+  updatePlayerStatus,
+  getPlayerInventory,
+  grantCard,
+  removeCard,
+  transferCard,
+  getAdminLedger,
+  searchAdminCatalog,
+  searchSynopsisTargets,
+  updateSynopsis,
+  updateCollectionContent,
+  updateCardContent,
+  updateFormContent,
+  bulkUpdateCatalog,
+};
