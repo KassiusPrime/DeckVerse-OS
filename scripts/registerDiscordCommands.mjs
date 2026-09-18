@@ -1,3 +1,5 @@
+import 'dotenv/config';
+
 const appId = process.env.DISCORD_APPLICATION_ID || process.env.CLIENT_ID || '1543823857293594714';
 const token = process.env.DISCORD_BOT_TOKEN || process.env.DISCORD_TOKEN;
 const guildId = process.env.DISCORD_GUILD_ID || process.env.GUILD_ID || '';
