@@ -105,12 +105,19 @@ where transaction_id is not null and action like 'inventory.%';
 
 create or replace function public.capture_admin_audit_log()
 returns trigger language plpgsql security definer set search_path=''
-as $$
+as $
+declare card_id text; copies bigint;
 begin
   insert into public.audit_logs(actor_profile_id,action,target_profile_id,transaction_id,payload)
   values(new.actor_profile_id,new.action,new.target_profile_id,new.transaction_id,new.payload);
+  if new.action in ('inventory.grant','inventory.remove') then
+    card_id:=new.payload->>'card_id';
+    copies:=coalesce((new.payload->>'copies')::bigint,0);
+    insert into public.economy_audit_events(transaction_id,event_type,entity_type,entity_id,player_id,amount,metadata)
+    values(new.transaction_id,case when new.action='inventory.grant' then 'CARD_GENERATED' else 'CARD_DESTROYED' end,'CARD',card_id,new.target_profile_id,copies,new.payload);
+  end if;
   return new;
-end $$;
+end $;
 drop trigger if exists admin_audit_observability_trigger on public.admin_audit_log;
 create trigger admin_audit_observability_trigger after insert on public.admin_audit_log for each row execute function public.capture_admin_audit_log();
 revoke execute on function public.capture_admin_audit_log() from public,anon,authenticated;
