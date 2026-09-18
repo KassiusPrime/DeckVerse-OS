@@ -18,7 +18,7 @@ export async function getOwnedCards(profileId) {
   if(error)throw error; return data||[];
 }
 export async function createListing(cardId,quantity,priceDc){const {data,error}=await client().rpc('create_market_listing',{p_card_id:cardId,p_quantity:quantity,p_price_dc:priceDc});if(error)throw error;return data;}
-export async function buyListing(listingId){const {data,error}=await client().rpc('buy_market_listing',{p_listing_id:listingId});if(error)throw error;return data;}
+export async function buyListing(listingId,transactionId){const {data,error}=await client().rpc('buy_market_listing_with_transaction',{p_listing_id:listingId,p_transaction_id:transactionId});if(error)throw error;return data;}
 export async function cancelListing(listingId){const {data,error}=await client().rpc('cancel_market_listing',{p_listing_id:listingId});if(error)throw error;return data;}
 export const marketplaceRepository=Object.freeze({getCurrentProfile,browse,getOwnedCards,createListing,buyListing,cancelListing});
 export default marketplaceRepository;
