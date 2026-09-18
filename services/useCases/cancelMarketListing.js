@@ -1,0 +1,1 @@
+export function createCancelMarketListingUseCase(repository){return Object.freeze({execute:async(listingId)=>{if(!listingId)throw Object.assign(new Error('LISTING_REQUIRED'),{code:'LISTING_REQUIRED'});return repository.cancelListing(listingId);}})}
