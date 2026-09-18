@@ -1,0 +1,1 @@
+export function createAuditHandler(auditService){return async event=>{if(!auditService) return null;if(event.type==='DECK_CREDITS_GRANTED')return auditService.snapshot?.();if(event.type==='DECK_CREDITS_REMOVED')return auditService.snapshot?.();return null;};}
