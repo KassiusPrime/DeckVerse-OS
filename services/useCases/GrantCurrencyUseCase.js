@@ -1,2 +1,4 @@
+import { createTransactionId } from '../economy/transactionId.js';
+
 const invalid=(code)=>Object.assign(new Error(code),{code});
-export function createGrantCurrencyUseCase(repository){return Object.freeze({execute:async(playerId,amount,type='ADMIN_GRANT',referenceType=null,referenceId=null,reason)=>{if(!playerId)throw invalid('PLAYER_REQUIRED');const n=Math.trunc(Number(amount));if(!Number.isSafeInteger(n)||n<1)throw invalid('INVALID_AMOUNT');return repository.grant(playerId,n,type,referenceType,referenceId,reason||'Currency grant');}})}
+export function createGrantCurrencyUseCase(repository){return Object.freeze({execute:async(playerId,amount,type='ADMIN_GRANT',referenceType=null,referenceId=null,reason,transactionId=createTransactionId())=>{if(!playerId)throw invalid('PLAYER_REQUIRED');const n=Math.trunc(Number(amount));if(!Number.isSafeInteger(n)||n<1)throw invalid('INVALID_AMOUNT');return repository.grant(playerId,n,type,referenceType,referenceId,reason||'Currency grant',transactionId);}})}
