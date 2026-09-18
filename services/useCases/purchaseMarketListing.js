@@ -1,1 +1,3 @@
-export function createPurchaseMarketListingUseCase(repository){return Object.freeze({execute:async(listingId)=>{if(!listingId)throw Object.assign(new Error('LISTING_REQUIRED'),{code:'LISTING_REQUIRED'});return repository.buyListing(listingId);}})}
+import { createTransactionId } from '../economy/transactionId.js';
+
+export function createPurchaseMarketListingUseCase(repository){return Object.freeze({execute:async(listingId,transactionId=createTransactionId())=>{if(!listingId)throw Object.assign(new Error('LISTING_REQUIRED'),{code:'LISTING_REQUIRED'});return repository.buyListing(listingId,transactionId);}})}
