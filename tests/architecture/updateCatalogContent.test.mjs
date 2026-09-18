@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import { createUpdateCatalogContentUseCase } from '../../services/useCases/updateCatalogContent.js';
+const calls=[];
+const repo={updateCollection:async(id,payload)=>{calls.push(['collection',id,payload]);return 'collection-ok';},updateCard:async(id,payload)=>{calls.push(['card',id,payload]);return 'card-ok';},updateForm:async(id,payload)=>{calls.push(['form',id,payload]);return 'form-ok';}};
+const useCase=createUpdateCatalogContentUseCase(repo);
+assert.equal(await useCase.execute({role:'admin'},{id:'c1',entityType:'collection'},{synopsis:'  texto  '}),'collection-ok');
+assert.equal(calls[0][2].synopsis,'texto');
+assert.equal(await useCase.execute({role:'admin'},{id:'card1',entityType:'card'},{synopsis:''}),'card-ok');
+assert.equal(await useCase.execute({role:'admin'},{id:'form1',entityType:'form'},{synopsis:'Forma'}),'form-ok');
+await assert.rejects(()=>useCase.execute({role:'player'},{id:'card1',entityType:'card'},{}),/PERMISSION_DENIED/);
+await assert.rejects(()=>useCase.execute({role:'admin'},{id:'x',entityType:'unknown'},{}),/INVALID_CATALOG_TARGET/);
+console.log('updateCatalogContent: ok');
