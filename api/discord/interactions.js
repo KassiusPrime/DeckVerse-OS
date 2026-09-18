@@ -9,6 +9,7 @@ import {
   updateGuildSpawnSettings,
 } from '../../services/discord/spawnService.js';
 import { deckErrorText, deckEmbed, getDeck, getPrimaryDeck, listDecks } from '../../services/discord/deckService.js';
+import { serverFeatureFlagsRepository } from '../../services/repositories/serverFeatureFlagsRepository.js';
 
 const PAGE_SIZE = 5;
 const DEFAULT_SUPABASE_URL = 'https://rrujnjraonckjdtpsfol.supabase.co';
@@ -52,7 +53,7 @@ function errorText(error) {
 
 async function getProfileByDiscord(supabase, discordId) {
   const { data, error } = await supabase.from('profiles')
-    .select('id, discord_id, discord_username, display_name, avatar_url, astral_shards, ether_cores, level, cosmic_luck, pity_counter')
+    .select('id, discord_id, discord_username, display_name, avatar_url, deck_credits, astral_shards, ether_cores, level, cosmic_luck, pity_counter')
     .eq('discord_id', discordId).maybeSingle();
   if (error) throw error;
   return data;
@@ -89,6 +90,8 @@ function paginator(discordId, page, totalPages) {
 }
 
 async function runRoll(interaction, supabase, discordId) {
+  const gachaEnabled = await serverFeatureFlagsRepository.isEnabled(supabase, 'gacha_v2');
+  if (!gachaEnabled) return message('🎴 O Gacha está temporariamente bloqueado enquanto a infraestrutura econômica central é finalizada.', [], [], true);
   const options = interaction.data?.options || [];
   const count = Math.max(1, Math.min(50, Number(option(options, 'q')?.value || option(options, 'quantidade')?.value || 1)));
   const currencyValue = option(options, 'm')?.value || option(options, 'moeda')?.value || 'astral';
@@ -178,7 +181,7 @@ async function handleCommand(interaction, supabase) {
     const profile = await getProfileByDiscord(supabase, discordId);
     if (!profile) return message('Entre no DeckVerse com Discord antes de usar o bot.', [], [], true);
     return message('', [{ title: profile.display_name || profile.discord_username || 'Perfil DeckVerse', thumbnail: profile.avatar_url ? { url: profile.avatar_url } : undefined, color: 0x7c5cff, fields: [
-      { name: 'Nível', value: String(profile.level), inline: true }, { name: 'Sorte', value: `${Number(profile.cosmic_luck || 1).toFixed(2)}x`, inline: true }, { name: 'Astral', value: String(profile.astral_shards), inline: true }, { name: 'Éter', value: String(profile.ether_cores), inline: true }, { name: 'Pity', value: String(profile.pity_counter), inline: true },
+      { name: 'Nível', value: String(profile.level), inline: true }, { name: 'Deck Credits', value: String(profile.deck_credits ?? 0), inline: true }, { name: 'Sorte', value: `${Number(profile.cosmic_luck || 1).toFixed(2)}x`, inline: true }, { name: 'Astral (legado)', value: String(profile.astral_shards ?? 0), inline: true }, { name: 'Éter (legado)', value: String(profile.ether_cores ?? 0), inline: true }, { name: 'Pity', value: String(profile.pity_counter), inline: true },
     ] }]);
   }
   if (name === 'i' || name === 'inventory') { const result = await inventoryPage(supabase, discordId, 0); if (result.missing) return message('Entre no DeckVerse com Discord antes de usar o bot.', [], [], true); return message('', [inventoryEmbed(result)], paginator(discordId, result.page, result.totalPages), true); }
