@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import { createPurchaseMarketListingUseCase } from '../../services/useCases/purchaseMarketListing.js';
+import { createCreateMarketListingUseCase } from '../../services/useCases/createMarketListing.js';
+import { createCancelMarketListingUseCase } from '../../services/useCases/cancelMarketListing.js';
+const calls=[];const repo={buyListing:async id=>{calls.push(['buy',id]);return {ok:true};},createListing:async(...a)=>{calls.push(['create',...a]);return {ok:true};},cancelListing:async id=>{calls.push(['cancel',id]);return {ok:true};}};
+await createPurchaseMarketListingUseCase(repo).execute('l1');
+await createCreateMarketListingUseCase(repo).execute('c1','2','500');
+await createCancelMarketListingUseCase(repo).execute('l1');
+assert.deepEqual(calls,[['buy','l1'],['create','c1',2,500],['cancel','l1']]);
+await assert.rejects(()=>createCreateMarketListingUseCase(repo).execute('',1,1),/INVALID_LISTING/);
+await assert.rejects(()=>createPurchaseMarketListingUseCase(repo).execute(''),/LISTING_REQUIRED/);
+console.log('marketplace use cases: ok');
