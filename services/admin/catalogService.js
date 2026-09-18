@@ -3,8 +3,9 @@ import { createUpdateCatalogContentUseCase } from '../useCases/updateCatalogCont
 
 const updateCatalogContentUseCase = createUpdateCatalogContentUseCase(catalogRepository);
 
-export async function updateCatalogContent(actor, target, payload) {
-  return updateCatalogContentUseCase.execute(actor, target, payload);
+export async function updateCatalogContent(target, payload) {
+  const actor = await catalogRepository.getCurrentActor();
+  return updateCatalogContentUseCase.execute(actor, target, { ...payload });
 }
 
 export async function searchCatalog(filters = {}) {
