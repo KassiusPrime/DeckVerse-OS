@@ -1,3 +1,8 @@
-import {getSupabaseBrowserClient} from '../supabase/client.js';
-export const economyAuditService=Object.freeze({recent:async(limit=100)=>{const {data,error}=await getSupabaseBrowserClient().from('economy_transactions').select('*').order('created_at',{ascending:false}).limit(Math.min(Math.max(Number(limit)||100,1),500));if(error)throw error;return data||[];}});
+import economyRepository from '../repositories/economyRepository.js';
+
+export const economyAuditService=Object.freeze({
+  snapshot:()=>economyRepository.auditSnapshot(),
+  recordCardGenerated:(transactionId,cardId,playerId,quantity=1,metadata={})=>economyRepository.recordCardAudit(transactionId,'CARD_GENERATED',cardId,playerId,quantity,metadata),
+  recordCardDestroyed:(transactionId,cardId,playerId,quantity=1,metadata={})=>economyRepository.recordCardAudit(transactionId,'CARD_DESTROYED',cardId,playerId,quantity,metadata),
+});
 export default economyAuditService;
