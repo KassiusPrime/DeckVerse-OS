@@ -1,3 +1,6 @@
-import {getSupabaseBrowserClient} from '../supabase/client.js';
-export const economyMetrics=Object.freeze({summary:async()=>{const {data,error}=await getSupabaseBrowserClient().from('economy_transactions').select('transaction_type,amount,balance_after,created_at');if(error)throw error;const rows=data||[];const day=Date.now()-86400000;return {TotalGoldInCirculation:0,GoldGeneratedToday:rows.filter(x=>x.amount>0&&new Date(x.created_at).getTime()>=day).reduce((s,x)=>s+Number(x.amount),0),GoldConsumedToday:rows.filter(x=>x.amount<0&&new Date(x.created_at).getTime()>=day).reduce((s,x)=>s+Math.abs(Number(x.amount)),0),AveragePlayerWealth:0,TotalTransactions:rows.length};}});
+import economyRepository from '../repositories/economyRepository.js';
+
+export const economyMetrics=Object.freeze({
+  summary:()=>economyRepository.auditSnapshot(),
+});
 export default economyMetrics;
