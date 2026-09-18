@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, ImageOff, Images, Package, Search, ShieldCheck, Sparkles, UserRound } from 'lucide-react';
 import { useAuth } from './AuthContext';
 import Navbar from './Navbar';
-import { getMyRosterWithArtwork } from './services/supabase/playerArtworkService.js';
+import { inventoryService } from './services/inventory/inventoryService.js';
 import PlayerCardArtworkEditor from './src/components/player/PlayerCardArtworkEditor.jsx';
 
 const RARITIES = ['R', 'SR', 'SSR', 'UR', 'LR', 'MR'];
@@ -16,7 +16,7 @@ export default function MyCollection() {
   const [rarity, setRarity] = useState('all');
   const [type, setType] = useState('all');
 
-  const rosterQuery = useQuery({ queryKey: ['my-roster-supabase'], queryFn: getMyRosterWithArtwork, enabled: isAuthenticated, staleTime: 60_000 });
+  const rosterQuery = useQuery({ queryKey: ['my-roster-supabase'], queryFn: inventoryService.getMyRosterWithArtwork, enabled: isAuthenticated, staleTime: 60_000 });
   const roster = rosterQuery.data || [];
   const filtered = useMemo(() => {
     const needle = normalize(search);
