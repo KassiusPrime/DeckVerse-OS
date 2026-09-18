@@ -1,0 +1,1 @@
+export function createCreateMarketListingUseCase(repository){return Object.freeze({execute:async(cardId,quantity,priceDc)=>{const q=Math.trunc(Number(quantity));const p=Math.trunc(Number(priceDc));if(!cardId||q<1||p<1)throw Object.assign(new Error('INVALID_LISTING'),{code:'INVALID_LISTING'});return repository.createListing(cardId,q,p);}})}
