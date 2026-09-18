@@ -28,11 +28,11 @@ O banco atual já possui admin_audit_log e economy_ledger. Eles são tratados co
 Operações que alteram saldo, inventário, propriedade, marketplace, gacha, recompensas ou trocas devem ser uma única operação transacional no Postgres. Não usar chamadas independentes para simular transação.
 
 ## Estado atual
-O primeiro domínio-piloto é o catálogo administrativo. Já existem Repository + Use Case + Service para pesquisa e edição de coleções, cartas e formas, usando as RPCs administrativas protegidas existentes. O centro administrativo aplica filtros de raridade e letra no servidor.
+O primeiro domínio-piloto é o catálogo administrativo. Já existem Repository + Use Case + Service para pesquisa e edição de coleções, cartas e formas, usando as RPCs administrativas protegidas existentes. O centro administrativo aplica filtros de raridade e letra no servidor. Marketplace e Inventory já possuem camadas Repository + Use Case + Service; Inventory encapsula leitura do acervo, arte pessoal, concessão, remoção, transferência e equipamentos.
 
 ## Próximas migrações
 1. Marketplace: compra/venda como use cases transacionais.
-2. Inventory: transferência/concessão/remoção com invariantes no servidor.
+2. Inventory: transferência/concessão/remoção e equipamentos via Repository + Use Cases, com invariantes e atomicidade no servidor.
 3. Gacha: abertura + débito + entrega + auditoria na mesma transação.
 4. Guilds/quests/rewards: regras e recompensas server-side.
 5. Battle/ranking: separar cálculo, apresentação e persistência.
