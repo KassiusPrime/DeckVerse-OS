@@ -45,7 +45,7 @@ function BulkBar({rows,selectedIds,setSelectedIds,kind,reload}){
 }
 function RecordsPanel({kind,title,grouped}){
  const [query,setQuery]=useState(''),[rarity,setRarity]=useState(''),[letter,setLetter]=useState(''),[rows,setRows]=useState([]),[selected,setSelected]=useState(null),[selectedIds,setSelectedIds]=useState(new Set()),[loading,setLoading]=useState(false),[notice,setNotice]=useState(null);
- const load=async()=>{setLoading(true);setNotice(null);try{const data=await searchSynopsisTargets(query,kind,300);const filtered=data.filter(r=>(!rarity||r.rarity===rarity)&&(!letter||String(r.name||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().startsWith(letter)));setRows(filtered);if(selected){const n=filtered.find(r=>r.scope===selected.scope&&r.id===selected.id);if(n)setSelected(n);}}catch(e){setNotice({error:true,text:e.message||'Falha ao carregar catálogo.'})}finally{setLoading(false)}};
+ const load=async()=>{setLoading(true);setNotice(null);try{const data=await searchSynopsisTargets(query,kind,300,{rarity:rarity||null,letter:letter||null});const filtered=data;setRows(filtered);if(selected){const n=filtered.find(r=>r.scope===selected.scope&&r.id===selected.id);if(n)setSelected(n);}}catch(e){setNotice({error:true,text:e.message||'Falha ao carregar catálogo.'})}finally{setLoading(false)}};
  useEffect(()=>{load()},[kind]);
  useEffect(()=>{const t=setTimeout(load,250);return()=>clearTimeout(t)},[query,rarity,letter]);
  const groups=useMemo(()=>{const m=new Map();rows.forEach(r=>{const k=grouped?(r.collectionName||'Sem coleção'):'';if(!m.has(k))m.set(k,[]);m.get(k).push(r)});return [...m.entries()].sort((a,b)=>compare(a[0],b[0])).map(([k,v])=>[k,[...v].sort((a,b)=>compare(a.name,b.name))])},[rows,grouped]);
