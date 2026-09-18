@@ -1,398 +1,52 @@
-import { db } from "@/deckverseClient";
-
-import React, { useState, useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-
-import { useAuth } from "@/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  ArrowLeftRight, Search, Filter, Tag, ShoppingCart, Plus,
-  X, Gem, Star, Check, AlertCircle
-} from "lucide-react";
+import { ArrowLeftRight, Search, Tag, ShoppingCart, Plus, X, Gem, Star, Check, AlertCircle } from "lucide-react";
+import { useAuth } from "@/AuthContext";
 import Navbar from "@/Navbar";
-import { RarityBadge, RoleBadge } from "@/RarityBadge";
+import { RarityBadge } from "@/RarityBadge";
 import { Input } from "@/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/select";
 import { useToast } from "@/use-toast";
+import marketplaceService from "@/services/marketplace/marketplaceService.js";
 
-const RARITY_ORDER = ["Mythic", "Legendary", "Epic", "Rare", "Uncommon", "Common"];
+const RARITY_ORDER=["Mythic","Legendary","Epic","Rare","Uncommon","Common"];
+const RARITY_PRICE={Common:20,Uncommon:60,Rare:150,Epic:400,Legendary:1200,Mythic:3500};
 
-const RARITY_PRICE = {
-  Common: 20,
-  Uncommon: 60,
-  Rare: 150,
-  Epic: 400,
-  Legendary: 1200,
-  Mythic: 3500,
-};
-
-// Marketplace entity — we'll simulate listings using the card pool for now
-// and a mock listing store using local state
-
-function ListingCard({ listing, onBuy, canAfford, isOwnListing, onCancel }) {
-  const rarity = listing.card?.rarity;
-  return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      className="border border-border/40 bg-card/60 overflow-hidden hover:border-border/70 transition-all group"
-    >
-      {/* Card image */}
-      <div className="aspect-[3/4] relative overflow-hidden">
-        {listing.card?.image_url ? (
-          <img src={listing.card.image_url} alt={listing.card.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-        ) : (
-          <div className="w-full h-full bg-muted/20 flex items-center justify-center">
-            <Star className="w-8 h-8 text-muted-foreground/20" />
-          </div>
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-        <div className="absolute bottom-0 inset-x-0 p-2">
-          <p className="font-heading text-xs font-black text-white truncate">{listing.card?.name}</p>
-          <p className="font-mono text-[9px] text-white/50">{listing.card?.card_id}</p>
-        </div>
-        {isOwnListing && (
-          <div className="absolute top-1.5 left-1.5 bg-secondary/80 text-white font-heading text-[9px] px-1.5 py-0.5">
-            SEU ANÚNCIO
-          </div>
-        )}
-      </div>
-
-      {/* Info */}
-      <div className="p-2.5 space-y-2">
-        <div className="flex flex-wrap gap-1">
-          <RarityBadge rarity={listing.card?.rarity} />
-        </div>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1">
-            <Gem className="w-3 h-3 text-primary" />
-            <span className="font-heading text-sm font-black text-primary tabular-nums">{listing.price}</span>
-          </div>
-          <span className="text-[10px] font-body text-muted-foreground">@{listing.seller}</span>
-        </div>
-        {isOwnListing ? (
-          <button
-            onClick={() => onCancel(listing.id)}
-            className="w-full flex items-center justify-center gap-1.5 py-1.5 border border-destructive/30 text-destructive font-heading text-[10px] font-bold hover:bg-destructive/10 transition-colors"
-          >
-            <X className="w-3 h-3" /> CANCELAR
-          </button>
-        ) : (
-          <button
-            onClick={() => onBuy(listing)}
-            disabled={!canAfford}
-            className={`w-full flex items-center justify-center gap-1.5 py-1.5 font-heading text-[10px] font-bold transition-colors ${
-              canAfford
-                ? "bg-primary text-primary-foreground hover:bg-primary/80"
-                : "bg-muted/30 text-muted-foreground cursor-not-allowed"
-            }`}
-          >
-            <ShoppingCart className="w-3 h-3" />
-            {canAfford ? "COMPRAR" : "SEM GEMS"}
-          </button>
-        )}
-      </div>
-    </motion.div>
-  );
+function ListingCard({listing,onBuy,onCancel,canBuy,own,busy}){
+  return <motion.div layout initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} exit={{opacity:0,scale:.95}} className="overflow-hidden border border-border/40 bg-card/60 transition-all hover:border-border/70">
+    <div className="relative aspect-[3/4] overflow-hidden">
+      {listing.image_url?<img src={listing.image_url} alt={listing.card_name||"Carta"} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"/>:<div className="flex h-full w-full items-center justify-center bg-muted/20"><Star className="h-8 w-8 text-muted-foreground/20"/></div>}
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent p-2 pt-8"><p className="truncate text-xs font-black text-white">{listing.card_name}</p><p className="font-mono text-[9px] text-white/55">{listing.quantity} unidade(s)</p></div>
+      {own&&<div className="absolute left-1.5 top-1.5 bg-secondary/80 px-1.5 py-0.5 text-[9px] font-bold text-white">SEU ANÚNCIO</div>}
+    </div>
+    <div className="space-y-2 p-2.5">
+      <RarityBadge rarity={listing.rarity}/>
+      <div className="flex items-center justify-between gap-2"><span className="flex items-center gap-1 text-sm font-black text-primary"><Gem className="h-3 w-3"/>{Number(listing.price_dc||0).toLocaleString()}</span><span className="truncate text-[10px] text-muted-foreground">@{listing.seller_name||"Jogador"}</span></div>
+      {own?<button disabled={busy} onClick={()=>onCancel(listing.id)} className="flex w-full items-center justify-center gap-1.5 border border-destructive/30 py-1.5 text-[10px] font-bold text-destructive disabled:opacity-50"><X className="h-3 w-3"/> CANCELAR</button>:<button disabled={!canBuy||busy} onClick={()=>onBuy(listing)} className="flex w-full items-center justify-center gap-1.5 bg-primary py-1.5 text-[10px] font-bold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-40"><ShoppingCart className="h-3 w-3"/>{canBuy?"COMPRAR":"CRÉDITOS INSUFICIENTES"}</button>}
+    </div>
+  </motion.div>;
 }
 
-export default function Market() {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const qc = useQueryClient();
-
-  const [searchQuery, setSearchQuery] = useState("");
-  const [rarityFilter, setRarityFilter] = useState("all");
-  const [showListForm, setShowListForm] = useState(false);
-  const [selectedCard, setSelectedCard] = useState(null);
-  const [listPrice, setListPrice] = useState("");
-
-  // Listings are simulated in-memory for now (using a state + cards data)
-  const [listings, setListings] = useState([]);
-
-  const { data: players = [] } = useQuery({
-    queryKey: ["players-market"],
-    queryFn: () => db.entities.Player.list(),
-    enabled: !!user,
-  });
-
-  const { data: allCards = [] } = useQuery({
-    queryKey: ["cards-market"],
-    queryFn: () => db.entities.Card.list("-created_date", 300),
-  });
-
-  const { data: rosterEntries = [] } = useQuery({
-    queryKey: ["roster-market"],
-    queryFn: () => db.entities.Roster.list("-created_date", 200),
-    enabled: !!user,
-  });
-
-  const player = players.find(p => p.created_by === user?.email) || null;
-  const gems = player?.gems ?? 0;
-
-  // Cards owned by current player
-  const ownedCards = useMemo(() => {
-    return rosterEntries
-      .filter(r => r.player_discord_id === (player?.discord_id || user?.email))
-      .map(r => allCards.find(c => c.id === r.card_id))
-      .filter(Boolean);
-  }, [rosterEntries, allCards, player, user]);
-
-  // Build listings from cards with simulated sellers (seed from cards for demo)
-  const marketListings = useMemo(() => {
-    const seed = allCards.slice(0, 12).map((card, i) => ({
-      id: `ml-${card.id}`,
-      card,
-      price: RARITY_PRICE[card.rarity] || 100,
-      seller: ["void_hunter", "stormcaller99", "frost_witch", "ironwall_fan"][i % 4],
-    }));
-    return [...listings, ...seed];
-  }, [allCards, listings]);
-
-  const filteredListings = useMemo(() => {
-    return marketListings.filter(l => {
-      const matchesSearch = !searchQuery || l.card?.name?.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesRarity = rarityFilter === "all" || l.card?.rarity === rarityFilter;
-      return matchesSearch && matchesRarity;
-    });
-  }, [marketListings, searchQuery, rarityFilter]);
-
-  const updateGemsMutation = useMutation({
-    mutationFn: ({ id, gems }) => db.entities.Player.update(id, { gems }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["players-market"] }),
-  });
-
-  const addRosterMutation = useMutation({
-    mutationFn: (data) => db.entities.Roster.create(data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["roster-market"] }),
-  });
-
-  const handleBuy = (listing) => {
-    if (!player) {
-      toast({ title: "Perfil não encontrado", description: "Registre um jogador primeiro.", variant: "destructive" });
-      return;
-    }
-    if (gems < listing.price) {
-      toast({ title: "Gems insuficientes", variant: "destructive" });
-      return;
-    }
-    updateGemsMutation.mutate({ id: player.id, gems: gems - listing.price });
-    addRosterMutation.mutate({
-      player_discord_id: player.discord_id || user?.email,
-      card_id: listing.card.id,
-      card_name: listing.card.name,
-      level: 1,
-      attack_bonus: 0,
-      defense_bonus: 0,
-      copies: 1,
-    });
-    toast({ title: `${listing.card.name} adquirida!`, description: `-${listing.price} Gems` });
-  };
-
-  const handleList = () => {
-    if (!selectedCard || !listPrice) return;
-    const price = parseInt(listPrice);
-    if (isNaN(price) || price < 1) return;
-    const newListing = {
-      id: `user-${Date.now()}`,
-      card: selectedCard,
-      price,
-      seller: player?.username || user?.email || "você",
-      isOwn: true,
-    };
-    setListings(prev => [newListing, ...prev]);
-    setShowListForm(false);
-    setSelectedCard(null);
-    setListPrice("");
-    toast({ title: "Carta anunciada no mercado!", description: `${selectedCard.name} por ${price} Gems` });
-  };
-
-  const handleCancel = (id) => {
-    setListings(prev => prev.filter(l => l.id !== id));
-    toast({ title: "Anúncio cancelado" });
-  };
-
-  return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-        {/* Header */}
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 border border-amber-400/30 bg-amber-400/10 flex items-center justify-center">
-                <ArrowLeftRight className="w-5 h-5 text-amber-400" />
-              </div>
-              <div>
-                <h1 className="font-heading text-2xl sm:text-3xl font-black tracking-tight text-foreground">MERCADO</h1>
-                <p className="text-xs font-body text-muted-foreground tracking-widest">TROCA & COMPRA DE CARTAS</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              {/* Gems balance */}
-              <div className="flex items-center gap-2 border border-primary/30 bg-primary/5 px-3 py-2">
-                <Gem className="w-4 h-4 text-primary" />
-                <span className="font-heading text-sm font-bold text-primary tabular-nums">{gems.toLocaleString()}</span>
-                <span className="text-[10px] font-heading text-muted-foreground">GEMS</span>
-              </div>
-              <button
-                onClick={() => setShowListForm(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-amber-400 text-black font-heading text-xs font-bold tracking-widest hover:bg-amber-300 transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5" /> ANUNCIAR CARTA
-              </button>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Filters */}
-        <div className="flex flex-wrap gap-3 mb-6">
-          <div className="relative flex-1 min-w-[180px] max-w-xs">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-            <Input
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Buscar carta..."
-              className="pl-9 h-9 bg-muted/20 border-border/50 font-body text-sm"
-            />
-          </div>
-          <Select value={rarityFilter} onValueChange={setRarityFilter}>
-            <SelectTrigger className="w-36 h-9 bg-muted/20 border-border/50 font-body text-sm">
-              <SelectValue placeholder="Raridade" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas Raridades</SelectItem>
-              {RARITY_ORDER.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <span className="self-center text-xs font-body text-muted-foreground ml-auto">
-            {filteredListings.length} anúncios
-          </span>
-        </div>
-
-        {/* Listings Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-          <AnimatePresence mode="popLayout">
-            {filteredListings.map(listing => (
-              <ListingCard
-                key={listing.id}
-                listing={listing}
-                onBuy={handleBuy}
-                canAfford={gems >= listing.price}
-                isOwnListing={listing.isOwn}
-                onCancel={handleCancel}
-              />
-            ))}
-          </AnimatePresence>
-        </div>
-
-        {filteredListings.length === 0 && (
-          <div className="text-center py-20">
-            <Tag className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-            <p className="font-heading text-sm text-muted-foreground">Nenhum anúncio encontrado</p>
-          </div>
-        )}
-      </div>
-
-      {/* List Card Modal */}
-      <AnimatePresence>
-        {showListForm && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            onClick={(e) => e.target === e.currentTarget && setShowListForm(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-card border border-border/60 p-6 w-full max-w-md"
-            >
-              <div className="flex items-center justify-between mb-5">
-                <h2 className="font-heading text-sm font-black tracking-widest">ANUNCIAR CARTA</h2>
-                <button onClick={() => setShowListForm(false)} className="text-muted-foreground hover:text-foreground">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              {ownedCards.length === 0 ? (
-                <div className="text-center py-8">
-                  <AlertCircle className="w-8 h-8 text-muted-foreground/40 mx-auto mb-2" />
-                  <p className="text-sm font-body text-muted-foreground">Você não possui cartas para anunciar.</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-[10px] font-heading tracking-widest text-muted-foreground block mb-2">SELECIONAR CARTA</label>
-                    <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto">
-                      {ownedCards.map(card => (
-                        <button
-                          key={card.id}
-                          onClick={() => {
-                            setSelectedCard(card);
-                            setListPrice(String(RARITY_PRICE[card.rarity] || 100));
-                          }}
-                          className={`border text-left overflow-hidden transition-all ${selectedCard?.id === card.id ? "border-primary/60 bg-primary/10" : "border-border/40 hover:border-border/70"}`}
-                        >
-                          <div className="aspect-[3/4] relative">
-                            {card.image_url ? (
-                              <img src={card.image_url} alt={card.name} className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full bg-muted/20 flex items-center justify-center">
-                                <span className="text-xs font-heading text-muted-foreground/40">{card.name?.[0]}</span>
-                              </div>
-                            )}
-                            {selectedCard?.id === card.id && (
-                              <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
-                                <Check className="w-5 h-5 text-primary" />
-                              </div>
-                            )}
-                          </div>
-                          <div className="p-1">
-                            <p className="text-[9px] font-heading font-bold text-foreground truncate">{card.name}</p>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {selectedCard && (
-                    <div>
-                      <label className="text-[10px] font-heading tracking-widest text-muted-foreground block mb-2">PREÇO (GEMS)</label>
-                      <div className="flex items-center gap-2">
-                        <Gem className="w-4 h-4 text-primary shrink-0" />
-                        <Input
-                          type="number"
-                          value={listPrice}
-                          onChange={e => setListPrice(e.target.value)}
-                          min={1}
-                          className="bg-muted/20 border-border/50 font-mono"
-                        />
-                      </div>
-                      <p className="text-[10px] font-body text-muted-foreground mt-1">
-                        Preço sugerido: {RARITY_PRICE[selectedCard.rarity]} Gems ({selectedCard.rarity})
-                      </p>
-                    </div>
-                  )}
-
-                  <button
-                    onClick={handleList}
-                    disabled={!selectedCard || !listPrice}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 bg-amber-400 text-black font-heading text-xs font-bold tracking-widest hover:bg-amber-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    <Tag className="w-3.5 h-3.5" /> ANUNCIAR NO MERCADO
-                  </button>
-                </div>
-              )}
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
+export default function Market(){
+  const {user}=useAuth(); const toast=useToast(); const qc=useQueryClient();
+  const [search,setSearch]=useState(""); const [rarity,setRarity]=useState("all"); const [showList,setShowList]=useState(false); const [selected,setSelected]=useState(null); const [price,setPrice]=useState("");
+  const profileQ=useQuery({queryKey:["market-profile"],queryFn:marketplaceService.getCurrentProfile,enabled:!!user});
+  const marketQ=useQuery({queryKey:["market-listings"],queryFn:marketplaceService.browse});
+  const ownedQ=useQuery({queryKey:["market-owned",profileQ.data?.id],queryFn:()=>marketplaceService.getOwnedCards(profileQ.data.id),enabled:!!profileQ.data?.id});
+  const refresh=()=>{qc.invalidateQueries({queryKey:["market-profile"]});qc.invalidateQueries({queryKey:["market-listings"]});qc.invalidateQueries({queryKey:["market-owned",profileQ.data?.id]});};
+  const buy=useMutation({mutationFn:(id)=>marketplaceService.purchase(id),onSuccess:(result)=>{refresh();toast({title:"Compra concluída",description:`${result.quantity||1}x ${result.card_id||"carta"} adquirida(s).`});},onError:(e)=>toast({title:"Compra não concluída",description:e.message||"Tente novamente.",variant:"destructive"})});
+  const create=useMutation({mutationFn:({cardId,qty,p})=>marketplaceService.createListing(cardId,qty,p),onSuccess:()=>{refresh();setShowList(false);setSelected(null);setPrice("");toast({title:"Anúncio criado",description:"A carta foi retirada do seu inventário e publicada no mercado."});},onError:(e)=>toast({title:"Não foi possível anunciar",description:e.message||"Verifique a quantidade e o preço.",variant:"destructive"})});
+  const cancel=useMutation({mutationFn:(id)=>marketplaceService.cancelListing(id),onSuccess:()=>{refresh();toast({title:"Anúncio cancelado",description:"A carta voltou para o inventário."});},onError:(e)=>toast({title:"Não foi possível cancelar",description:e.message||"Tente novamente.",variant:"destructive"})});
+  const listings=useMemo(()=> (marketQ.data||[]).filter(l=>(!search||String(l.card_name||"").toLowerCase().includes(search.toLowerCase())||String(l.seller_name||"").toLowerCase().includes(search.toLowerCase()))&&(rarity==="all"||l.rarity===rarity)),[marketQ.data,search,rarity]);
+  const ownId=profileQ.data?.id; const selectedEntry=selected?ownedQ.data?.find(r=>r.card_id===selected.id):null;
+  const chooseCard=(entry)=>{setSelected(entry.cards);setPrice(String(RARITY_PRICE[entry.cards?.rarity]||100));};
+  const submitListing=()=>{if(!selected||!selectedEntry)return;const p=Math.trunc(Number(price));if(!Number.isFinite(p)||p<1)return;create.mutate({cardId:selected.id,qty:1,p});};
+  return <div className="min-h-screen bg-background"><Navbar/><main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+    <header className="mb-8 flex flex-wrap items-center justify-between gap-4"><div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center border border-amber-400/30 bg-amber-400/10"><ArrowLeftRight className="h-5 w-5 text-amber-400"/></div><div><h1 className="text-2xl font-black tracking-tight sm:text-3xl">MERCADO</h1><p className="text-xs tracking-widest text-muted-foreground">COMPRA E VENDA DE CARTAS</p></div></div><div className="flex items-center gap-3"><div className="flex items-center gap-2 border border-primary/30 bg-primary/5 px-3 py-2"><Gem className="h-4 w-4 text-primary"/><span className="text-sm font-bold tabular-nums text-primary">{Number(profileQ.data?.deck_credits||0).toLocaleString()}</span><span className="text-[10px] text-muted-foreground">CRÉDITOS</span></div><button onClick={()=>setShowList(true)} className="flex items-center gap-2 bg-amber-400 px-4 py-2 text-xs font-bold tracking-widest text-black hover:bg-amber-300"><Plus className="h-3.5 w-3.5"/> ANUNCIAR CARTA</button></div></header>
+    <div className="mb-6 flex flex-wrap gap-3"><div className="relative min-w-[180px] max-w-xs flex-1"><Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"/><Input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar carta ou vendedor..." className="h-9 bg-muted/20 pl-9 text-sm"/></div><Select value={rarity} onValueChange={setRarity}><SelectTrigger className="h-9 w-36 bg-muted/20 text-sm"><SelectValue placeholder="Raridade"/></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{RARITY_ORDER.map(r=><SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent></Select><span className="ml-auto self-center text-xs text-muted-foreground">{marketQ.isLoading?"Carregando...":`${listings.length} anúncios`}</span></div>
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"><AnimatePresence mode="popLayout">{listings.map(l=><ListingCard key={l.id} listing={l} own={l.seller_profile_id===ownId} canBuy={Number(profileQ.data?.deck_credits||0)>=Number(l.price_dc||0)} busy={buy.isPending||cancel.isPending} onBuy={x=>buy.mutate(x.id)} onCancel={x=>cancel.mutate(x)}/>)}</AnimatePresence></div>
+    {!listings.length&&!marketQ.isLoading&&<div className="py-20 text-center"><Tag className="mx-auto mb-3 h-10 w-10 text-muted-foreground/30"/><p className="text-sm text-muted-foreground">Nenhum anúncio encontrado.</p></div>}
+  </main>
+  <AnimatePresence>{showList&&<motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={e=>e.target===e.currentTarget&&setShowList(false)}><motion.div initial={{scale:.95,opacity:0}} animate={{scale:1,opacity:1}} exit={{scale:.95,opacity:0}} className="w-full max-w-md border border-border bg-card p-6"><div className="mb-5 flex items-center justify-between"><h2 className="text-sm font-black tracking-widest">ANUNCIAR CARTA</h2><button onClick={()=>setShowList(false)}><X className="h-4 w-4"/></button></div>{ownedQ.isLoading?<p className="py-8 text-center text-sm text-muted-foreground">Carregando inventário...</p>:!ownedQ.data?.length?<div className="py-8 text-center"><AlertCircle className="mx-auto mb-2 h-8 w-8 text-muted-foreground/40"/><p className="text-sm text-muted-foreground">Você não possui cartas para anunciar.</p></div>:<div className="space-y-4"><div className="grid max-h-56 grid-cols-3 gap-2 overflow-y-auto">{ownedQ.data.map(entry=>{const card=entry.cards;return <button key={entry.id} onClick={()=>chooseCard(entry)} className={`overflow-hidden border text-left ${selected?.id===card?.id?"border-primary bg-primary/10":"border-border/40"}`}><div className="relative aspect-[3/4]">{card?.image_url?<img src={card.image_url} alt={card.name} className="h-full w-full object-cover"/>:<div className="flex h-full items-center justify-center bg-muted"><span>{card?.name?.[0]}</span></div>}{selected?.id===card?.id&&<div className="absolute inset-0 flex items-center justify-center bg-primary/20"><Check className="h-5 w-5 text-primary"/></div>}</div><p className="truncate p-1 text-[9px] font-bold">{card?.name}</p><p className="px-1 pb-1 text-[8px] text-muted-foreground">{entry.copies}x</p></button>})}</div>{selected&&<div><label className="mb-2 block text-[10px] font-bold tracking-widest text-muted-foreground">PREÇO (CRÉDITOS)</label><div className="flex items-center gap-2"><Gem className="h-4 w-4 text-primary"/><Input type="number" min="1" value={price} onChange={e=>setPrice(e.target.value)}/></div><p className="mt-1 text-[10px] text-muted-foreground">Preço sugerido: {RARITY_PRICE[selected.rarity]||100} créditos.</p></div>}<button disabled={!selected||create.isPending} onClick={submitListing} className="w-full bg-amber-400 py-2.5 text-xs font-bold tracking-widest text-black disabled:opacity-40">{create.isPending?"PUBLICANDO...":"ANUNCIAR NO MERCADO"}</button></div>}</motion.div></motion.div>}</AnimatePresence></div>;
 }
