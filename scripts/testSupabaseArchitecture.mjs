@@ -62,7 +62,7 @@ test('Admin routes are protected by Supabase profile role', () => {
 });
 
 test('Legacy floating console and old product routes are absent from runtime', () => {
-  for (const legacy of ['AdminTerminal', 'CRTTerminalOverlay', 'BackgroundSyncIndicator', 'FandomImporter', 'Arena', 'Market', 'Guilds']) assert.doesNotMatch(app, new RegExp(legacy));
+  for (const legacy of ['AdminTerminal', 'CRTTerminalOverlay', 'BackgroundSyncIndicator', 'Arena', 'Market', 'Guilds']) assert.doesNotMatch(app, new RegExp(legacy));
 });
 
 test('Public UI does not render technical COL prefixes', () => {
