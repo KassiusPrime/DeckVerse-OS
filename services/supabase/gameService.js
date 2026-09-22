@@ -1,4 +1,5 @@
 import { getSupabaseBrowserClient } from './client.js';
+import PackService from '../../gacha/services/PackService.js';
 
 export async function getGameSettings() {
   const supabase = getSupabaseBrowserClient();
@@ -6,6 +7,8 @@ export async function getGameSettings() {
   if (error) throw error;
   return Object.fromEntries((data || []).map((row) => [row.key, row.value]));
 }
+
+export async function openPack(count = 1) { return PackService.openPack(count); }
 
 export async function rollGacha(count = 1, currency = 'astral_shards') {
   const supabase = getSupabaseBrowserClient();
@@ -46,4 +49,4 @@ export async function adminSetGachaConfig(config) {
   return data;
 }
 
-export default { getGameSettings, rollGacha, getMyRoster, adminAdjustBalance, adminSetGachaConfig };
+export default { getGameSettings, openPack, rollGacha, getMyRoster, adminAdjustBalance, adminSetGachaConfig };
