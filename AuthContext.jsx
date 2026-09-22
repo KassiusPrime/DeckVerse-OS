@@ -31,7 +31,17 @@ export const AuthProvider = ({ children }) => {
     if (!isSupabaseConfigured()) { setIsLoadingAuth(false); return undefined; }
     const supabase = getSupabaseBrowserClient();
     hydrate().catch((error) => { if (!mounted) return; setAuthError({ type: 'auth_boot_failed', message: error?.message || 'Falha ao carregar a sessão.' }); setIsLoadingAuth(false); });
-    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => { if (!mounted) return; window.setTimeout(() => hydrate(nextSession), 0); });
+    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (!mounted) return;
+      window.setTimeout(() => {
+        hydrate(nextSession).catch((error) => {
+          if (!mounted) return;
+          console.warn('[DeckVerse Auth] session hydration failed', error);
+          setAuthError({ type: 'auth_boot_failed', message: error?.message || 'Falha ao atualizar a sessão.' });
+          setIsLoadingAuth(false);
+        });
+      }, 0);
+    });
     return () => { mounted = false; data?.subscription?.unsubscribe?.(); };
   }, [hydrate]);
 
