@@ -10,9 +10,12 @@ export async function getGameSettings() {
 
 export async function isGachaV2Enabled() {
   const supabase = getSupabaseBrowserClient();
-  const { data, error } = await supabase.from('feature_flags').select('enabled').eq('name','gacha_v2').eq('environment','production').maybeSingle();
+  const { data, error } = await supabase.rpc('feature_flag_is_enabled', {
+    p_name: 'gacha_v2',
+    p_environment: 'production',
+  });
   if (error) throw error;
-  return Boolean(data?.enabled);
+  return Boolean(data);
 }
 
 export async function openPack(count = 1) { return PackService.openPack(count); }
