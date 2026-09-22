@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Gem, KeyRound, Loader2, SlidersHorizontal, Sparkles, Stars, Zap } from 'lucide-react';
+import { Gem, Loader2, SlidersHorizontal, Sparkles, Stars, Zap } from 'lucide-react';
 import Navbar from './Navbar';
 import { useAuth } from './AuthContext';
 import { getMetaGameState } from './services/supabase/metagameService.js';
@@ -27,7 +27,6 @@ export default function Gacha() {
 
   const metaQuery = useQuery({ queryKey: ['metagame-state'], queryFn: getMetaGameState, enabled: isAuthenticated, staleTime: 5_000 });
   const flagQuery = useQuery({ queryKey: ['feature-flag', 'gacha_v2'], queryFn: isGachaV2Enabled, staleTime: 10_000 });
-  const meta = metaQuery.data || {};
   const enabled = Boolean(flagQuery.data);
 
   const level = Number(profile?.level || 1);
