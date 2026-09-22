@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { randomUUID } from 'node:crypto';
 import { InteractionResponseType, InteractionType, verifyKey } from 'discord-interactions';
 import {
   claimSpawnCard,
@@ -42,7 +43,8 @@ function option(options, name) { return (options || []).find((entry) => entry.na
 function errorText(error) {
   const raw = String(error?.message || error || '');
   if (raw.includes('DISCORD_PROFILE_NOT_FOUND')) return 'Entre no DeckVerse com Discord antes de usar este comando.';
-  if (raw.includes('INSUFFICIENT_BALANCE')) return 'Saldo insuficiente.';
+  if (raw.includes('INSUFFICIENT_BALANCE')) return 'Deck Credits insuficientes.';
+  if (raw.includes('GACHA_V2_DISABLED')) return 'O Gacha v2 está temporariamente bloqueado.';
   if (raw.includes('ROLL_COUNT_EXCEEDS_LEVEL_LIMIT')) return 'Essa quantidade de rolls excede o limite do seu nível.';
   if (raw.includes('SPAWN_CARD_NOT_FOUND')) return 'Essa carta do spawn não existe mais.';
   if (raw.includes('SPAWN_ALREADY_CLAIMED')) return 'Essa carta já foi pega.';
@@ -94,9 +96,10 @@ async function runRoll(interaction, supabase, discordId) {
   if (!gachaEnabled) return message('🎴 O Gacha está temporariamente bloqueado enquanto a infraestrutura econômica central é finalizada.', [], [], true);
   const options = interaction.data?.options || [];
   const count = Math.max(1, Math.min(50, Number(option(options, 'q')?.value || option(options, 'quantidade')?.value || 1)));
-  const currencyValue = option(options, 'm')?.value || option(options, 'moeda')?.value || 'astral';
-  const currency = currencyValue === 'ether' ? 'ether_cores' : 'astral_shards';
-  const { data, error } = await supabase.rpc('bot_roll_gacha', { p_discord_id: discordId, p_count: count, p_currency: currency });
+  const profile = await getProfileByDiscord(supabase, discordId);
+  if (!profile) return message('Entre no DeckVerse com Discord antes de usar o bot.', [], [], true);
+  const transactionId = randomUUID();
+  const { data, error } = await supabase.rpc('open_gacha_pack', { p_transaction_id: transactionId, p_count: count });
   if (error) return message(errorText(error), [], [], true);
   const pulls = Array.isArray(data?.pulls) ? data.pulls : [];
   const preview = pulls.slice(0, 10).map((pull) => `**${pull.rarity}** · ${pull.name}`).join('\n');
