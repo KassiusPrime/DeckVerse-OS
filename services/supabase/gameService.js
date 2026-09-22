@@ -8,6 +8,13 @@ export async function getGameSettings() {
   return Object.fromEntries((data || []).map((row) => [row.key, row.value]));
 }
 
+export async function isGachaV2Enabled() {
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('feature_flags').select('enabled').eq('name','gacha_v2').eq('environment','production').maybeSingle();
+  if (error) throw error;
+  return Boolean(data?.enabled);
+}
+
 export async function openPack(count = 1) { return PackService.openPack(count); }
 
 export async function rollGacha(count = 1, currency = 'astral_shards') {
@@ -49,4 +56,4 @@ export async function adminSetGachaConfig(config) {
   return data;
 }
 
-export default { getGameSettings, openPack, rollGacha, getMyRoster, adminAdjustBalance, adminSetGachaConfig };
+export default { getGameSettings, isGachaV2Enabled, openPack, rollGacha, getMyRoster, adminAdjustBalance, adminSetGachaConfig };
