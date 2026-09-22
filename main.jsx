@@ -3,8 +3,27 @@ import ReactDOM from 'react-dom/client'
 import App from '@/App.jsx'
 import '@/index.css'
 
+// Bootstrap do cliente deve ser tolerante a preferências locais corrompidas.
+// Um valor inválido no localStorage não pode impedir o carregamento de todo o app.
+const safeStorageGet = (key) => {
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+
+const safeJson = (value, fallback = null) => {
+  if (!value) return fallback;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return fallback;
+  }
+};
+
 // Restore persisted font on boot
-const savedFont = localStorage.getItem("deckverse_font");
+const savedFont = safeStorageGet("deckverse_font");
 const FONT_MAP = {
   orbitron: "'Orbitron', sans-serif",
   firacode: "'Fira Code', monospace",
@@ -21,21 +40,19 @@ if (savedFont && FONT_MAP[savedFont]) {
 }
 
 // Restore persisted theme on boot
-const savedTheme = localStorage.getItem("deckverse_theme");
+const savedTheme = safeStorageGet("deckverse_theme");
 if (savedTheme === "custom") {
-  const custom = localStorage.getItem("deckverse_custom_theme");
-  if (custom) {
-    const colors = JSON.parse(custom);
-    const hexToHsl = (hex) => {
-      let r = parseInt(hex.slice(1,3),16)/255, g = parseInt(hex.slice(3,5),16)/255, b = parseInt(hex.slice(5,7),16)/255;
-      const max=Math.max(r,g,b),min=Math.min(r,g,b);let h,s,l=(max+min)/2;
-      if(max===min){h=s=0;}else{const d=max-min;s=l>0.5?d/(2-max-min):d/(max+min);switch(max){case r:h=((g-b)/d+(g<b?6:0))/6;break;case g:h=((b-r)/d+2)/6;break;case b:h=((r-g)/d+4)/6;break;}}
-      return `${Math.round(h*360)} ${Math.round(s*100)}% ${Math.round(l*100)}%`;
-    };
-    document.documentElement.style.setProperty("--primary", hexToHsl(colors.primary));
-    document.documentElement.style.setProperty("--background", hexToHsl(colors.bg));
-    document.documentElement.style.setProperty("--accent", hexToHsl(colors.accent));
-  }
+  const colors = safeJson(safeStorageGet("deckverse_custom_theme"), null);
+  const isHex = (value) => typeof value === "string" && /^#[0-9a-fA-F]{6}$/.test(value);
+  const hexToHsl = (hex) => {
+    let r = parseInt(hex.slice(1,3),16)/255, g = parseInt(hex.slice(3,5),16)/255, b = parseInt(hex.slice(5,7),16)/255;
+    const max=Math.max(r,g,b),min=Math.min(r,g,b);let h,s,l=(max+min)/2;
+    if(max===min){h=s=0;}else{const d=max-min;s=l>0.5?d/(2-max-min):d/(max+min);switch(max){case r:h=((g-b)/d+(g<b?6:0))/6;break;case g:h=((b-r)/d+2)/6;break;case b:h=((r-g)/d+4)/6;break;}}
+    return `${Math.round(h*360)} ${Math.round(s*100)}% ${Math.round(l*100)}%`;
+  };
+  if (isHex(colors?.primary)) document.documentElement.style.setProperty("--primary", hexToHsl(colors.primary));
+  if (isHex(colors?.bg)) document.documentElement.style.setProperty("--background", hexToHsl(colors.bg));
+  if (isHex(colors?.accent)) document.documentElement.style.setProperty("--accent", hexToHsl(colors.accent));
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(
