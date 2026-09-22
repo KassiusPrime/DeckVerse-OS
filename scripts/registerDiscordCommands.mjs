@@ -13,8 +13,7 @@ const commands = [
     name: 'r',
     description: 'Rola cartas',
     options: [
-      { type: 4, name: 'q', description: 'Quantidade (1-50)', required: false, min_value: 1, max_value: 50 },
-      { type: 3, name: 'm', description: 'Moeda', required: false, choices: [{ name: 'Astral', value: 'astral' }, { name: 'Éter', value: 'ether' }] },
+      { type: 4, name: 'q', description: 'Quantidade de giros (1-50)', required: false, min_value: 1, max_value: 50 },
     ],
   },
   { name: 'c', description: 'Pega uma carta do spawn', options: [{ type: 4, name: 'n', description: 'Número da carta', required: false, min_value: 1, max_value: 100 }] },
