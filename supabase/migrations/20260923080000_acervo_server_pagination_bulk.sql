@@ -107,6 +107,9 @@ begin
    delete from public.card_forms where id=p_id;
  elsif scope='card' then
    if not exists(select 1 from public.cards where id=p_id) then raise exception 'CARD_NOT_FOUND'; end if;
+   select count(*) into n from public.boss_encounter_profiles where character_card_id=p_id; if n>0 then deps:=deps||jsonb_build_object('table','boss_encounter_profiles','count',n); end if;
+   select count(*) into n from public.card_equipment where character_card_id=p_id or item_card_id=p_id; if n>0 then deps:=deps||jsonb_build_object('table','card_equipment','count',n); end if;
+   select count(*) into n from public.card_forms where card_id=p_id; if n>0 then deps:=deps||jsonb_build_object('table','card_forms','count',n); end if;
    select count(*) into n from public.rosters where card_id=p_id; if n>0 then deps:=deps||jsonb_build_object('table','rosters','count',n); end if;
    select count(*) into n from public.market_listings where card_id=p_id; if n>0 then deps:=deps||jsonb_build_object('table','market_listings','count',n); end if;
    select count(*) into n from public.discord_spawn_cards where card_id=p_id; if n>0 then deps:=deps||jsonb_build_object('table','discord_spawn_cards','count',n); end if;
