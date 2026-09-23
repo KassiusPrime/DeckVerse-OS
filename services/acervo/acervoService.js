@@ -21,8 +21,11 @@ export async function getAcervoCollections() {
 }
 
 export async function getAcervoEntries(filters = {}) {
-  const rows = await searchEntries(filters);
-  return rows.map(normalizeRow);
+  const result = await searchEntries(filters);
+  return {
+    rows: result.rows.map(normalizeRow),
+    total: result.total,
+  };
 }
 
 export async function saveAcervoEntry(scope, id, payload) {
@@ -63,12 +66,15 @@ export async function createAcervoCard(collectionId, payload = {}) {
 
 export async function bulkUpdateAcervoEntries(entries, patch) {
   const items = Array.isArray(entries) ? entries : [];
-  if (!items.length) return [];
-  const results = [];
-  for (const entry of items) {
-    results.push(await updateEntry(entry.scope, entry.id, patch));
-  }
-  return results;
+  if (!items.length) return { ok: true, updated: 0 };
+  if (patch?.isActive === undefined) throw new Error('A ação em lote atual aceita apenas alteração de status.');
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.rpc('admin_bulk_set_acervo_status', {
+    p_entries: items.map(({ scope, id }) => ({ scope, id })),
+    p_is_active: Boolean(patch.isActive),
+  });
+  if (error) throw error;
+  return data || { ok: true, updated: 0 };
 }
 
 export async function deactivateAcervoEntry(scope, id) {
