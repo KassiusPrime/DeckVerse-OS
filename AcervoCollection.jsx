@@ -78,7 +78,6 @@ export default function AcervoCollection() {
       setRows(data.rows || []);
       setTotal(data.total || 0);
       setSelected(new Set());
-      await load();
     } catch (error) {
       toastMessage(setMessage, error?.message || 'Falha ao carregar o acervo.', 'error');
       setRows([]);
@@ -100,6 +99,10 @@ export default function AcervoCollection() {
     const timer = window.setTimeout(load, 180);
     return () => window.clearTimeout(timer);
   }, [load]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [collectionId, query, tab, rarity, status, letter]);
 
   const filteredRows = rows;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -308,7 +311,7 @@ export default function AcervoCollection() {
 
       {selectedRows.length > 0 && <div className="sticky top-[70px] z-30 mt-3 flex flex-wrap items-center gap-2 rounded-2xl border border-primary/30 bg-primary/10 p-3"><span className="mr-auto text-xs font-black">{selectedRows.length} selecionadas</span><button disabled={saving} onClick={() => bulkStatus(true)} className="rounded-xl bg-primary px-3 py-2 text-xs font-black text-primary-foreground">Ativar</button><button disabled={saving} onClick={() => bulkStatus(false)} className="rounded-xl border border-border bg-card px-3 py-2 text-xs font-black">Desativar</button><button onClick={() => setSelected(new Set())} className="rounded-xl border border-border bg-card p-2"><X className="h-4 w-4"/></button></div>}
 
-      <div className="mt-5 flex items-center justify-between gap-3"><label className="flex items-center gap-2 text-xs font-bold"><input type="checkbox" checked={allPageSelected} onChange={togglePage}/> Selecionar página</label><span className="text-xs text-muted-foreground">{filteredRows.length} resultados · página {safePage}/{totalPages}</span></div>
+      <div className="mt-5 flex items-center justify-between gap-3"><label className="flex items-center gap-2 text-xs font-bold"><input type="checkbox" checked={allPageSelected} onChange={togglePage}/> Selecionar página</label><span className="text-xs text-muted-foreground">{total} resultados · página {safePage}/{totalPages}</span></div>
 
       {loading ? <div className="flex min-h-72 items-center justify-center"><Loader2 className="h-7 w-7 animate-spin text-primary"/></div> :
         pageRows.length === 0 ? <div className="mt-4 rounded-3xl border border-dashed border-border p-14 text-center"><ImagePlus className="mx-auto h-10 w-10 text-muted-foreground"/><p className="mt-3 text-sm font-bold">Nenhuma entrada encontrada.</p></div> :
