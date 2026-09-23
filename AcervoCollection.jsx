@@ -7,6 +7,7 @@ import { Link, useParams } from 'react-router-dom';
 import Navbar from './Navbar';
 import {
   createAcervoCard,
+  bulkUpdateAcervoEntries,
   deactivateAcervoEntry,
   getAcervoCollections,
   getAcervoEntries,
@@ -50,6 +51,7 @@ export default function AcervoCollection() {
   const [status, setStatus] = useState('all');
   const [letter, setLetter] = useState('');
   const [rows, setRows] = useState([]);
+  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -69,18 +71,21 @@ export default function AcervoCollection() {
         collectionId,
         rarity: rarity === 'all' ? null : rarity,
         letter: letter || null,
-        limit: 300,
+        isActive: status === 'all' ? null : status === 'active',
+        limit: PAGE_SIZE,
+        offset: (page - 1) * PAGE_SIZE,
       });
-      setRows(data || []);
+      setRows(data.rows || []);
+      setTotal(data.total || 0);
       setSelected(new Set());
-      setPage(1);
+      await load();
     } catch (error) {
       toastMessage(setMessage, error?.message || 'Falha ao carregar o acervo.', 'error');
       setRows([]);
     } finally {
       setLoading(false);
     }
-  }, [collectionId, query, tab, rarity, letter]);
+  }, [collectionId, query, tab, rarity, letter, status, page]);
 
   useEffect(() => {
     let active = true;
@@ -96,17 +101,10 @@ export default function AcervoCollection() {
     return () => window.clearTimeout(timer);
   }, [load]);
 
-  const filteredRows = useMemo(() => {
-    return rows.filter((row) => {
-      if (status === 'active' && !row.isActive) return false;
-      if (status === 'inactive' && row.isActive) return false;
-      return true;
-    });
-  }, [rows, status]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
+  const filteredRows = rows;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
-  const pageRows = filteredRows.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const pageRows = filteredRows;
 
   const selectedRows = useMemo(() => filteredRows.filter((row) => selected.has(row.id)), [filteredRows, selected]);
   const allPageSelected = pageRows.length > 0 && pageRows.every((row) => selected.has(row.id));
@@ -183,7 +181,7 @@ export default function AcervoCollection() {
     setRows((current) => current.map((row) => selected.has(row.id) ? { ...row, isActive: value } : row));
     setSaving(true);
     try {
-      for (const row of selectedRows) await saveAcervoEntry(row.scope, row.id, { isActive: value });
+      await bulkUpdateAcervoEntries(selectedRows, { isActive: value });
       toastMessage(setMessage, `${selectedRows.length} cartas atualizadas.`);
       setSelected(new Set());
     } catch (error) {
@@ -273,7 +271,7 @@ export default function AcervoCollection() {
             <label className="block"><span className="text-xs font-black">Nome</span><input value={editor.name} onChange={(e) => setEditor({ ...editor, name: e.target.value })} className="mt-1 h-11 w-full rounded-xl border border-border bg-card px-3 text-sm outline-none focus:border-primary" /></label>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="block"><span className="text-xs font-black">Raridade</span><select value={editor.rarity} onChange={(e) => setEditor({ ...editor, rarity: e.target.value })} className="mt-1 h-11 w-full rounded-xl border border-border bg-card px-3 text-sm">{RARITIES.map((item) => <option key={item}>{item}</option>)}</select></label>
-              <label className="block"><span className="text-xs font-black">Tipo</span><select value={editor.entityType} onChange={(e) => setEditor({ ...editor, entityType: e.target.value })} className="mt-1 h-11 w-full rounded-xl border border-border bg-card px-3 text-sm"><option value="character">Personagem</option><option value="item">Item</option><option value="boss">Boss</option></select></label>
+              <label className="block"><span className="text-xs font-black">Tipo</span><select value={editor.entityType} onChange={(e) => setEditor({ ...editor, entityType: e.target.value })} className="mt-1 h-11 w-full rounded-xl border border-border bg-card px-3 text-sm"><option value="character">Personagem</option><option value="item">Item</option><option value="boss">Boss</option>{editor.scope === 'form' ? null : null}</select></label>
             </div>
             <label className="block"><span className="text-xs font-black">Sinopse</span><textarea value={editor.synopsis} onChange={(e) => setEditor({ ...editor, synopsis: e.target.value })} rows="3" className="mt-1 w-full rounded-xl border border-border bg-card p-3 text-sm outline-none focus:border-primary"/></label>
             <label className="block"><span className="text-xs font-black">Descrição</span><textarea value={editor.description} onChange={(e) => setEditor({ ...editor, description: e.target.value })} rows="5" className="mt-1 w-full rounded-xl border border-border bg-card p-3 text-sm outline-none focus:border-primary"/></label>
@@ -294,7 +292,7 @@ export default function AcervoCollection() {
     <div className="mx-auto max-w-[1600px]">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div><Link to="/acervo" className="inline-flex items-center gap-2 text-xs font-black text-primary"><ArrowLeft className="h-4 w-4"/>Acervo</Link><h1 className="mt-3 text-3xl font-black">{collection?.name || 'Carregando…'}</h1><p className="mt-1 max-w-3xl text-sm text-muted-foreground">{collection?.synopsis || collection?.description || 'Gerenciamento de conteúdo da coleção.'}</p></div>
-        <button onClick={() => setNewCardOpen(true)} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-primary px-4 text-xs font-black text-primary-foreground"><Plus className="h-4 w-4"/>Nova carta</button>
+        {tab !== 'form' && <button onClick={() => setNewCardOpen(true)} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-primary px-4 text-xs font-black text-primary-foreground"><Plus className="h-4 w-4"/>Nova carta</button>}
       </div>
 
       <section className="mt-6 rounded-3xl border border-border bg-card">
