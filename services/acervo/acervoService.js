@@ -1,4 +1,4 @@
-import { deleteEntry, listCollections, searchEntries, updateEntry } from './acervoRepository.js';
+import { createCard, deleteEntry, listCollections, searchEntries, updateEntry } from './acervoRepository.js';
 import { getSupabaseBrowserClient } from '../supabase/client.js';
 
 const normalizeRow = (row) => ({
@@ -33,34 +33,21 @@ export async function saveAcervoEntry(scope, id, payload) {
 }
 
 export async function createAcervoCard(collectionId, payload = {}) {
-  const supabase = getSupabaseBrowserClient();
-  const row = {
-    collection_id: String(collectionId),
-    name: String(payload.name || '').trim(),
-    entity_type: payload.entityType || 'character',
-    rarity: payload.rarity || 'Comum',
-    role: payload.role || 'DPS',
-    description: payload.description || null,
-    synopsis: payload.synopsis || null,
-    image_url: payload.imageUrl || null,
-    is_active: payload.isActive !== false,
-    is_gacha_enabled: payload.isGachaEnabled !== false,
-  };
-  if (!row.name) throw new Error('O nome da carta é obrigatório.');
-  const { data, error } = await supabase.from('cards').insert(row).select('*').single();
-  if (error) throw new Error(`Erro ao criar carta: ${error.message}`);
+  const name = String(payload.name || '').trim();
+  if (!name) throw new Error('O nome da carta é obrigatório.');
+  const result = await createCard({ ...payload, collectionId, name });
   return normalizeRow({
     scope: 'card',
-    entity_type: data.entity_type,
-    id: data.id,
-    name: data.name,
-    synopsis: data.synopsis,
-    description: data.description,
-    image_url: data.image_url,
-    collection_id: data.collection_id,
+    entity_type: result.entity_type,
+    id: result.id,
+    name: result.name,
+    synopsis: payload.synopsis,
+    description: payload.description,
+    image_url: payload.imageUrl,
+    collection_id: result.collection_id || collectionId,
     collection_name: '',
-    rarity: data.rarity,
-    is_active: data.is_active,
+    rarity: payload.rarity,
+    is_active: payload.isActive !== false,
   });
 }
 
