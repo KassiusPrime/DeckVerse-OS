@@ -64,7 +64,7 @@ $$;
 
 create or replace function public.admin_bulk_set_acervo_status(p_entries jsonb,p_is_active boolean)
 returns jsonb language plpgsql security definer set search_path to ''
-as $
+as $acervo$
 declare actor uuid := auth.uid(); item jsonb; scope text; id text; changed integer := 0;
 begin
  if actor is null then raise exception 'AUTH_REQUIRED'; end if;
@@ -85,11 +85,11 @@ begin
  insert into public.admin_audit_log(actor_profile_id,action,payload) values(actor,'acervo.bulk_status',jsonb_build_object('entries',p_entries,'is_active',p_is_active,'updated',changed));
  return jsonb_build_object('ok',true,'updated',changed);
 end;
-$;
+$acervo$;
 
 create or replace function public.admin_delete_acervo_entry(p_scope text,p_id text,p_hard_delete boolean default false)
 returns jsonb language plpgsql security definer set search_path to ''
-as $
+as $acervo$
 declare actor uuid:=auth.uid(); scope text:=lower(trim(coalesce(p_scope,''))); deps jsonb:='[]'::jsonb; n bigint;
 begin
  if actor is null then raise exception 'AUTH_REQUIRED'; end if;
@@ -130,7 +130,7 @@ begin
  insert into public.admin_audit_log(actor_profile_id,action,payload) values(actor,'acervo.delete',jsonb_build_object('scope',scope,'id',p_id,'hard_delete',true));
  return jsonb_build_object('ok',true,'mode','hard','scope',scope,'id',p_id);
 end;
-$;
+$acervo$;
 
 revoke execute on function public.admin_search_catalog_paginated(text,text,text,text,text,boolean,integer,integer) from public,anon;
 revoke execute on function public.admin_bulk_set_acervo_status(jsonb,boolean) from public,anon;
