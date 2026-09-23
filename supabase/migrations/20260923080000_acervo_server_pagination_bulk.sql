@@ -63,32 +63,74 @@ select jsonb_build_object(
 $$;
 
 create or replace function public.admin_bulk_set_acervo_status(p_entries jsonb,p_is_active boolean)
-returns jsonb
-language plpgsql
-security definer
-set search_path to ''
-as $$
-declare actor uuid := (select auth.uid()); item jsonb; scope text; id text; changed integer := 0;
+returns jsonb language plpgsql security definer set search_path to ''
+as $
+declare actor uuid := auth.uid(); item jsonb; scope text; id text; changed integer := 0;
 begin
-  if actor is null then raise exception 'AUTH_REQUIRED'; end if;
-  if not app_private.is_admin() then raise exception 'ADMIN_REQUIRED'; end if;
-  if jsonb_typeof(p_entries) <> 'array' or jsonb_array_length(p_entries)=0 then return jsonb_build_object('ok',true,'updated',0); end if;
-  for item in select * from jsonb_array_elements(p_entries) loop
-    scope := lower(trim(coalesce(item->>'scope',''))); id := nullif(trim(coalesce(item->>'id','')),'');
-    if scope not in ('card','form') or id is null then raise exception 'INVALID_ENTRY'; end if;
-    if scope='card' then
-      update public.cards set is_active=p_is_active,updated_at=now() where cards.id=id;
-      if not found then raise exception 'CARD_NOT_FOUND'; end if;
-    else
-      update public.card_forms set is_active=p_is_active,updated_at=now() where card_forms.id=id;
-      if not found then raise exception 'FORM_NOT_FOUND'; end if;
-    end if;
-    changed := changed + 1;
-  end loop;
-  insert into public.admin_audit_log(actor_profile_id,action,payload) values(actor,'acervo.bulk_status',jsonb_build_object('entries',p_entries,'is_active',p_is_active,'updated',changed));
-  return jsonb_build_object('ok',true,'updated',changed);
+ if actor is null then raise exception 'AUTH_REQUIRED'; end if;
+ if not app_private.is_admin() then raise exception 'ADMIN_REQUIRED'; end if;
+ if jsonb_typeof(p_entries) <> 'array' or jsonb_array_length(p_entries)=0 then return jsonb_build_object('ok',true,'updated',0); end if;
+ for item in select * from jsonb_array_elements(p_entries) loop
+   scope:=lower(trim(coalesce(item->>'scope',''))); id:=nullif(trim(coalesce(item->>'id','')),'');
+   if scope not in ('card','form') or id is null then raise exception 'INVALID_ENTRY'; end if;
+   if scope='card' then
+     update public.cards set is_active=p_is_active,updated_at=now() where cards.id=id;
+     if not found then raise exception 'CARD_NOT_FOUND'; end if;
+   else
+     update public.card_forms set is_active=p_is_active,updated_at=now() where card_forms.id=id;
+     if not found then raise exception 'FORM_NOT_FOUND'; end if;
+   end if;
+   changed:=changed+1;
+ end loop;
+ insert into public.admin_audit_log(actor_profile_id,action,payload) values(actor,'acervo.bulk_status',jsonb_build_object('entries',p_entries,'is_active',p_is_active,'updated',changed));
+ return jsonb_build_object('ok',true,'updated',changed);
 end;
-$$;
+$;
+
+create or replace function public.admin_delete_acervo_entry(p_scope text,p_id text,p_hard_delete boolean default false)
+returns jsonb language plpgsql security definer set search_path to ''
+as $
+declare actor uuid:=auth.uid(); scope text:=lower(trim(coalesce(p_scope,''))); deps jsonb:='[]'::jsonb; n bigint;
+begin
+ if actor is null then raise exception 'AUTH_REQUIRED'; end if;
+ if not app_private.is_admin() then raise exception 'ADMIN_REQUIRED'; end if;
+ if scope not in ('collection','card','form') then raise exception 'INVALID_SCOPE'; end if;
+ if not p_hard_delete then
+   if scope='collection' then update public.collections set is_active=false,updated_at=now() where id=p_id; if not found then raise exception 'COLLECTION_NOT_FOUND'; end if;
+   elsif scope='card' then update public.cards set is_active=false,updated_at=now() where id=p_id; if not found then raise exception 'CARD_NOT_FOUND'; end if;
+   else update public.card_forms set is_active=false,updated_at=now() where id=p_id; if not found then raise exception 'FORM_NOT_FOUND'; end if; end if;
+   insert into public.admin_audit_log(actor_profile_id,action,payload) values(actor,'acervo.deactivate',jsonb_build_object('scope',scope,'id',p_id));
+   return jsonb_build_object('ok',true,'mode','soft','scope',scope,'id',p_id);
+ end if;
+ if scope='form' then
+   if not exists(select 1 from public.card_forms where id=p_id) then raise exception 'FORM_NOT_FOUND'; end if;
+   delete from public.card_forms where id=p_id;
+ elsif scope='card' then
+   if not exists(select 1 from public.cards where id=p_id) then raise exception 'CARD_NOT_FOUND'; end if;
+   select count(*) into n from public.rosters where card_id=p_id; if n>0 then deps:=deps||jsonb_build_object('table','rosters','count',n); end if;
+   select count(*) into n from public.market_listings where card_id=p_id; if n>0 then deps:=deps||jsonb_build_object('table','market_listings','count',n); end if;
+   select count(*) into n from public.discord_spawn_cards where card_id=p_id; if n>0 then deps:=deps||jsonb_build_object('table','discord_spawn_cards','count',n); end if;
+   select count(*) into n from public.media_assets where card_id=p_id; if n>0 then deps:=deps||jsonb_build_object('table','media_assets','count',n); end if;
+   select count(*) into n from public.gifts where card_id=p_id; if n>0 then deps:=deps||jsonb_build_object('table','gifts','count',n); end if;
+   select count(*) into n from public.daily_market_purchases where card_id=p_id; if n>0 then deps:=deps||jsonb_build_object('table','daily_market_purchases','count',n); end if;
+   select count(*) into n from public.player_card_artwork where card_id=p_id; if n>0 then deps:=deps||jsonb_build_object('table','player_card_artwork','count',n); end if;
+   select count(*) into n from public.player_card_preferences where card_id=p_id; if n>0 then deps:=deps||jsonb_build_object('table','player_card_preferences','count',n); end if;
+   select count(*) into n from public.discord_deck_cards where card_id=p_id; if n>0 then deps:=deps||jsonb_build_object('table','discord_deck_cards','count',n); end if;
+   if jsonb_array_length(deps)>0 then return jsonb_build_object('ok',false,'mode','blocked','scope',scope,'id',p_id,'dependencies',deps); end if;
+   delete from public.cards where id=p_id;
+ else
+   if not exists(select 1 from public.collections where id=p_id) then raise exception 'COLLECTION_NOT_FOUND'; end if;
+   select count(*) into n from public.cards where collection_id=p_id; if n>0 then deps:=deps||jsonb_build_object('table','cards','count',n); end if;
+   select count(*) into n from public.media_assets where collection_id=p_id; if n>0 then deps:=deps||jsonb_build_object('table','media_assets','count',n); end if;
+   select count(*) into n from public.gacha_banners where collection_id=p_id; if n>0 then deps:=deps||jsonb_build_object('table','gacha_banners','count',n); end if;
+   select count(*) into n from public.player_collection_preferences where collection_id=p_id; if n>0 then deps:=deps||jsonb_build_object('table','player_collection_preferences','count',n); end if;
+   if jsonb_array_length(deps)>0 then return jsonb_build_object('ok',false,'mode','blocked','scope',scope,'id',p_id,'dependencies',deps); end if;
+   delete from public.collections where id=p_id;
+ end if;
+ insert into public.admin_audit_log(actor_profile_id,action,payload) values(actor,'acervo.delete',jsonb_build_object('scope',scope,'id',p_id,'hard_delete',true));
+ return jsonb_build_object('ok',true,'mode','hard','scope',scope,'id',p_id);
+end;
+$;
 
 revoke execute on function public.admin_search_catalog_paginated(text,text,text,text,text,boolean,integer,integer) from public,anon;
 revoke execute on function public.admin_bulk_set_acervo_status(jsonb,boolean) from public,anon;
