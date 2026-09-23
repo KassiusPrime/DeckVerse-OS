@@ -1,4 +1,4 @@
--- Acervo server-side pagination and atomic status updates.
+-- Acervo server-side pagination, atomic status updates, and complete dependency checks.
 drop function if exists public.admin_search_catalog_paginated(text,text,text,text,text,integer,integer);
 
 create function public.admin_search_catalog_paginated(
