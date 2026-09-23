@@ -58,3 +58,18 @@ export async function listCollections() {
   if (error) throw error;
   return data || [];
 }
+
+export async function createCard(payload = {}) {
+  return rpc('admin_create_acervo_card', {
+    p_collection_id: String(payload.collectionId || ''),
+    p_name: String(payload.name || '').trim(),
+    p_entity_type: payload.entityType || 'character',
+    p_rarity: payload.rarity || 'Comum',
+    p_role: payload.role || 'DPS',
+    p_synopsis: payload.synopsis || null,
+    p_description: payload.description || null,
+    p_image_url: payload.imageUrl || null,
+    p_is_active: payload.isActive !== false,
+    p_is_gacha_enabled: payload.isGachaEnabled !== false,
+  });
+}
