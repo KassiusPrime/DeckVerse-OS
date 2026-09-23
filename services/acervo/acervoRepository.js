@@ -32,17 +32,20 @@ export async function deleteEntry(scope, id, hardDelete = false) {
 }
 
 export async function searchEntries(filters = {}) {
-  const supabase = getSupabaseBrowserClient();
-  const { data, error } = await supabase.rpc('admin_search_catalog', {
+  const data = await rpc('admin_search_catalog_paginated', {
     p_query: String(filters.query || ''),
     p_kind: String(filters.kind || 'all'),
     p_collection_id: filters.collectionId ?? null,
     p_rarity: filters.rarity ?? null,
     p_letter: filters.letter ?? null,
-    p_limit: Math.min(300, Math.max(20, Number(filters.limit) || 300)),
+    p_is_active: filters.isActive ?? null,
+    p_limit: Math.min(100, Math.max(1, Number(filters.limit) || 48)),
+    p_offset: Math.max(0, Number(filters.offset) || 0),
   });
-  if (error) throw error;
-  return data || [];
+  return {
+    rows: Array.isArray(data?.rows) ? data.rows : [],
+    total: Number(data?.total || 0),
+  };
 }
 
 export async function listCollections() {
