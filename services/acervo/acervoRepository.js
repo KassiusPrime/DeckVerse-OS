@@ -59,6 +59,40 @@ export async function listCollections() {
   return data || [];
 }
 
+export async function importCollection(payload = {}) {
+  return rpc('admin_import_acervo_collection', {
+    p_collection: payload.collection || {},
+    p_entries: Array.isArray(payload.entries) ? payload.entries : [],
+  });
+}
+
+export async function recordImportedMedia(payload = {}) {
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('media_assets').upsert({
+    collection_id: payload.collectionId || null,
+    card_id: payload.cardId || null,
+    form_id: payload.formId || null,
+    entity_type: payload.entityType,
+    storage_path: payload.storagePath,
+    original_filename: payload.originalFilename,
+    sha256: payload.sha256,
+    mime_type: payload.mimeType || null,
+    byte_size: payload.byteSize || null,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'storage_path', ignoreDuplicates: true }).select('id').maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateCollectionImage(collectionId, imageUrl) {
+  const supabase = getSupabaseBrowserClient();
+  const { error } = await supabase.from('collections')
+    .update({ cover_url: imageUrl, updated_at: new Date().toISOString() })
+    .eq('id', collectionId);
+  if (error) throw error;
+  return { ok: true };
+}
+
 export async function createCard(payload = {}) {
   return rpc('admin_create_acervo_card', {
     p_collection_id: String(payload.collectionId || ''),
