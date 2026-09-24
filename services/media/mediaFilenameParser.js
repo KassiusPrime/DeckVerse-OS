@@ -1,6 +1,6 @@
 import { resolveCollectionCodeStrict } from "../../lib/collectionCodes.js";
 
-const ALLOWED_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp"]);
+const ALLOWED_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif"]);
 const ALLOWED_ENTITY_TYPES = new Set(["collection", "character", "item", "boss"]);
 const ENTITY_MARKERS = ["collection", "character", "item", "boss", "metadata", "lore"];
 const MEDIA_STATE_MARKERS = ["form", "appearance"];
