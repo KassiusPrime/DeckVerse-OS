@@ -141,13 +141,13 @@ function parseManifestText(text) {
     const parsed=JSON.parse(clean);
     return Array.isArray(parsed) ? parsed : (Array.isArray(parsed.entries) ? parsed.entries : []);
   } catch {}
-  if(clean.includes(',') && /(^|\n)\\s*(name|nome)\\s*[,;]/i.test(clean)) return parseSimpleCsv(clean);
+  if(clean.includes(',') && /(^|\n)\s*(name|nome)\s*[,;]/i.test(clean)) return parseSimpleCsv(clean);
   return clean.split(/\r?\n/).map((line)=>line.trim()).filter(Boolean).map((line)=>({name:line,entity_type:'character'}));
 }
 
 function deriveEntryFromFilename(parsed) {
   return {
-    name: parsed.slug.replace(/_/g,' ').replace(/\b\\w/g,(m)=>m.toUpperCase()),
+    name: parsed.slug.replace(/_/g,' ').replace(/\b\w/g,(m)=>m.toUpperCase()),
     slug: parsed.slug,
     entity_type: parsed.entityType,
   };
