@@ -42,7 +42,7 @@ export default function AcervoImport() {
   };
 
   const downloadTemplate = () => {
-    const csv = 'name,entity_type,rarity,role,synopsis,description,image_filename\\nSung Jin-Woo,character,Lendário,DPS,,,"COL-99-NEW_character_sung_jin_woo.png"\\nBeru,boss,Mítico,DPS,,,';
+    const csv = 'name,entity_type,rarity,role,synopsis,description,image_filename\nSung Jin-Woo,character,Lendário,DPS,,,"COL-99-NEW_character_sung_jin_woo.png"\nBeru,boss,Mítico,DPS,,,';
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'deckverse-acervo-modelo.csv'; a.click(); URL.revokeObjectURL(url);
   };
