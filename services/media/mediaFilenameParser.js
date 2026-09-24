@@ -16,7 +16,11 @@ function resolveMediaCollectionCode(codeInput) {
   const stable = String(codeInput || "").trim().toUpperCase().match(/^COL-([A-Z0-9]+)$/);
   if (!stable) return null;
   const suffix = stable[1];
-  return STABLE_MEDIA_CODE_ALIASES[suffix] || resolveCollectionCodeStrict(suffix) || null;
+  return STABLE_MEDIA_CODE_ALIASES[suffix] || resolveCollectionCodeStrict(suffix) || (
+    /^COL-[0-9]{2}-[A-Z0-9][A-Z0-9_-]*$/.test(String(codeInput || '').trim().toUpperCase())
+      ? String(codeInput).trim().toUpperCase()
+      : null
+  );
 }
 
 function parseMediaState(slug = "") {
