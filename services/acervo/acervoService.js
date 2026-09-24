@@ -1,4 +1,4 @@
-import { claimAcervoImportItem, createCard, createAcervoImportJob, deleteEntry, finishAcervoImportItem, getAcervoImportJob, importCollection, listAcervoImportJobs, listCollections, recordImportedMedia, searchEntries, updateCollectionImage, updateEntry } from './acervoRepository.js';
+import { claimAcervoImportItem, createCard, createAcervoImportJob, deleteEntry, finalizeAcervoImportJob, finishAcervoImportItem, getAcervoImportJob, importCollection, listAcervoImportJobs, listCollections, recordImportedMedia, searchEntries, updateCollectionImage, updateEntry } from './acervoRepository.js';
 import JSZip from 'jszip';
 import { parseMediaFilename } from '../../services/media/mediaFilenameParser.js';
 import { getSupabaseBrowserClient } from '../supabase/client.js';
@@ -333,7 +333,7 @@ export async function executeAcervoImport({ plan, onProgress, existingJobId = nu
     }
   }
 
-  const state = await getAcervoImportJob(jobId);
+  const state = await finalizeAcervoImportJob(jobId);
   return {
     ok: true, jobId, collectionId: plan.collection.id, created: imported.created, updated: imported.updated,
     uploaded, linked, skippedExisting, failed, state: state?.job || null,
