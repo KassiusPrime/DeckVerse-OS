@@ -107,3 +107,34 @@ export async function createCard(payload = {}) {
     p_is_gacha_enabled: payload.isGachaEnabled !== false,
   });
 }
+
+export async function createAcervoImportJob(payload = {}) {
+  return rpc('admin_create_acervo_import_job', {
+    p_collection_id: payload.collectionId,
+    p_total_entries: Number(payload.totalEntries) || 0,
+    p_images: Array.isArray(payload.images) ? payload.images : [],
+  });
+}
+
+export async function listAcervoImportJobs(limit = 20) {
+  const data = await rpc('admin_list_acervo_import_jobs', { p_limit: limit });
+  return Array.isArray(data) ? data : [];
+}
+
+export async function getAcervoImportJob(jobId) {
+  return rpc('admin_get_acervo_import_job', { p_job_id: jobId });
+}
+
+export async function claimAcervoImportItem(jobId, itemId) {
+  return rpc('admin_claim_acervo_import_item', { p_job_id: jobId, p_item_id: itemId });
+}
+
+export async function finishAcervoImportItem(jobId, itemId, status, errorMessage = null, checksum = null) {
+  return rpc('admin_finish_acervo_import_item', {
+    p_job_id: jobId,
+    p_item_id: itemId,
+    p_status: status,
+    p_error: errorMessage,
+    p_checksum: checksum,
+  });
+}
