@@ -33,7 +33,6 @@ export default function AcervoImport() {
     try {
       const next = await inspectAcervoImport({ manifestFile, zipFile, collection: { ...collection, id: collection.id.trim().toUpperCase() } });
       setPlan(next);
-      setResumeJobId(null);
       await loadHistory();
     } catch (e) {
       setError(e?.message || 'Não foi possível analisar os arquivos.');
@@ -84,6 +83,8 @@ export default function AcervoImport() {
           <button disabled={!canInspect || busy} onClick={inspect} className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-xs font-black text-primary-foreground disabled:opacity-40">{busy ? <Loader2 className="h-4 w-4 animate-spin"/> : <Upload className="h-4 w-4"/>}Analisar importação</button>
         </div>
       </section>
+
+      {resumeJobId && !plan && <div className="mt-5 rounded-2xl border border-primary/30 bg-primary/5 p-4 text-sm"><b>Retomada selecionada:</b> {resumeJobId.slice(0,8)}. Envie o ZIP original (ou uma nova versão com os mesmos nomes de arquivo), depois clique em <b>Analisar importação</b>.</div>}
 
       {error && <div className="mt-5 rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">{error}</div>}
 
