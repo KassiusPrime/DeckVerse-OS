@@ -16,7 +16,7 @@ function resolveMediaCollectionCode(codeInput) {
   const stable = String(codeInput || "").trim().toUpperCase().match(/^COL-([A-Z0-9]+)$/);
   if (!stable) return null;
   const suffix = stable[1];
-  return STABLE_MEDIA_CODE_ALIASES[suffix] || resolveCollectionCodeStrict(suffix);
+  return STABLE_MEDIA_CODE_ALIASES[suffix] || resolveCollectionCodeStrict(suffix) || null;
 }
 
 function parseMediaState(slug = "") {
