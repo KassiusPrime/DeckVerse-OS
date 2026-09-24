@@ -1,4 +1,4 @@
-import { createCard, deleteEntry, importCollection, listCollections, recordImportedMedia, searchEntries, updateCollectionImage, updateEntry } from './acervoRepository.js';
+import { claimAcervoImportItem, createCard, createAcervoImportJob, deleteEntry, finishAcervoImportItem, getAcervoImportJob, importCollection, listAcervoImportJobs, listCollections, recordImportedMedia, searchEntries, updateCollectionImage, updateEntry } from './acervoRepository.js';
 import JSZip from 'jszip';
 import { parseMediaFilename } from '../../services/media/mediaFilenameParser.js';
 import { getSupabaseBrowserClient } from '../supabase/client.js';
@@ -208,55 +208,134 @@ export async function inspectAcervoImport({ manifestFile=null, zipFile=null, col
   return {collection,entries:normalized,images:zipImages,issues};
 }
 
-export async function executeAcervoImport({ plan, onProgress } = {}) {
+export async function getAcervoImportHistory(limit = 20) {
+  return listAcervoImportJobs(limit);
+}
+
+export async function getAcervoImportState(jobId) {
+  return getAcervoImportJob(jobId);
+}
+
+function buildImportItems(plan, rowMap) {
+  return (plan.images || [])
+    .filter((item) => item?.parsed?.valid && item.parsed.entityType !== 'collection' && item.parsed.stateType !== 'form')
+    .map((item) => {
+      const entry = rowMap.get(item.parsed.slug.toLowerCase()) || rowMap.get(slugifyImport(item.parsed.slug));
+      if (!entry) return null;
+      const safeName = item.name.split('/').pop().replace(/[^a-zA-Z0-9._-]/g, '_');
+      return {
+        source_name: item.name,
+        entry_id: entry.id,
+        entry_slug: entry.slug,
+        entity_type: entry.entity_type,
+        storage_path: `${plan.collection.id}/${entry.entity_type}/${entry.slug}/${safeName}`,
+        mime_type: mimeFromName(item.name),
+        byte_size: null,
+      };
+    })
+    .filter(Boolean);
+}
+
+export async function executeAcervoImport({ plan, onProgress, existingJobId = null } = {}) {
   if(!plan?.collection?.id || !plan?.collection?.name) throw new Error('Informe ID e nome da coleção.');
   if(plan.issues?.length) throw new Error(`Corrija ${plan.issues.length} problema(s) antes de importar.`);
-  const imported=await importCollection({collection:plan.collection,entries:plan.entries});
-  const rowMap=new Map((imported.rows||[]).map((row)=>[row.slug,row]));
-  const supabase=getSupabaseBrowserClient();
-  let uploaded=0, linked=0, skippedExisting=0;
-  const total=plan.images?.length || 0;
-  const { data: existingMedia, error: existingMediaError } = await supabase
-    .from('media_assets')
-    .select('storage_path')
-    .eq('collection_id', plan.collection.id);
-  if (existingMediaError) throw new Error(`Não foi possível verificar a mídia já importada: ${existingMediaError.message}`);
-  const existingPaths = new Set((existingMedia || []).map((row) => row.storage_path).filter(Boolean));
-  for(let index=0;index<total;index+=1){
-    const item=plan.images[index];
-    const entry=rowMap.get(item.parsed.slug.toLowerCase()) || rowMap.get(slugifyImport(item.parsed.slug));
-    if(!entry) continue;
-    const bytes=await item.file.async('uint8array');
-    if(bytes.byteLength>IMPORT_IMAGE_MAX) throw new Error(`Imagem acima de 2 MB: ${item.name}`);
-    const mime=mimeFromName(item.name);
-    if(!IMPORT_IMAGE_TYPES.has(mime)) continue;
-    const safeName=item.name.split('/').pop().replace(/[^a-zA-Z0-9._-]/g,'_');
-    const storagePath=`${plan.collection.id}/${entry.entity_type}/${entry.slug}/${safeName}`;
-    const { data: publicData } = supabase.storage.from('cards-images').getPublicUrl(storagePath);
-    if (existingPaths.has(storagePath)) {
-      skippedExisting += 1;
-      await updateEntry('card',entry.id,{imageUrl:publicData.publicUrl});
-    } else {
-      const {error}=await supabase.storage.from('cards-images').upload(storagePath,bytes,{contentType:mime,cacheControl:'31536000',upsert:true});
-      if(error) throw new Error(`Upload ${safeName}: ${error.message}`);
-      const sha=await sha256Hex(new Blob([bytes]));
-      await recordImportedMedia({collectionId:plan.collection.id,cardId:entry.id,entityType:entry.entity_type,storagePath,originalFilename:item.name,sha256:sha,mimeType:mime,byteSize:bytes.byteLength});
-      await updateEntry('card',entry.id,{imageUrl:publicData.publicUrl});
-      uploaded+=1; linked+=1;
-    }
-    if(onProgress) onProgress({current:index+1,total,uploaded,linked});
+
+  const imported = await importCollection({ collection: plan.collection, entries: plan.entries });
+  const rowMap = new Map((imported.rows || []).map((row) => [String(row.slug || '').toLowerCase(), row]));
+  const items = buildImportItems(plan, rowMap);
+  let jobId = existingJobId;
+  let jobState = null;
+
+  if (jobId) {
+    jobState = await getAcervoImportJob(jobId);
+    if (jobState?.job?.collection_id !== plan.collection.id) throw new Error('A importação selecionada pertence a outra coleção.');
+  } else {
+    const createdJob = await createAcervoImportJob({
+      collectionId: plan.collection.id,
+      totalEntries: plan.entries.length,
+      images: items,
+    });
+    jobId = createdJob.job_id;
+    jobState = await getAcervoImportJob(jobId);
   }
-  const cover=plan.images?.find((item)=>item.parsed.valid && item.parsed.entityType==='collection');
+
+  const supabase = getSupabaseBrowserClient();
+  const persistedItems = Array.isArray(jobState?.items) ? jobState.items : [];
+  const persistedBySource = new Map(persistedItems.map((item) => [item.source_name, item]));
+  const total = items.length;
+  let processed = 0, uploaded = 0, linked = 0, skippedExisting = 0, failed = 0;
+
+  for (const planItem of items) {
+    const persisted = persistedBySource.get(planItem.source_name);
+    if (persisted?.status === 'completed' || persisted?.status === 'skipped') {
+      processed += 1;
+      if (onProgress) onProgress({ jobId, current: processed, total, uploaded, linked, failed, status: 'resumed' });
+      continue;
+    }
+
+    const source = plan.images.find((image) => image.name === planItem.source_name);
+    if (!source) continue;
+    let claimed = false;
+    try {
+      const claimedItem = await claimAcervoImportItem(jobId, persisted?.id || '');
+      const itemId = claimedItem.id;
+      claimed = true;
+      const entry = rowMap.get(planItem.entry_slug.toLowerCase());
+      if (!entry) throw new Error(`Entidade não encontrada: ${planItem.entry_slug}`);
+      const bytes = await source.file.async('uint8array');
+      if(bytes.byteLength > IMPORT_IMAGE_MAX) throw new Error(`Imagem acima de 2 MB: ${source.name}`);
+      const mime = mimeFromName(source.name);
+      if(!IMPORT_IMAGE_TYPES.has(mime)) throw new Error(`Formato não suportado: ${source.name}`);
+
+      const { data: publicData } = supabase.storage.from('cards-images').getPublicUrl(planItem.storage_path);
+      const { data: existing } = await supabase.from('media_assets').select('id').eq('storage_path', planItem.storage_path).maybeSingle();
+      if (existing?.id) {
+        skippedExisting += 1;
+      } else {
+        const blob = new Blob([bytes], { type: mime });
+        const { error } = await supabase.storage.from('cards-images').upload(planItem.storage_path, blob, {
+          contentType: mime, cacheControl: '31536000', upsert: true,
+        });
+        if(error) throw new Error(`Upload ${source.name}: ${error.message}`);
+        uploaded += 1;
+      }
+      const sha = await sha256Hex(new Blob([bytes], { type: mime }));
+      await recordImportedMedia({
+        collectionId: plan.collection.id, cardId: entry.id, entityType: entry.entity_type,
+        storagePath: planItem.storage_path, originalFilename: source.name, sha256: sha,
+        mimeType: mime, byteSize: bytes.byteLength,
+      });
+      await updateEntry('card', entry.id, { imageUrl: publicData.publicUrl });
+      linked += 1;
+      await finishAcervoImportItem(jobId, itemId, existing?.id ? 'skipped' : 'completed', null, sha);
+      processed += 1;
+    } catch (error) {
+      failed += 1;
+      if (claimed) {
+        try { await finishAcervoImportItem(jobId, persisted?.id || '', 'failed', error?.message || 'Falha desconhecida'); } catch {}
+      }
+      if (onProgress) onProgress({ jobId, current: processed, total, uploaded, linked, failed, status: 'partial', error: error?.message || 'Falha desconhecida' });
+    }
+    if(onProgress) onProgress({ jobId, current: processed, total, uploaded, linked, failed, status: 'running' });
+  }
+
+  const cover = plan.images?.find((item) => item.parsed.valid && item.parsed.entityType === 'collection');
   if(cover){
-    const bytes=await cover.file.async('uint8array');
-    if(bytes.byteLength<=IMPORT_IMAGE_MAX){
-      const mime=mimeFromName(cover.name);
-      const storagePath=`${plan.collection.id}/collection/cover-${cover.name.split('/').pop().replace(/[^a-zA-Z0-9._-]/g,'_')}`;
-      const {error}=await supabase.storage.from('cards-images').upload(storagePath,bytes,{contentType:mime,cacheControl:'31536000',upsert:true});
+    const bytes = await cover.file.async('uint8array');
+    if(bytes.byteLength <= IMPORT_IMAGE_MAX){
+      const mime = mimeFromName(cover.name);
+      const storagePath = `${plan.collection.id}/collection/cover-${cover.name.split('/').pop().replace(/[^a-zA-Z0-9._-]/g,'_')}`;
+      const blob = new Blob([bytes], { type: mime });
+      const { error } = await supabase.storage.from('cards-images').upload(storagePath, blob, { contentType: mime, cacheControl: '31536000', upsert: true });
       if(error) throw error;
-      const {data}=supabase.storage.from('cards-images').getPublicUrl(storagePath);
-      await updateCollectionImage(plan.collection.id,data.publicUrl);
+      const { data } = supabase.storage.from('cards-images').getPublicUrl(storagePath);
+      await updateCollectionImage(plan.collection.id, data.publicUrl);
     }
   }
-  return {ok:true,collectionId:plan.collection.id,created:imported.created,updated:imported.updated,uploaded,linked,skippedExisting};
+
+  const state = await getAcervoImportJob(jobId);
+  return {
+    ok: true, jobId, collectionId: plan.collection.id, created: imported.created, updated: imported.updated,
+    uploaded, linked, skippedExisting, failed, state: state?.job || null,
+  };
 }
