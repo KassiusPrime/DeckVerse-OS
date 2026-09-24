@@ -120,8 +120,8 @@ function parseSimpleCsv(text) {
     if(ch==='"' && quoted && next==='"'){ cell+='"'; i+=1; continue; }
     if(ch==='"'){ quoted=!quoted; continue; }
     if(ch===',' && !quoted){ row.push(cell.trim()); cell=''; continue; }
-    if((ch==='\\n' || ch==='\\r') && !quoted){
-      if(ch==='\\r' && next==='\\n') i+=1;
+    if((ch==='\n' || ch==='\r') && !quoted){
+      if(ch==='\r' && next==='\n') i+=1;
       row.push(cell.trim()); cell='';
       if(row.some(Boolean)) rows.push(row);
       row=[]; continue;
@@ -135,19 +135,19 @@ function parseSimpleCsv(text) {
 }
 
 function parseManifestText(text) {
-  const clean=String(text || '').replace(/^\\uFEFF/,'').trim();
+  const clean=String(text || '').replace(/^\uFEFF/,'').trim();
   if(!clean) return [];
   try {
     const parsed=JSON.parse(clean);
     return Array.isArray(parsed) ? parsed : (Array.isArray(parsed.entries) ? parsed.entries : []);
   } catch {}
-  if(clean.includes(',') && /(^|\\n)\\s*(name|nome)\\s*[,;]/i.test(clean)) return parseSimpleCsv(clean);
-  return clean.split(/\\r?\\n/).map((line)=>line.trim()).filter(Boolean).map((line)=>({name:line,entity_type:'character'}));
+  if(clean.includes(',') && /(^|\n)\\s*(name|nome)\\s*[,;]/i.test(clean)) return parseSimpleCsv(clean);
+  return clean.split(/\r?\n/).map((line)=>line.trim()).filter(Boolean).map((line)=>({name:line,entity_type:'character'}));
 }
 
 function deriveEntryFromFilename(parsed) {
   return {
-    name: parsed.slug.replace(/_/g,' ').replace(/\\b\\w/g,(m)=>m.toUpperCase()),
+    name: parsed.slug.replace(/_/g,' ').replace(/\b\\w/g,(m)=>m.toUpperCase()),
     slug: parsed.slug,
     entity_type: parsed.entityType,
   };
