@@ -214,8 +214,14 @@ export async function executeAcervoImport({ plan, onProgress } = {}) {
   const imported=await importCollection({collection:plan.collection,entries:plan.entries});
   const rowMap=new Map((imported.rows||[]).map((row)=>[row.slug,row]));
   const supabase=getSupabaseBrowserClient();
-  let uploaded=0, linked=0;
+  let uploaded=0, linked=0, skippedExisting=0;
   const total=plan.images?.length || 0;
+  const { data: existingMedia, error: existingMediaError } = await supabase
+    .from('media_assets')
+    .select('storage_path')
+    .eq('collection_id', plan.collection.id);
+  if (existingMediaError) throw new Error(`Não foi possível verificar a mídia já importada: ${existingMediaError.message}`);
+  const existingPaths = new Set((existingMedia || []).map((row) => row.storage_path).filter(Boolean));
   for(let index=0;index<total;index+=1){
     const item=plan.images[index];
     const entry=rowMap.get(item.parsed.slug.toLowerCase()) || rowMap.get(slugifyImport(item.parsed.slug));
@@ -226,13 +232,18 @@ export async function executeAcervoImport({ plan, onProgress } = {}) {
     if(!IMPORT_IMAGE_TYPES.has(mime)) continue;
     const safeName=item.name.split('/').pop().replace(/[^a-zA-Z0-9._-]/g,'_');
     const storagePath=`${plan.collection.id}/${entry.entity_type}/${entry.slug}/${safeName}`;
-    const {error}=await supabase.storage.from('cards-images').upload(storagePath,bytes,{contentType:mime,cacheControl:'31536000',upsert:true});
-    if(error) throw new Error(`Upload ${safeName}: ${error.message}`);
-    const {data}=supabase.storage.from('cards-images').getPublicUrl(storagePath);
-    const sha=await sha256Hex(new Blob([bytes]));
-    await recordImportedMedia({collectionId:plan.collection.id,cardId:entry.id,entityType:entry.entity_type,storagePath,originalFilename:item.name,sha256:sha,mimeType:mime,byteSize:bytes.byteLength});
-    await updateEntry('card',entry.id,{imageUrl:data.publicUrl});
-    uploaded+=1; linked+=1;
+    const { data: publicData } = supabase.storage.from('cards-images').getPublicUrl(storagePath);
+    if (existingPaths.has(storagePath)) {
+      skippedExisting += 1;
+      await updateEntry('card',entry.id,{imageUrl:publicData.publicUrl});
+    } else {
+      const {error}=await supabase.storage.from('cards-images').upload(storagePath,bytes,{contentType:mime,cacheControl:'31536000',upsert:true});
+      if(error) throw new Error(`Upload ${safeName}: ${error.message}`);
+      const sha=await sha256Hex(new Blob([bytes]));
+      await recordImportedMedia({collectionId:plan.collection.id,cardId:entry.id,entityType:entry.entity_type,storagePath,originalFilename:item.name,sha256:sha,mimeType:mime,byteSize:bytes.byteLength});
+      await updateEntry('card',entry.id,{imageUrl:publicData.publicUrl});
+      uploaded+=1; linked+=1;
+    }
     if(onProgress) onProgress({current:index+1,total,uploaded,linked});
   }
   const cover=plan.images?.find((item)=>item.parsed.valid && item.parsed.entityType==='collection');
@@ -247,5 +258,5 @@ export async function executeAcervoImport({ plan, onProgress } = {}) {
       await updateCollectionImage(plan.collection.id,data.publicUrl);
     }
   }
-  return {ok:true,collectionId:plan.collection.id,created:imported.created,updated:imported.updated,uploaded,linked};
+  return {ok:true,collectionId:plan.collection.id,created:imported.created,updated:imported.updated,uploaded,linked,skippedExisting};
 }
