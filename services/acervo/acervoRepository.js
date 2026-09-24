@@ -129,6 +129,10 @@ export async function claimAcervoImportItem(jobId, itemId) {
   return rpc('admin_claim_acervo_import_item', { p_job_id: jobId, p_item_id: itemId });
 }
 
+export async function finalizeAcervoImportJob(jobId) {
+  return rpc('admin_finalize_acervo_import_job', { p_job_id: jobId });
+}
+
 export async function finishAcervoImportItem(jobId, itemId, status, errorMessage = null, checksum = null) {
   return rpc('admin_finish_acervo_import_item', {
     p_job_id: jobId,
