@@ -186,6 +186,11 @@ export async function inspectAcervoImport({ manifestFile=null, zipFile=null, col
   const bySlug=new Map(entries.map((entry)=>[String(entry.slug||slugifyImport(entry.name)).toLowerCase(),{...entry,slug:String(entry.slug||slugifyImport(entry.name)).toLowerCase()}]));
   for(const item of zipImages){
     if(!item.parsed.valid) continue;
+    if(item.parsed.entityType === 'collection') continue;
+    if(item.parsed.stateType === 'form') {
+      issues.push({file:item.name,reason:'FORM_IMPORT_REQUIRES_EXISTING_BASE_CARD'});
+      continue;
+    }
     const key=item.parsed.slug.toLowerCase();
     if(!bySlug.has(key)) bySlug.set(key,deriveEntryFromFilename(item.parsed));
     else bySlug.set(key,{...bySlug.get(key),slug:key,entity_type:bySlug.get(key).entity_type || item.parsed.entityType,image_filename:bySlug.get(key).image_filename || item.name});
