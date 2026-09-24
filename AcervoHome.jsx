@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowRight, BookOpen, Loader2 } from 'lucide-react';
+import { ArrowRight, BookOpen, Loader2, Upload } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Navbar from './Navbar';
 import getAcervoCollections from './services/acervo/useCases/getAcervoCollections.js';
@@ -25,7 +25,7 @@ export default function AcervoHome() {
     <div className="mx-auto max-w-[1500px]">
       <header className="mb-7">
         <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[.16em] text-primary"><BookOpen className="h-4 w-4"/>DeckVerse · Acervo</div>
-        <h1 className="mt-2 text-3xl font-black tracking-tight">Acervo</h1>
+        <div className="flex flex-wrap items-center justify-between gap-4"><div><h1 className="mt-2 text-3xl font-black tracking-tight">Acervo</h1></div><Link to="/acervo/importar" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-primary px-4 text-xs font-black text-primary-foreground"><Upload className="h-4 w-4"/>Adicionar coleção</Link></div>
         <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">Selecione uma coleção para abrir o espaço de gerenciamento de cartas, formas e itens.</p>
       </header>
       {loading && <div className="flex min-h-48 items-center justify-center rounded-3xl border border-border bg-card"><Loader2 className="h-6 w-6 animate-spin text-primary"/></div>}
