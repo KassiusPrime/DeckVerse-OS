@@ -104,12 +104,12 @@ export default function AcervoImport() {
         <div className="mt-4 space-y-2">
           {history.map((job) => <div key={job.id} className="flex flex-wrap items-center gap-3 rounded-2xl border border-border p-3">
             <div className="min-w-0 flex-1"><p className="truncate text-xs font-black">{job.collection_id} · {job.id.slice(0,8)}</p><p className="text-[10px] text-muted-foreground">{job.completed_images}/{job.total_images} concluídas · {job.failed_images} falhas · {job.status}</p></div>
-            {['partial','failed','paused','running'].includes(job.status) && <button type="button" onClick={() => { setResumeJobId(job.id); setCollection((v) => ({ ...v, id: job.collection_id })); setResult(null); }} className="rounded-xl bg-primary px-3 py-2 text-[10px] font-black text-primary-foreground">Retomar</button>}
+            {['partial','failed','paused','running'].includes(job.status) && <button type="button" onClick={() => { setResumeJobId(job.id); setCollection((v) => ({ ...v, id: job.collection_id })); setResult(null); setPlan(null); setProgress(null); setError(''); }} className="rounded-xl bg-primary px-3 py-2 text-[10px] font-black text-primary-foreground">Retomar</button>}
           </div>)}
         </div>
       </section>}
 
-      {result && <section className="mt-5 rounded-3xl border border-primary/30 bg-primary/5 p-6"><h2 className="text-lg font-black">Importação concluída</h2><p className="mt-2 text-sm text-muted-foreground">Coleção <b>{result.collectionId}</b> processada com {result.created} novas cartas, {result.updated} atualizadas, {result.uploaded} imagens novas e {result.skippedExisting || 0} imagens já existentes reaproveitadas.</p><Link to={`/acervo/${encodeURIComponent(result.collectionId)}`} className="mt-4 inline-flex rounded-xl bg-primary px-4 py-2 text-xs font-black text-primary-foreground">Abrir coleção</Link></section>}
+      {result && <section className="mt-5 rounded-3xl border border-primary/30 bg-primary/5 p-6"><h2 className="text-lg font-black">{result.failed > 0 || result.state?.status === 'partial' ? 'Importação concluída com pendências' : 'Importação concluída'}</h2><p className="mt-2 text-sm text-muted-foreground">Coleção <b>{result.collectionId}</b> processada com {result.created} novas cartas, {result.updated} atualizadas, {result.uploaded} imagens novas e {result.skippedExisting || 0} imagens já existentes reaproveitadas.{result.failed > 0 ? ` ${result.failed} imagem(ns) falharam e podem ser retomadas.` : ''}</p><Link to={`/acervo/${encodeURIComponent(result.collectionId)}`} className="mt-4 inline-flex rounded-xl bg-primary px-4 py-2 text-xs font-black text-primary-foreground">Abrir coleção</Link></section>}
     </div>
   </main></>;
 }
