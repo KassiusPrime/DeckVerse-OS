@@ -115,11 +115,12 @@ function slugifyImport(value) {
 
 function parseSimpleCsv(text) {
   const rows=[]; let row=[]; let cell=''; let quoted=false;
+  const delimiter = text.split(/\r?\n/, 1)[0]?.includes(';') ? ';' : ',';
   for(let i=0;i<text.length;i+=1){
     const ch=text[i], next=text[i+1];
     if(ch==='"' && quoted && next==='"'){ cell+='"'; i+=1; continue; }
     if(ch==='"'){ quoted=!quoted; continue; }
-    if(ch===',' && !quoted){ row.push(cell.trim()); cell=''; continue; }
+    if(ch===delimiter && !quoted){ row.push(cell.trim()); cell=''; continue; }
     if((ch==='\n' || ch==='\r') && !quoted){
       if(ch==='\r' && next==='\n') i+=1;
       row.push(cell.trim()); cell='';
@@ -139,9 +140,12 @@ function parseManifestText(text) {
   if(!clean) return [];
   try {
     const parsed=JSON.parse(clean);
-    return Array.isArray(parsed) ? parsed : (Array.isArray(parsed.entries) ? parsed.entries : []);
+    if (Array.isArray(parsed)) return parsed;
+    if (Array.isArray(parsed.entries)) return parsed.entries;
+    if (Array.isArray(parsed.cards)) return parsed.cards;
+    return [];
   } catch {}
-  if(clean.includes(',') && /(^|\n)\s*(name|nome)\s*[,;]/i.test(clean)) return parseSimpleCsv(clean);
+  if ((clean.includes(',') || clean.includes(';')) && /(^|\n)\s*(name|nome)\s*[,;]/i.test(clean)) return parseSimpleCsv(clean);
   return clean.split(/\r?\n/).map((line)=>line.trim()).filter(Boolean).map((line)=>({name:line,entity_type:'character'}));
 }
 
