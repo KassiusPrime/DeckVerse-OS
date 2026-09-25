@@ -125,6 +125,21 @@ export async function getAcervoImportJob(jobId) {
   return rpc('admin_get_acervo_import_job', { p_job_id: jobId });
 }
 
+export async function appendAcervoImportItems(jobId, images = []) {
+  return rpc('admin_append_acervo_import_items', {
+    p_job_id: jobId,
+    p_images: Array.isArray(images) ? images : [],
+  });
+}
+
+export async function setAcervoImportJobStatus(jobId, status, errorMessage = null) {
+  return rpc('admin_set_acervo_import_job_status', {
+    p_job_id: jobId,
+    p_status: status,
+    p_error: errorMessage,
+  });
+}
+
 export async function claimAcervoImportItem(jobId, itemId) {
   return rpc('admin_claim_acervo_import_item', { p_job_id: jobId, p_item_id: itemId });
 }
