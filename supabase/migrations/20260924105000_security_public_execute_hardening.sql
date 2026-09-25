@@ -19,7 +19,7 @@ revoke execute on function public.get_roll_progression() from public; grant exec
 revoke execute on function public.gift_assets(text,text,integer,bigint) from public; grant execute on function public.gift_assets(text,text,integer,bigint) to authenticated;
 revoke execute on function public.import_mudae_cards(text[]) from public; grant execute on function public.import_mudae_cards(text[]) to authenticated;
 revoke execute on function public.liquidate_card(text,integer) from public; grant execute on function public.liquidate_card(text,integer) to authenticated;
-revoke execute on function public.roll_banner_gacha(uuid,integer) from public; grant execute on function public.roll_banner_gacha(uuid) to authenticated;
+revoke execute on function public.roll_banner_gacha(uuid,integer) from public; grant execute on function public.roll_banner_gacha(uuid,integer) to authenticated;
 revoke execute on function public.sell_card(text,integer) from public; grant execute on function public.sell_card(text,integer) to authenticated;
 revoke execute on function public.set_level_progression(integer,integer) from public; grant execute on function public.set_level_progression(integer,integer) to authenticated;
 revoke execute on function public.set_trade_offer(uuid,jsonb,bigint) from public; grant execute on function public.set_trade_offer(uuid,jsonb,bigint) to authenticated;
