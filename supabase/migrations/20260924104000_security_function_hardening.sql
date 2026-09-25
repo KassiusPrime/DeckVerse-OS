@@ -1,0 +1,34 @@
+-- Harden public function search paths and remove anonymous execution from authenticated user operations.
+alter function public.deckverse_rarity_rank(text) set search_path = '';
+alter function public.deckverse_rarity_multiplier(text) set search_path = '';
+alter function public.validate_card_power_cap() set search_path = '';
+alter function public.mudae_duplicate_shards(text) set search_path = '';
+alter function public.normalize_catalog_name(text) set search_path = '';
+
+revoke execute on function public.accept_trade(uuid) from anon;
+revoke execute on function public.advance_tutorial(integer) from anon;
+revoke execute on function public.buy_badge_level() from anon;
+revoke execute on function public.buy_daily_market_card(text) from anon;
+revoke execute on function public.buy_roll_limit_unlock() from anon;
+revoke execute on function public.buy_tower_level() from anon;
+revoke execute on function public.claim_challenge(text) from anon;
+revoke execute on function public.claim_daily() from anon;
+revoke execute on function public.claim_daily_currency() from anon;
+revoke execute on function public.close_trade(uuid,text) from anon;
+revoke execute on function public.confirm_trade_proposal(uuid) from anon;
+revoke execute on function public.create_trade(text) from anon;
+revoke execute on function public.get_my_equipment(text) from anon;
+revoke execute on function public.get_my_equippable_items() from anon;
+revoke execute on function public.get_my_metagame_state() from anon;
+revoke execute on function public.get_my_trades() from anon;
+revoke execute on function public.get_roll_progression() from anon;
+revoke execute on function public.gift_assets(text,text,integer,bigint) from anon;
+revoke execute on function public.import_mudae_cards(text[]) from anon;
+revoke execute on function public.liquidate_card(text,integer) from anon;
+revoke execute on function public.roll_banner_gacha(uuid,integer) from anon;
+revoke execute on function public.sell_card(text,integer) from anon;
+revoke execute on function public.set_card_pin(text,boolean) from anon;
+revoke execute on function public.set_card_wish(text,boolean) from anon;
+revoke execute on function public.set_collection_disabled(text,boolean) from anon;
+revoke execute on function public.set_level_progression(integer,integer) from anon;
+revoke execute on function public.set_trade_offer(uuid,jsonb,bigint) from anon;
