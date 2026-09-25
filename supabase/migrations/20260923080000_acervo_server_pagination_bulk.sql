@@ -24,7 +24,7 @@ with base as (
   where auth.uid() is not null and app_private.is_admin()
     and lower(coalesce(p_kind,'all')) in ('all','collection')
     and (nullif(trim(coalesce(p_query,'')),'') is null or c.name ilike '%'||nullif(trim(coalesce(p_query,'')),'')||'%')
-    and (nullif(trim(coalesce(p_letter,'')),'') is null or lower(left(c.name,1))=lower(left(trim(p_letter),1)))
+    and (nullif(trim(coalesce(p_letter,'')),'') is null or (trim(p_letter)='#' and left(c.name,1) ~ '[0-9]') or (trim(p_letter)<>'#' and lower(left(c.name,1))=lower(left(trim(p_letter),1))))
     and (p_collection_id is null or c.id::text=p_collection_id)
     and (p_is_active is null or c.is_active=p_is_active)
   union all
@@ -35,7 +35,7 @@ with base as (
     and lower(coalesce(p_kind,'all')) in ('all','character','item','boss')
     and (lower(coalesce(p_kind,'all'))='all' or c.entity_type=lower(p_kind))
     and (nullif(trim(coalesce(p_query,'')),'') is null or c.name ilike '%'||nullif(trim(coalesce(p_query,'')),'')||'%' or coalesce(c.rarity,'') ilike '%'||nullif(trim(coalesce(p_query,'')),'')||'%')
-    and (nullif(trim(coalesce(p_letter,'')),'') is null or lower(left(c.name,1))=lower(left(trim(p_letter),1)))
+    and (nullif(trim(coalesce(p_letter,'')),'') is null or (trim(p_letter)='#' and left(c.name,1) ~ '[0-9]') or (trim(p_letter)<>'#' and lower(left(c.name,1))=lower(left(trim(p_letter),1))))
     and (p_collection_id is null or c.collection_id::text=p_collection_id)
     and (p_rarity is null or c.rarity=p_rarity)
     and (p_is_active is null or c.is_active=p_is_active)
@@ -46,7 +46,7 @@ with base as (
   where auth.uid() is not null and app_private.is_admin()
     and lower(coalesce(p_kind,'all'))='form'
     and (nullif(trim(coalesce(p_query,'')),'') is null or f.name ilike '%'||nullif(trim(coalesce(p_query,'')),'')||'%' or coalesce(f.rarity,'') ilike '%'||nullif(trim(coalesce(p_query,'')),'')||'%')
-    and (nullif(trim(coalesce(p_letter,'')),'') is null or lower(left(f.name,1))=lower(left(trim(p_letter),1)))
+    and (nullif(trim(coalesce(p_letter,'')),'') is null or (trim(p_letter)='#' and left(f.name,1) ~ '[0-9]') or (trim(p_letter)<>'#' and lower(left(f.name,1))=lower(left(trim(p_letter),1))))
     and (p_collection_id is null or c.collection_id::text=p_collection_id)
     and (p_rarity is null or f.rarity=p_rarity)
     and (p_is_active is null or f.is_active=p_is_active)
