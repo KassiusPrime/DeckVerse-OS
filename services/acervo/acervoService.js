@@ -276,9 +276,10 @@ export async function executeAcervoImport({ plan, onProgress, existingJobId = nu
     const source = plan.images.find((image) => image.name === planItem.source_name);
     if (!source) continue;
     let claimed = false;
+    let claimedItemId = persisted?.id || null;
     try {
       const claimedItem = await claimAcervoImportItem(jobId, persisted?.id || '');
-      const itemId = claimedItem.id;
+      claimedItemId = claimedItem.id;
       claimed = true;
       const entry = rowMap.get(planItem.entry_slug.toLowerCase());
       if (!entry) throw new Error(`Entidade não encontrada: ${planItem.entry_slug}`);
@@ -307,12 +308,16 @@ export async function executeAcervoImport({ plan, onProgress, existingJobId = nu
       });
       await updateEntry('card', entry.id, { imageUrl: publicData.publicUrl });
       linked += 1;
-      await finishAcervoImportItem(jobId, itemId, existing?.id ? 'skipped' : 'completed', null, sha);
+      await finishAcervoImportItem(jobId, claimedItemId, existing?.id ? 'skipped' : 'completed', null, sha);
       processed += 1;
     } catch (error) {
       failed += 1;
       if (claimed) {
-        try { await finishAcervoImportItem(jobId, persisted?.id || '', 'failed', error?.message || 'Falha desconhecida'); } catch {}
+        try {
+          if (claimedItemId) {
+            await finishAcervoImportItem(jobId, claimedItemId, 'failed', error?.message || 'Falha desconhecida');
+          }
+        } catch {}
       }
       if (onProgress) onProgress({ jobId, current: processed, total, uploaded, linked, failed, status: 'partial', error: error?.message || 'Falha desconhecida' });
     }
