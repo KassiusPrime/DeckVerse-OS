@@ -144,15 +144,16 @@ export default function AcervoCollection() {
     if (!editor?.name?.trim()) return toastMessage(setMessage, 'O nome é obrigatório.', 'error');
     const current = filteredRows.find((item) => item.id === editor.id);
     if (!current) return;
-    await saveRow(current, {
+    const patch = {
       name: editor.name.trim(),
       rarity: editor.rarity,
-      entityType: editor.entityType,
       synopsis: editor.synopsis,
       description: editor.description,
       imageUrl: editor.imageUrl,
       isActive: editor.isActive,
-    }, advance);
+    };
+    if (editor.scope !== 'form') patch.entityType = editor.entityType;
+    await saveRow(current, patch, advance);
     if (!advance) setEditor((currentEditor) => ({ ...currentEditor, saved: true }));
   };
 
