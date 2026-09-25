@@ -1,4 +1,4 @@
-import { claimAcervoImportItem, createCard, createAcervoImportJob, deleteEntry, finalizeAcervoImportJob, finishAcervoImportItem, getAcervoImportJob, importCollection, listAcervoImportJobs, listCollections, recordImportedMedia, searchEntries, updateCollectionImage, updateEntry } from './acervoRepository.js';
+import { appendAcervoImportItems, claimAcervoImportItem, createCard, createAcervoImportJob, deleteEntry, finalizeAcervoImportJob, finishAcervoImportItem, getAcervoImportJob, importCollection, listAcervoImportJobs, listCollections, recordImportedMedia, searchEntries, setAcervoImportJobStatus, updateCollectionImage, updateEntry } from './acervoRepository.js';
 import JSZip from 'jszip';
 import { parseMediaFilename } from '../../services/media/mediaFilenameParser.js';
 import { getSupabaseBrowserClient } from '../supabase/client.js';
@@ -253,6 +253,13 @@ export async function executeAcervoImport({ plan, onProgress, existingJobId = nu
   if (jobId) {
     jobState = await getAcervoImportJob(jobId);
     if (jobState?.job?.collection_id !== plan.collection.id) throw new Error('A importação selecionada pertence a outra coleção.');
+    if (jobState?.job?.status === 'completed') throw new Error('Esta importação já foi concluída. Crie uma nova importação para uma nova versão.');
+    const existingSources = new Set((jobState.items || []).map((item) => item.source_name));
+    const missingItems = items.filter((item) => !existingSources.has(item.source_name));
+    if (missingItems.length) {
+      await appendAcervoImportItems(jobId, missingItems);
+      jobState = await getAcervoImportJob(jobId);
+    }
   } else {
     const createdJob = await createAcervoImportJob({
       collectionId: plan.collection.id,
@@ -266,7 +273,7 @@ export async function executeAcervoImport({ plan, onProgress, existingJobId = nu
   const supabase = getSupabaseBrowserClient();
   const persistedItems = Array.isArray(jobState?.items) ? jobState.items : [];
   const persistedBySource = new Map(persistedItems.map((item) => [item.source_name, item]));
-  const total = items.length;
+  const total = Math.max(items.length, Number(jobState?.job?.total_images || 0));
   let processed = 0, uploaded = 0, linked = 0, skippedExisting = 0, failed = 0;
   const BATCH_SIZE = 25;
   const batches = [];
@@ -335,18 +342,24 @@ export async function executeAcervoImport({ plan, onProgress, existingJobId = nu
     }
   }
 
-  const cover = plan.images?.find((item) => item.parsed.valid && item.parsed.entityType === 'collection');
-  if(cover){
-    const bytes = await cover.file.async('uint8array');
-    if(bytes.byteLength <= IMPORT_IMAGE_MAX){
+  try {
+    const cover = plan.images?.find((item) => item.parsed.valid && item.parsed.entityType === 'collection');
+    if(cover){
+      const bytes = await cover.file.async('uint8array');
+      if(bytes.byteLength > IMPORT_IMAGE_MAX) throw new Error(`Capa acima de 2 MB: ${cover.name}`);
       const mime = mimeFromName(cover.name);
+      if(!IMPORT_IMAGE_TYPES.has(mime)) throw new Error(`Formato de capa não suportado: ${cover.name}`);
       const storagePath = `${plan.collection.id}/collection/cover-${cover.name.split('/').pop().replace(/[^a-zA-Z0-9._-]/g,'_')}`;
       const blob = new Blob([bytes], { type: mime });
       const { error } = await supabase.storage.from('cards-images').upload(storagePath, blob, { contentType: mime, cacheControl: '31536000', upsert: true });
-      if(error) throw error;
+      if(error) throw new Error(`Upload da capa: ${error.message}`);
       const { data } = supabase.storage.from('cards-images').getPublicUrl(storagePath);
+      if(!data?.publicUrl) throw new Error('Não foi possível gerar a URL pública da capa.');
       await updateCollectionImage(plan.collection.id, data.publicUrl);
     }
+  } catch (coverError) {
+    await setAcervoImportJobStatus(jobId, failed > 0 ? 'partial' : 'failed', coverError?.message || 'Falha ao processar a capa.');
+    throw coverError;
   }
 
   const state = await finalizeAcervoImportJob(jobId);
