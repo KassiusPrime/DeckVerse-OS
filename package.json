@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 3000",
     "build": "vite build",
-    "test": "node scripts/testCatalogUniqueIds.mjs && node scripts/testProductRoutes.mjs && node scripts/testRepositoryCompat.mjs && node scripts/testMediaManager.mjs && node scripts/testCatalogRarityAndMedia.mjs && node scripts/testAdminCatalog.mjs && node scripts/testDynamicCollectionRegistry.mjs && node scripts/testSupabaseArchitecture.mjs && node scripts/testPublicationReadiness.mjs && node scripts/testAccessibility.mjs && node scripts/testOAuthAndPublicCatalog.mjs && node tests/architecture/permissionService.test.mjs && node tests/architecture/updateCatalogContent.test.mjs && node tests/architecture/marketplaceUseCases.test.mjs && node tests/architecture/inventoryUseCases.test.mjs && node tests/architecture/economyUseCases.test.mjs && node tests/architecture/eventBus.test.mjs && node tests/architecture/featureFlags.test.mjs && node gacha/tests/OpenPackUseCase.test.mjs",
+    "test": "node scripts/testCatalogUniqueIds.mjs && node scripts/testProductRoutes.mjs && node scripts/testRepositoryCompat.mjs && node scripts/testMediaManager.mjs && node scripts/testCatalogRarityAndMedia.mjs && node scripts/testAdminCatalog.mjs && node scripts/testDynamicCollectionRegistry.mjs && node scripts/testSupabaseArchitecture.mjs && node scripts/testPublicationReadiness.mjs && node scripts/testAccessibility.mjs && node scripts/testOAuthAndPublicCatalog.mjs && node tests/architecture/permissionService.test.mjs && node tests/architecture/updateCatalogContent.test.mjs && node tests/architecture/marketplaceUseCases.test.mjs && node tests/architecture/inventoryUseCases.test.mjs && node tests/architecture/economyUseCases.test.mjs && node tests/architecture/eventBus.test.mjs && node tests/architecture/featureFlags.test.mjs && node gacha/tests/OpenPackUseCase.test.mjs && node tests/acervo/mediaFilenameParser.test.mjs",
     "test:routes": "node scripts/testProductRoutes.mjs",
     "test:catalog-ui": "node scripts/testCatalogRarityAndMedia.mjs",
     "test:supabase": "node scripts/testSupabaseArchitecture.mjs",
@@ -24,7 +24,8 @@
     "preview": "vite preview",
     "seed:supabase": "node scripts/seedSupabaseLegacy.mjs",
     "media:import:supabase": "node scripts/importCollectionZipsToSupabase.mjs",
-    "discord:register": "node scripts/registerDiscordCommands.mjs"
+    "discord:register": "node scripts/registerDiscordCommands.mjs",
+    "test:acervo-import": "node tests/acervo/mediaFilenameParser.test.mjs"
   },
   "dependencies": {
     "@google/genai": "2.15.0",
