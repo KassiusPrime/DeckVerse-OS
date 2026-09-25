@@ -337,8 +337,6 @@ export async function executeAcervoImport({ plan, onProgress, existingJobId = nu
       if (onProgress) onProgress({ jobId, current: processed, total, uploaded, linked, failed, status: 'partial', error: error?.message || 'Falha desconhecida' });
     }
     if(onProgress) onProgress({ jobId, current: processed, total, uploaded, linked, failed, status: 'running' });
-  }
-
     }
   }
 
