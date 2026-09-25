@@ -1,0 +1,25 @@
+-- Restrict authenticated user operations from the PUBLIC role while preserving signed-in access.
+revoke execute on function public.accept_trade(uuid) from public; grant execute on function public.accept_trade(uuid) to authenticated;
+revoke execute on function public.advance_tutorial(integer) from public; grant execute on function public.advance_tutorial(integer) to authenticated;
+revoke execute on function public.buy_badge_level() from public; grant execute on function public.buy_badge_level() to authenticated;
+revoke execute on function public.buy_daily_market_card(text) from public; grant execute on function public.buy_daily_market_card(text) to authenticated;
+revoke execute on function public.buy_roll_limit_unlock() from public; grant execute on function public.buy_roll_limit_unlock() to authenticated;
+revoke execute on function public.buy_tower_level() from public; grant execute on function public.buy_tower_level() to authenticated;
+revoke execute on function public.claim_challenge(text) from public; grant execute on function public.claim_challenge(text) to authenticated;
+revoke execute on function public.claim_daily() from public; grant execute on function public.claim_daily() to authenticated;
+revoke execute on function public.claim_daily_currency() from public; grant execute on function public.claim_daily_currency() to authenticated;
+revoke execute on function public.close_trade(uuid,text) from public; grant execute on function public.close_trade(uuid,text) to authenticated;
+revoke execute on function public.confirm_trade_proposal(uuid) from public; grant execute on function public.confirm_trade_proposal(uuid) to authenticated;
+revoke execute on function public.create_trade(text) from public; grant execute on function public.create_trade(text) to authenticated;
+revoke execute on function public.get_my_equipment(text) from public; grant execute on function public.get_my_equipment(text) to authenticated;
+revoke execute on function public.get_my_equippable_items() from public; grant execute on function public.get_my_equippable_items() to authenticated;
+revoke execute on function public.get_my_metagame_state() from public; grant execute on function public.get_my_metagame_state() to authenticated;
+revoke execute on function public.get_my_trades() from public; grant execute on function public.get_my_trades() to authenticated;
+revoke execute on function public.get_roll_progression() from public; grant execute on function public.get_roll_progression() to authenticated;
+revoke execute on function public.gift_assets(text,text,integer,bigint) from public; grant execute on function public.gift_assets(text,text,integer,bigint) to authenticated;
+revoke execute on function public.import_mudae_cards(text[]) from public; grant execute on function public.import_mudae_cards(text[]) to authenticated;
+revoke execute on function public.liquidate_card(text,integer) from public; grant execute on function public.liquidate_card(text,integer) to authenticated;
+revoke execute on function public.roll_banner_gacha(uuid,integer) from public; grant execute on function public.roll_banner_gacha(uuid) to authenticated;
+revoke execute on function public.sell_card(text,integer) from public; grant execute on function public.sell_card(text,integer) to authenticated;
+revoke execute on function public.set_level_progression(integer,integer) from public; grant execute on function public.set_level_progression(integer,integer) to authenticated;
+revoke execute on function public.set_trade_offer(uuid,jsonb,bigint) from public; grant execute on function public.set_trade_offer(uuid,jsonb,bigint) to authenticated;
