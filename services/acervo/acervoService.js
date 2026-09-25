@@ -268,8 +268,12 @@ export async function executeAcervoImport({ plan, onProgress, existingJobId = nu
   const persistedBySource = new Map(persistedItems.map((item) => [item.source_name, item]));
   const total = items.length;
   let processed = 0, uploaded = 0, linked = 0, skippedExisting = 0, failed = 0;
+  const BATCH_SIZE = 25;
+  const batches = [];
+  for (let i = 0; i < items.length; i += BATCH_SIZE) batches.push(items.slice(i, i + BATCH_SIZE));
 
-  for (const planItem of items) {
+  for (const batch of batches) {
+    for (const planItem of batch) {
     const persisted = persistedBySource.get(planItem.source_name);
     if (persisted?.status === 'completed' || persisted?.status === 'skipped') {
       processed += 1;
@@ -326,6 +330,9 @@ export async function executeAcervoImport({ plan, onProgress, existingJobId = nu
       if (onProgress) onProgress({ jobId, current: processed, total, uploaded, linked, failed, status: 'partial', error: error?.message || 'Falha desconhecida' });
     }
     if(onProgress) onProgress({ jobId, current: processed, total, uploaded, linked, failed, status: 'running' });
+  }
+
+    }
   }
 
   const cover = plan.images?.find((item) => item.parsed.valid && item.parsed.entityType === 'collection');
