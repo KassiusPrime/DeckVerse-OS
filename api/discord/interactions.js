@@ -99,7 +99,7 @@ async function runRoll(interaction, supabase, discordId) {
   const profile = await getProfileByDiscord(supabase, discordId);
   if (!profile) return message('Entre no DeckVerse com Discord antes de usar o bot.', [], [], true);
   const transactionId = randomUUID();
-  const { data, error } = await supabase.rpc('open_gacha_pack', { p_transaction_id: transactionId, p_count: count });
+  const { data, error } = await supabase.rpc('bot_open_gacha_pack', { p_discord_id: discordId, p_transaction_id: transactionId, p_count: count });
   if (error) return message(errorText(error), [], [], true);
   const pulls = Array.isArray(data?.pulls) ? data.pulls : [];
   const preview = pulls.slice(0, 10).map((pull) => `**${pull.rarity}** · ${pull.name}`).join('\n');
